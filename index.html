@@ -468,6 +468,46 @@
       { name: "USA West / East Coast (Zone 12/13)", oneWay: 112500, totalMiles: 900000 }
     ];
 
+    // Participating yuu Partner Brands for 4-Merchant Requirement
+    const YUU_PARTNER_BRANDS = [
+      "cold storage", "cs fresh", "jasons", "giant", 
+      "guardian", "7-eleven", "7-11", "foodpanda", 
+      "gojek", "simplygo", "chagee"
+    ];
+
+    function detectYuuMerchant(desc = "") {
+      const clean = (desc || "").toLowerCase();
+      for (const brand of YUU_PARTNER_BRANDS) {
+        if (clean.includes(brand)) {
+          if (brand.includes("cold") || brand.includes("cs fresh") || brand.includes("jasons")) return "Cold Storage";
+          if (brand.includes("giant")) return "Giant";
+          if (brand.includes("guardian")) return "Guardian";
+          if (brand.includes("7-eleven") || brand.includes("7-11")) return "7-Eleven";
+          if (brand.includes("foodpanda")) return "foodpanda";
+          if (brand.includes("gojek")) return "Gojek";
+          if (brand.includes("simplygo")) return "SimplyGo";
+          if (brand.includes("chagee")) return "CHAGEE";
+        }
+      }
+      return null;
+    }
+
+    function getYuuMerchantProgress(card) {
+      const activeTxns = transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
+      const uniqueMerchants = new Set();
+      
+      activeTxns.forEach(tx => {
+        const brand = detectYuuMerchant(tx.desc);
+        if (brand) uniqueMerchants.add(brand);
+      });
+
+      return {
+        count: uniqueMerchants.size,
+        merchants: Array.from(uniqueMerchants),
+        isEligible: uniqueMerchants.size >= 4
+      };
+    }
+
     const MCC_DATABASE = {
       "5812": {
         name: "Restaurants & Dining Places",
@@ -508,7 +548,7 @@
       },
       "5411": {
         name: "Grocery Stores & Supermarkets",
-        notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG. General supermarkets: UOB PPV or HSBC Rev.",
+        notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG (requires S$800 spend + 4 merchants). General supermarkets: UOB PPV or HSBC Rev.",
         candidatesLocal: [
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
@@ -622,7 +662,7 @@
       },
       "4111": {
         name: "Commuter Transport / Transit",
-        notes: "Local SimplyGo earns 10 mpd on yuu. Overseas transit: use UOB VS (4 mpd) or Maybank Horizon (2.8 mpd).",
+        notes: "Local SimplyGo earns 10 mpd on yuu (counts toward 4-merchant rule). Overseas transit: use UOB VS (4 mpd) or Maybank Horizon (2.8 mpd).",
         candidatesLocal: [
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 }
@@ -634,7 +674,7 @@
       },
       "4121": {
         name: "Taxis & Ride-Hailing (Grab, Gojek, Uber)",
-        notes: "Ride hailing and taxis.",
+        notes: "Ride hailing and taxis. Gojek counts toward DBS yuu 4-merchant quota.",
         candidatesLocal: [
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
@@ -696,7 +736,7 @@
     };
 
     const INITIAL_CARDS = [
-      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo.' },
+      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo. Req: S$800 min spend + 4 distinct merchants.' },
       { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
       { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
       { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
@@ -723,7 +763,7 @@
     let isOverseasMode = false;
     let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05', prvi: '2024-07' };
 
-    // Initialize Firebase
+    // Initialize Firebase Services
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
@@ -1229,7 +1269,26 @@
         let barColor = 'var(--primary)';
         let statusNotice = '';
 
-        if (card.minSpend > 0) {
+        if (card.id === 'dbs-yuu') {
+          const yuuProgress = getYuuMerchantProgress(card);
+          const merchantCount = yuuProgress.count;
+          const merchantsRemaining = Math.max(0, 4 - merchantCount);
+          
+          let merchantPill = '';
+          if (merchantCount >= 4) {
+            merchantPill = `<span style="color:var(--accent);font-weight:700;">✅ 4/4 Merchants</span>`;
+          } else {
+            merchantPill = `<span style="color:var(--warning);font-weight:700;">⚠️ ${merchantCount}/4 Merchants (${merchantsRemaining} more)</span>`;
+          }
+
+          if (currentSpend < 800) {
+            barColor = 'var(--warning)';
+            statusNotice = `<span style="color:var(--warning);">$${(800 - currentSpend).toFixed(0)} min spend left</span> • ${merchantPill}`;
+          } else {
+            barColor = merchantCount >= 4 ? 'var(--accent)' : 'var(--warning)';
+            statusNotice = `<span style="color:var(--accent);">Spend met!</span> • ${merchantPill}`;
+          }
+        } else if (card.minSpend > 0) {
           if (currentSpend < card.minSpend) {
             barColor = 'var(--warning)';
             statusNotice = `<span style="color:var(--warning);font-size:0.75rem;">Need $${(card.minSpend - currentSpend).toFixed(0)} to unlock</span>`;
