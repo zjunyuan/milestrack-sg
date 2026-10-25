@@ -39,6 +39,13 @@
     .total-miles { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 4px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
+    /* Vault Grid */
+    .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+    .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; }
+    .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+    .vault-pts { font-size: 1rem; font-weight: 700; color: #fff; margin: 2px 0; }
+    .vault-converted { font-size: 0.75rem; color: var(--accent); }
+
     .section-title { font-size: 1rem; font-weight: 600; margin: 10px 4px 4px; display: flex; justify-content: space-between; align-items: center; }
     .card-list { display: flex; flex-direction: column; gap: 10px; }
     .credit-card { background-color: var(--surface); border-radius: 16px; padding: 14px 16px; border: 1px solid var(--surface-variant); display: flex; flex-direction: column; gap: 8px; }
@@ -46,7 +53,6 @@
     .card-name { font-weight: 600; font-size: 0.95rem; }
     .card-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: var(--surface-variant); color: var(--primary); }
     .badge-gold { color: var(--gold); border: 1px solid rgba(251, 191, 36, 0.3); }
-    .card-subtext { font-size: 0.75rem; color: #94a3b8; }
     .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
 
     .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; margin: 2px 0; }
@@ -75,24 +81,37 @@
   <div class="app-container">
     <header>
       <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
-      <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Card Cycle Settings">settings</span>
+      <div style="display:flex; gap:12px;">
+        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
+        <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Statement Cutoff Dates">settings</span>
+      </div>
     </header>
 
+    <!-- Total Points / Mileage War Chest -->
     <div class="summary-card">
-      <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">Active Cycle Miles</div>
-      <div class="total-miles" id="totalMiles">0 <span style="font-size:1.1rem;font-weight:400;">miles</span></div>
+      <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">Total Mileage War Chest</div>
+      <div class="total-miles" id="totalVaultMiles">0 <span style="font-size:1.1rem;font-weight:400;">miles</span></div>
       <div class="summary-subtext">
-        <span>Cycle Spend: <b id="totalSpend">$0.00</b></span>
-        <span>Avg Rate: <b id="avgRate">0.00 mpd</b></span>
+        <span>Available Across All Banks</span>
+        <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update Balances ✏️</span>
       </div>
     </div>
 
+    <!-- Points Vault Breakdown -->
     <div class="section-title">
-      <span>Cards & Bonus Caps</span>
-      <span style="font-size:0.75rem; color:#94a3b8;">Cycle-Aware Tracking</span>
+      <span>Bank Points Vault</span>
+      <span style="font-size:0.75rem; color:#94a3b8;">Pooled Currencies</span>
+    </div>
+    <div class="vault-grid" id="vaultContainer"></div>
+
+    <!-- Card Caps & Thresholds -->
+    <div class="section-title">
+      <span>Monthly Bonus Caps</span>
+      <span style="font-size:0.75rem; color:#94a3b8;">Active Billing Cycle</span>
     </div>
     <div class="card-list" id="cardsContainer"></div>
 
+    <!-- Transaction Stream -->
     <div class="section-title">Recent Transactions</div>
     <div id="txList"></div>
   </div>
@@ -101,7 +120,7 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
-  <!-- Transaction Modal -->
+  <!-- Log Transaction Modal -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -137,6 +156,48 @@
     </div>
   </div>
 
+  <!-- Points Vault Edit Modal -->
+  <div class="modal-overlay" id="vaultOverlay" onclick="closeVaultModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Edit Points Balances</h2>
+        <span class="material-symbols-outlined" onclick="closeVaultModal()" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.8rem; color:#94a3b8;">Enter your current bank points balances from your bank apps:</p>
+
+      <div class="form-group">
+        <label>UOB UNI$ (PPV, VS, Lady's)</label>
+        <input type="number" id="v_uob_uni" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Citi ThankYou Points (Citi Rewards)</label>
+        <input type="number" id="v_citi_typ" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>DBS Points (DBS WWMC)</label>
+        <input type="number" id="v_dbs_pts" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>DBS yuu Points</label>
+        <input type="number" id="v_yuu_pts" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>HSBC Reward Points (Revolution)</label>
+        <input type="number" id="v_hsbc_pts" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Maybank TREATS Points (World MC, Horizon VS)</label>
+        <input type="number" id="v_mb_treats" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Direct KrisFlyer Miles (KrisFlyer UOB & Airline Balance)</label>
+        <input type="number" id="v_kf_miles" class="form-control">
+      </div>
+
+      <button class="btn-submit" onclick="saveVaultBalances()">Save Balances</button>
+    </div>
+  </div>
+
   <!-- Settings Modal for Statement Dates -->
   <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -144,15 +205,15 @@
         <h2 style="font-size:1.15rem;">Statement Cutoff Days</h2>
         <span class="material-symbols-outlined" onclick="closeSettings()" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.8rem; color:#94a3b8;">Enter the day of the month your credit card statement closes:</p>
+      <p style="font-size:0.8rem; color:#94a3b8;">Enter the day of the month your card statement closes:</p>
 
       <div class="form-group">
-        <label>UOB Visa Signature (Statement Day: 1 - 31)</label>
+        <label>UOB Visa Signature (Day: 1 - 31)</label>
         <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
       </div>
 
       <div class="form-group">
-        <label>Citi Rewards (Statement Day: 1 - 31)</label>
+        <label>Citi Rewards (Day: 1 - 31)</label>
         <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
       </div>
 
@@ -161,45 +222,50 @@
   </div>
 
   <script type="module">
+    // Points Vault Initial State with conversion ratios to miles
+    const DEFAULT_VAULT = {
+      uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$' },
+      citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP' },
+      dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts' },
+      yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts' },
+      hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts' },
+      mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts' },
+      kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles' }
+    };
+
     const INITIAL_CARDS = [
-      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo.' },
-      { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
-      { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
-      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
-      { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 FCY in statement cycle for 4.0 mpd.' },
-      { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & fashion. Statement month cycle.' },
-      { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', cycleType: 'calendar', badgeClass: '', hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.' },
-      { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Dining)", bank: 'UOB', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Restaurants, cafes, bars. S$750 sub-cap.' },
-      { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Travel)", bank: 'UOB', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. S$750 sub-cap.' },
-      { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814).' },
-      { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.2, baseMpd: 0.4, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: 'Dining & Petrol in SG. Uncapped 3.2 mpd.' },
-      { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.0, baseMpd: 1.2, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: 'Uncapped 3.0 mpd on SIA, Dining, Online, Taxis.' },
-      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', monthlyCap: 10000, minSpend: 800, bonusMpd: 3.24, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Air tickets & FCY overseas. Min S$800 spend; S$10k cap.' }
+      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo.' },
+      { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
+      { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
+      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
+      { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 FCY in statement cycle for 4.0 mpd.' },
+      { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', vaultKey: 'citi_typ', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & fashion. Statement month cycle.' },
+      { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', cycleType: 'calendar', badgeClass: '', hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.' },
+      { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Dining)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Restaurants, cafes, bars. S$750 sub-cap.' },
+      { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Travel)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. S$750 sub-cap.' },
+      { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', vaultKey: 'hsbc_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814).' },
+      { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.2, baseMpd: 0.4, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: 'Dining & Petrol in SG. Uncapped 3.2 mpd.' },
+      { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', vaultKey: 'kf_direct', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.0, baseMpd: 1.2, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: 'Uncapped 3.0 mpd on SIA, Dining, Online, Taxis.' },
+      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 3.24, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Air tickets & FCY overseas. Min S$800 spend; S$10k cap.' }
     ];
 
-    let cards = JSON.parse(localStorage.getItem('cards_sg_v4')) || INITIAL_CARDS;
-    let transactions = JSON.parse(localStorage.getItem('tx_sg_v4')) || [];
+    let cards = JSON.parse(localStorage.getItem('cards_sg_v5')) || INITIAL_CARDS;
+    let transactions = JSON.parse(localStorage.getItem('tx_sg_v5')) || [];
+    let vault = JSON.parse(localStorage.getItem('vault_sg_v1')) || DEFAULT_VAULT;
 
-    // Helper: Determine if a transaction timestamp belongs to the active cycle for a given card
     function isTxInActiveCycle(txTimestamp, card) {
       const txDate = new Date(txTimestamp);
       const now = new Date();
 
       if (card.cycleType === 'uncapped') {
-        // Count transactions within the current calendar year
         return txDate.getFullYear() === now.getFullYear();
       }
-
       if (card.cycleType === 'calendar') {
-        // Resets on the 1st of each calendar month
         return txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth();
       }
-
       if (card.cycleType === 'statement') {
-        // Resets based on statement cutoff day
         const cutoff = card.cutoffDay || 15;
         let cycleStart, cycleEnd;
-
         if (now.getDate() >= cutoff) {
           cycleStart = new Date(now.getFullYear(), now.getMonth(), cutoff, 0, 0, 0);
           cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, cutoff, 0, 0, 0);
@@ -207,19 +273,37 @@
           cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, cutoff, 0, 0, 0);
           cycleEnd = new Date(now.getFullYear(), now.getMonth(), cutoff, 0, 0, 0);
         }
-
         return txDate >= cycleStart && txDate < cycleEnd;
       }
-
       return true;
     }
 
-    // Helper: Format cycle label for display on the card UI
     function getCycleLabel(card) {
       if (card.cycleType === 'uncapped') return 'No Monthly Cap';
       if (card.cycleType === 'calendar') return 'Calendar Month (1st - End)';
       return `Statement Month (Resets on ${card.cutoffDay}th)`;
     }
+
+    window.renderVault = function() {
+      const container = document.getElementById('vaultContainer');
+      container.innerHTML = '';
+      let grandTotalMiles = 0;
+
+      for (const [key, item] of Object.entries(vault)) {
+        const equivMiles = Math.floor(item.points * item.ratio);
+        grandTotalMiles += equivMiles;
+
+        container.innerHTML += `
+          <div class="vault-item">
+            <span class="vault-label">${item.name}</span>
+            <span class="vault-pts">${Number(item.points).toLocaleString()} ${item.unit}</span>
+            <span class="vault-converted">≈ ${equivMiles.toLocaleString()} miles</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('totalVaultMiles').innerHTML = `${grandTotalMiles.toLocaleString()} <span style="font-size:1.1rem;font-weight:400;">miles</span>`;
+    };
 
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
@@ -228,7 +312,6 @@
       select.innerHTML = '';
 
       cards.forEach(card => {
-        // Dynamically compute current spend from transactions inside this card's active cycle
         const activeTxns = transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
         const currentSpend = activeTxns.reduce((sum, tx) => sum + tx.amt, 0);
         card.currentSpend = currentSpend;
@@ -284,11 +367,8 @@
     window.renderTransactions = function() {
       const list = document.getElementById('txList');
       list.innerHTML = '';
-      let totalMiles = 0, totalSpend = 0;
 
       transactions.slice().reverse().forEach(tx => {
-        totalMiles += tx.miles;
-        totalSpend += tx.amt;
         const card = cards.find(c => c.id === tx.cardId) || { name: 'Card' };
         list.innerHTML += `
           <div class="tx-item">
@@ -303,10 +383,6 @@
           </div>
         `;
       });
-
-      document.getElementById('totalMiles').innerText = totalMiles.toLocaleString();
-      document.getElementById('totalSpend').innerText = '$' + totalSpend.toFixed(2);
-      document.getElementById('avgRate').innerText = totalSpend > 0 ? (totalMiles / totalSpend).toFixed(2) + ' mpd' : '0.00 mpd';
     };
 
     window.saveTransaction = function() {
@@ -318,6 +394,7 @@
       if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
       const card = cards.find(c => c.id === cardId);
       let earnedMiles = 0;
+      let earnedRawPoints = 0;
 
       if (card) {
         let isEligible = isBonus && (card.currentSpend < card.monthlyCap);
@@ -325,14 +402,23 @@
         if (card.engine === 'yuu-10') {
           let rate = (isBonus && card.currentSpend + amt <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
           earnedMiles = Math.round(amt * rate);
+          earnedRawPoints = Math.round(earnedMiles / 0.28);
         } else if (card.engine === 'uob-5') {
           let blocks = Math.floor(amt / 5);
-          let multiplier = isEligible ? (card.bonusMpd * 2.5) : (card.baseMpd * 2.5);
-          earnedMiles = blocks * multiplier;
+          let uniPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
+          earnedRawPoints = blocks * uniPerBlock;
+          earnedMiles = earnedRawPoints * 2;
         } else {
           let eligibleDollars = Math.floor(amt);
           let rate = isEligible ? card.bonusMpd : card.baseMpd;
           earnedMiles = Math.round(eligibleDollars * rate);
+          earnedRawPoints = Math.round(earnedMiles / (vault[card.vaultKey]?.ratio || 1));
+        }
+
+        // Increment bank points vault
+        if (vault[card.vaultKey]) {
+          vault[card.vaultKey].points += earnedRawPoints;
+          localStorage.setItem('vault_sg_v1', JSON.stringify(vault));
         }
       }
 
@@ -346,13 +432,45 @@
         date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
       });
 
-      localStorage.setItem('tx_sg_v4', JSON.stringify(transactions));
+      localStorage.setItem('tx_sg_v5', JSON.stringify(transactions));
 
+      renderVault();
       renderCards();
       renderTransactions();
       closeModal();
       document.getElementById('descInput').value = '';
       document.getElementById('amtInput').value = '';
+    };
+
+    window.openVaultModal = function() {
+      document.getElementById('v_uob_uni').value = vault.uob_uni.points;
+      document.getElementById('v_citi_typ').value = vault.citi_typ.points;
+      document.getElementById('v_dbs_pts').value = vault.dbs_pts.points;
+      document.getElementById('v_yuu_pts').value = vault.yuu_pts.points;
+      document.getElementById('v_hsbc_pts').value = vault.hsbc_pts.points;
+      document.getElementById('v_mb_treats').value = vault.mb_treats.points;
+      document.getElementById('v_kf_miles').value = vault.kf_direct.points;
+      document.getElementById('vaultOverlay').classList.add('open');
+    };
+
+    window.closeVaultModal = (e) => {
+      if (!e || e.target.id === 'vaultOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('vaultOverlay').classList.remove('open');
+      }
+    };
+
+    window.saveVaultBalances = function() {
+      vault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
+      vault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
+      vault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
+      vault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts').value) || 0;
+      vault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts').value) || 0;
+      vault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
+      vault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
+
+      localStorage.setItem('vault_sg_v1', JSON.stringify(vault));
+      renderVault();
+      document.getElementById('vaultOverlay').classList.remove('open');
     };
 
     window.openSettings = function() {
@@ -363,7 +481,7 @@
       document.getElementById('settingsOverlay').classList.add('open');
     };
 
-    window.closeSettings = function(e) {
+    window.closeSettings = (e) => {
       if (!e || e.target.id === 'settingsOverlay' || e.target.tagName === 'SPAN') {
         document.getElementById('settingsOverlay').classList.remove('open');
       }
@@ -378,7 +496,7 @@
         if (c.id === 'citi-rewards') c.cutoffDay = citiDay;
       });
 
-      localStorage.setItem('cards_sg_v4', JSON.stringify(cards));
+      localStorage.setItem('cards_sg_v5', JSON.stringify(cards));
       renderCards();
       document.getElementById('settingsOverlay').classList.remove('open');
     };
@@ -396,6 +514,7 @@
       });
     }
 
+    renderVault();
     renderCards();
     renderTransactions();
   </script>
