@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MilesTrack SG</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <style>
+    :root {
+      --bg: #121316;
+      --surface: #1e1f24;
+      --surface-variant: #2a2b32;
+      --primary: #9ecaff;
+      --primary-container: #00497d;
+      --on-primary: #003258;
+      --on-surface: #e2e2e6;
+      --outline: #44474f;
+      --accent: #4ade80;
+      --warning: #f97316;
+      --danger: #ef4444;
+      --gold: #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--on-surface); min-height: 100vh; display: flex; justify-content: center; padding-bottom: 90px; }
+    .app-container { width: 100%; max-width: 500px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    .total-miles { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 4px 0; }
+    .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
+
+    .section-title { font-size: 1.05rem; font-weight: 600; margin: 10px 4px 4px; display: flex; justify-content: space-between; align-items: center; }
+    .card-list { display: flex; flex-direction: column; gap: 10px; }
+    .credit-card { background-color: var(--surface); border-radius: 16px; padding: 14px 16px; border: 1px solid var(--surface-variant); display: flex; flex-direction: column; gap: 8px; }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-name { font-weight: 600; font-size: 0.95rem; }
+    .card-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: var(--surface-variant); color: var(--primary); }
+    .badge-gold { color: var(--gold); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .card-subtext { font-size: 0.75rem; color: #94a3b8; }
+
+    .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; margin: 2px 0; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .card-stats { display: flex; justify-content: space-between; font-size: 0.78rem; color: #94a3b8; }
+
+    .tx-item { background-color: var(--surface); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .tx-desc { font-weight: 500; font-size: 0.9rem; }
+    .tx-meta { font-size: 0.75rem; color: #94a3b8; }
+    .tx-miles { color: var(--accent); font-weight: 700; font-size: 0.95rem; text-align: right; }
+    .tx-amt { font-size: 0.75rem; color: #94a3b8; text-align: right; }
+
+    .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 18px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.5); cursor: pointer; }
+    
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet { width: 100%; max-width: 500px; background: var(--surface); border-radius: 28px 28px 0 0; padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.8rem; color: #94a3b8; }
+    .form-control { background: var(--surface-variant); border: 1px solid var(--outline); color: white; padding: 12px; border-radius: 12px; font-size: 0.95rem; }
+    .btn-submit { background: var(--primary); color: var(--on-primary); border: none; padding: 14px; font-weight: 600; border-radius: 14px; cursor: pointer; font-size: 1rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
+      <span class="material-symbols-outlined" onclick="resetMonth()" style="cursor:pointer; color:#94a3b8;" title="Reset Month">restart_alt</span>
+    </header>
+
+    <div class="summary-card">
+      <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">This Month's Miles</div>
+      <div class="total-miles" id="totalMiles">0 <span style="font-size:1.1rem;font-weight:400;">miles</span></div>
+      <div class="summary-subtext">
+        <span>Spend: <b id="totalSpend">$0.00</b></span>
+        <span>Avg Rate: <b id="avgRate">0.00 mpd</b></span>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Cards & Bonus Caps</span>
+      <span style="font-size:0.75rem; color:#94a3b8;">4.0 - 10.0 mpd Optimized</span>
+    </div>
+    <div class="card-list" id="cardsContainer"></div>
+
+    <div class="section-title">Recent Transactions</div>
+    <div id="txList"></div>
+  </div>
+
+  <button class="fab" onclick="openModal()">
+    <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
+  </button>
+
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Log Transaction</h2>
+        <span class="material-symbols-outlined" onclick="closeModal()" style="cursor:pointer;">close</span>
+      </div>
+
+      <div class="form-group">
+        <label>Merchant / Description</label>
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA, Shell">
+      </div>
+
+      <div class="form-group">
+        <label>Amount (SGD)</label>
+        <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01">
+      </div>
+
+      <div class="form-group">
+        <label>Select Card Slot</label>
+        <select id="cardSelect" class="form-control" onchange="updateCategoryHint()"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Category Verification</label>
+        <select id="bonusCategory" class="form-control">
+          <option value="bonus">Eligible Bonus Spend</option>
+          <option value="base">General / Excluded Spend</option>
+        </select>
+        <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
+      </div>
+
+      <button class="btn-submit" onclick="saveTransaction()">Save & Calculate Miles</button>
+    </div>
+  </div>
+
+  <script type="module">
+    // Complete 10-Card Wallet with sub-caps, min-spends, and rounding models
+    const INITIAL_CARDS = [
+      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', monthlyCap: 822.86, minSpend: 800, currentSpend: 0, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo (Needs 4 merchants & $800 min).' },
+      { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', monthlyCap: 600, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo. Avoid physical card tap.' },
+      { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', monthlyCap: 600, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
+      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', monthlyCap: 1200, minSpend: 1000, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Must hit S$1,000 local spend min in statement month to unlock 4.0 mpd.' },
+      { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', monthlyCap: 1200, minSpend: 1000, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Must hit S$1,000 FCY min in statement month to unlock 4.0 mpd.' },
+      { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', monthlyCap: 1000, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', badgeClass: '', hint: 'Online shopping & fashion. No Travel bookings or in-app Apple Pay.' },
+      { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', monthlyCap: 1000, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', badgeClass: '', hint: 'Online spend including SIA, Scoot, Agoda, Klook, and in-app wallets.' },
+      { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Cat 1: Dining)", bank: 'UOB', monthlyCap: 750, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Restaurants, cafes, bars. Strict S$750 sub-cap.' },
+      { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Cat 2: Travel)", bank: 'UOB', monthlyCap: 750, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. Strict S$750 sub-cap.' },
+      { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', monthlyCap: 1000, minSpend: 0, currentSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814) and OTAs (MCC 4722).' },
+      { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', monthlyCap: 999999, minSpend: 0, currentSpend: 0, bonusMpd: 3.2, baseMpd: 0.4, engine: 'citi-1', badgeClass: '', hint: 'Dining & Petrol in SG. Uncapped 3.2 mpd (S$1 earning blocks).' },
+      { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', monthlyCap: 999999, minSpend: 0, currentSpend: 0, bonusMpd: 3.0, baseMpd: 1.2, engine: 'uob-5', badgeClass: '', hint: 'Uncapped 3.0 mpd on SIA, Dining, Online, Taxis (Requires S$800 SIA spend/year).' },
+      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', monthlyCap: 10000, minSpend: 800, currentSpend: 0, bonusMpd: 3.24, baseMpd: 0.24, engine: 'citi-1', badgeClass: '', hint: 'Air tickets (3.24 mpd) & FCY overseas (2.8 mpd). Min S$800 spend; S$10k cap.' }
+    ];
+
+    let cards = JSON.parse(localStorage.getItem('cards_sg_v3')) || INITIAL_CARDS;
+    let transactions = JSON.parse(localStorage.getItem('tx_sg_v3')) || [];
+
+    window.renderCards = function() {
+      const container = document.getElementById('cardsContainer');
+      const select = document.getElementById('cardSelect');
+      container.innerHTML = '';
+      select.innerHTML = '';
+
+      cards.forEach(card => {
+        const isUncapped = card.monthlyCap >= 999999;
+        let pct = isUncapped ? 100 : Math.min(100, (card.currentSpend / card.monthlyCap) * 100).toFixed(0);
+        let barColor = 'var(--primary)';
+        let statusNotice = '';
+
+        if (card.minSpend > 0) {
+          if (card.currentSpend < card.minSpend) {
+            barColor = 'var(--warning)';
+            statusNotice = `<span style="color:var(--warning);font-size:0.75rem;">Need $${(card.minSpend - card.currentSpend).toFixed(0)} more to unlock</span>`;
+          } else {
+            barColor = 'var(--accent)';
+            statusNotice = `<span style="color:var(--accent);font-size:0.75rem;">Unlocked! $${Math.max(0, card.monthlyCap - card.currentSpend).toFixed(0)} cap left</span>`;
+          }
+        } else if (!isUncapped && card.currentSpend >= card.monthlyCap) {
+          barColor = 'var(--danger)';
+          statusNotice = `<span style="color:var(--danger);font-size:0.75rem;">Cap reached (now base rate)</span>`;
+        }
+
+        container.innerHTML += `
+          <div class="credit-card">
+            <div class="card-header">
+              <div>
+                <div class="card-name">${card.name}</div>
+                <div class="card-subtext">${card.hint}</div>
+              </div>
+              <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${pct}%; background: ${barColor};"></div>
+            </div>
+            <div class="card-stats">
+              <span>$${card.currentSpend.toFixed(2)} spent</span>
+              <span>${statusNotice ? statusNotice : (isUncapped ? 'No Spend Cap' : `Cap: $${card.monthlyCap} (${pct}%)`)}</span>
+            </div>
+          </div>
+        `;
+
+        select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
+      });
+      window.updateCategoryHint();
+    };
+
+    window.updateCategoryHint = function() {
+      const selectedId = document.getElementById('cardSelect').value;
+      const card = cards.find(c => c.id === selectedId);
+      document.getElementById('cardHint').innerText = card ? `Card Rule: ${card.hint}` : '';
+    };
+
+    window.renderTransactions = function() {
+      const list = document.getElementById('txList');
+      list.innerHTML = '';
+      let totalMiles = 0, totalSpend = 0;
+
+      transactions.slice().reverse().forEach(tx => {
+        totalMiles += tx.miles;
+        totalSpend += tx.amt;
+        const card = cards.find(c => c.id === tx.cardId) || { name: 'Card' };
+        list.innerHTML += `
+          <div class="tx-item">
+            <div>
+              <div class="tx-desc">${tx.desc}</div>
+              <div class="tx-meta">${card.name} • ${tx.date}</div>
+            </div>
+            <div>
+              <div class="tx-miles">+${tx.miles} mi</div>
+              <div class="tx-amt">$${tx.amt.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('totalMiles').innerText = totalMiles.toLocaleString();
+      document.getElementById('totalSpend').innerText = '$' + totalSpend.toFixed(2);
+      document.getElementById('avgRate').innerText = totalSpend > 0 ? (totalMiles / totalSpend).toFixed(2) + ' mpd' : '0.00 mpd';
+    };
+
+    window.saveTransaction = function() {
+      const desc = document.getElementById('descInput').value.trim() || 'General Expense';
+      const amt = parseFloat(document.getElementById('amtInput').value);
+      const cardId = document.getElementById('cardSelect').value;
+      const isBonus = document.getElementById('bonusCategory').value === 'bonus';
+
+      if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
+      const card = cards.find(c => c.id === cardId);
+      let earnedMiles = 0;
+
+      if (card) {
+        let isEligible = isBonus && (card.currentSpend < card.monthlyCap);
+        
+        if (card.engine === 'yuu-10') {
+          let rate = (isBonus && card.currentSpend + amt <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
+          earnedMiles = Math.round(amt * rate);
+        } else if (card.engine === 'uob-5') {
+          // UOB S$5 rounding down blocks
+          let blocks = Math.floor(amt / 5);
+          let multiplier = isEligible ? (card.bonusMpd * 2.5) : (card.baseMpd * 2.5);
+          earnedMiles = blocks * multiplier;
+        } else {
+          // Maybank, Citi, HSBC, DBS WWMC S$1 blocks
+          let eligibleDollars = Math.floor(amt);
+          let rate = isEligible ? card.bonusMpd : card.baseMpd;
+          earnedMiles = Math.round(eligibleDollars * rate);
+        }
+        card.currentSpend += amt;
+      }
+
+      transactions.push({
+        id: Date.now(),
+        desc,
+        amt,
+        cardId,
+        miles: earnedMiles,
+        date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
+      });
+
+      localStorage.setItem('cards_sg_v3', JSON.stringify(cards));
+      localStorage.setItem('tx_sg_v3', JSON.stringify(transactions));
+
+      renderCards();
+      renderTransactions();
+      closeModal();
+      document.getElementById('descInput').value = '';
+      document.getElementById('amtInput').value = '';
+    };
+
+    window.resetMonth = function() {
+      if (confirm('Start a new month? This resets all card spend balances to $0.')) {
+        cards.forEach(c => c.currentSpend = 0);
+        transactions = [];
+        localStorage.setItem('cards_sg_v3', JSON.stringify(cards));
+        localStorage.setItem('tx_sg_v3', JSON.stringify(transactions));
+        renderCards();
+        renderTransactions();
+      }
+    };
+
+    window.openModal = () => document.getElementById('modalOverlay').classList.add('open');
+    window.closeModal = (e) => {
+      if (!e || e.target.id === 'modalOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('modalOverlay').classList.remove('open');
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+      });
+    }
+
+    renderCards();
+    renderTransactions();
+  </script>
+</body>
+</html>
