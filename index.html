@@ -36,12 +36,20 @@
     header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
+    .sync-status { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; }
+    .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
+
+    /* Login Screen */
+    .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 16px; }
+    .auth-box { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 24px; padding: 32px 24px; width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .btn-google { background: #fff; color: #1f2937; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; width: 100%; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .btn-google img { width: 20px; height: 20px; }
+
     /* Overseas Mode Switch Header */
     .overseas-toggle-bar { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
     .overseas-toggle-bar.active { background: rgba(56, 189, 248, 0.12); border-color: var(--fcy-cyan); }
     .toggle-label { font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 
-    /* Switch */
     .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px; }
@@ -53,13 +61,11 @@
     .total-miles { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
-    /* 4-Pax Travel Goal Callout */
     .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; margin-top: 4px; }
     .travel-goal-header { font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     .travel-goal-dest { font-size: 0.95rem; font-weight: 700; color: #fff; }
     .travel-goal-progress { font-size: 0.75rem; color: #cbd5e1; }
 
-    /* Recommender Widget */
     .recommender-card { background: var(--surface); border: 1px solid rgba(158, 202, 255, 0.25); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
     .recommender-card.fcy-mode { border-color: var(--fcy-cyan); }
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
@@ -72,19 +78,16 @@
     .dcc-warning { font-size: 0.72rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; margin-top: 4px; }
     .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
-    /* Fee Defense Alert Card */
     .fee-alert-card { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
-    /* Vault Grid */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; }
     .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
     .vault-pts { font-size: 1rem; font-weight: 700; color: #fff; margin: 2px 0; }
     .vault-converted { font-size: 0.75rem; color: var(--accent); }
 
-    /* Expiry Radar */
     .radar-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
     .radar-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .radar-item:last-child { border-bottom: none; }
@@ -125,12 +128,29 @@
 </head>
 <body>
 
-  <div class="app-container">
+  <!-- Google Auth Screen (Displayed when not signed in) -->
+  <div class="auth-overlay" id="authOverlay" style="display:none;">
+    <div class="auth-box">
+      <span class="material-symbols-outlined" style="font-size:48px; color:var(--primary);">flight_takeoff</span>
+      <h2 style="font-size:1.3rem;">MilesTrack SG</h2>
+      <p style="font-size:0.85rem; color:#94a3b8;">
+        Shared real-time miles & cap tracking for Singapore credit cards.
+      </p>
+      <button class="btn-google" onclick="loginWithGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <div class="app-container" id="mainApp" style="display:none;">
     <header>
       <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
-      <div style="display:flex; gap:12px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="sync-status" id="syncStatusIndicator">● Live Sync</span>
         <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
         <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings">settings</span>
+        <span class="material-symbols-outlined" onclick="logoutGoogle()" style="cursor:pointer; color:#94a3b8;" title="Sign Out">logout</span>
       </div>
     </header>
 
@@ -198,7 +218,6 @@
         <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update Balances ✏️</span>
       </div>
 
-      <!-- 4-Pax Business Class Target Remark -->
       <div class="travel-goal-badge" onclick="openTravelTiersModal()">
         <div class="travel-goal-header">
           <span>✈️ 4 Pax Business Return Target</span>
@@ -212,7 +231,7 @@
     <!-- Points Vault Breakdown -->
     <div class="section-title">
       <span>Bank Points Vault</span>
-      <span style="font-size:0.75rem; color:#94a3b8;">Pooled Currencies</span>
+      <span style="font-size:0.75rem; color:#94a3b8;">Shared Cloud Vault</span>
     </div>
     <div class="vault-grid" id="vaultContainer"></div>
 
@@ -231,11 +250,11 @@
     <div class="card-list" id="cardsContainer"></div>
 
     <!-- Transaction Stream -->
-    <div class="section-title">Recent Transactions</div>
+    <div class="section-title">Recent Transactions (Shared Live)</div>
     <div id="txList"></div>
   </div>
 
-  <button class="fab" onclick="openModal()">
+  <button class="fab" id="fabButton" onclick="openModal()" style="display:none;">
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
@@ -285,7 +304,7 @@
         <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
       </div>
 
-      <button class="btn-submit" onclick="saveTransaction()">Save & Calculate Miles</button>
+      <button class="btn-submit" onclick="saveTransaction()">Save & Sync Everywhere</button>
     </div>
   </div>
 
@@ -327,7 +346,7 @@
         <input type="number" id="v_kf_miles" class="form-control">
       </div>
 
-      <button class="btn-submit" onclick="saveVaultBalances()">Save Balances</button>
+      <button class="btn-submit" onclick="saveVaultBalances()">Save to Cloud Vault</button>
     </div>
   </div>
 
@@ -379,6 +398,23 @@
   </div>
 
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Configured with your Firebase project keys
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
+      authDomain: "milestracker-sg.firebaseapp.com",
+      projectId: "milestracker-sg",
+      storageBucket: "milestracker-sg.firebasestorage.app",
+      messagingSenderId: "323564797306",
+      appId: "1:323564797306:web:f0e41ab676ae207d62aac3"
+    };
+
+    let app, auth, db, googleProvider;
+    let currentUser = null;
+
     const KRISFLYER_4PAX_TIERS = [
       { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
       { name: "Bangkok / Phuket / Vietnam (Zone 3)", oneWay: 25000, totalMiles: 200000 },
@@ -625,21 +661,89 @@
       { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 2.8, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.' }
     ];
 
-    let cards = JSON.parse(localStorage.getItem('cards_sg_v11')) || INITIAL_CARDS;
-    let transactions = JSON.parse(localStorage.getItem('tx_sg_v11')) || [];
-    let vault = JSON.parse(localStorage.getItem('vault_sg_v7')) || DEFAULT_VAULT;
-    let citiApprovalDate = localStorage.getItem('citi_approval_date') || '2023-01';
-    let isOverseasMode = JSON.parse(localStorage.getItem('is_overseas_mode')) || false;
+    let cards = INITIAL_CARDS;
+    let transactions = [];
+    let vault = DEFAULT_VAULT;
+    let citiApprovalDate = '2023-01';
+    let isOverseasMode = false;
+    let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05' };
 
-    let uobRenewals = JSON.parse(localStorage.getItem('uob_renewals')) || {
-      solitaire: '2023-11',
-      visaSig: '2024-03',
-      ppv: '2024-05'
+    // Initialize Firebase Services
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        document.getElementById('fabButton').style.display = 'flex';
+        document.getElementById('syncStatusIndicator').innerText = "● Cloud Connected";
+        subscribeToCloudData();
+      } else {
+        currentUser = null;
+        document.getElementById('authOverlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('fabButton').style.display = 'none';
+      }
+    });
+
+    window.loginWithGoogle = async function() {
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        alert("Sign-in failed: " + err.message);
+      }
     };
+
+    window.logoutGoogle = async function() {
+      if (confirm("Sign out of MilesTrack?")) {
+        await signOut(auth);
+      }
+    };
+
+    function subscribeToCloudData() {
+      onSnapshot(doc(db, "milestrack_shared", "vault"), (docSnap) => {
+        if (docSnap.exists()) {
+          vault = docSnap.data();
+          renderVault();
+        } else {
+          setDoc(doc(db, "milestrack_shared", "vault"), DEFAULT_VAULT);
+        }
+      }, (err) => console.error("Vault read error:", err));
+
+      onSnapshot(doc(db, "milestrack_shared", "settings"), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.citiApprovalDate) citiApprovalDate = data.citiApprovalDate;
+          if (data.uobRenewals) uobRenewals = data.uobRenewals;
+          if (data.cutoffDays) {
+            cards.forEach(c => {
+              if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
+              if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
+            });
+          }
+          renderCards();
+          renderExpiryRadar();
+          checkUobFeeDefense();
+        }
+      });
+
+      const txQuery = query(collection(db, "milestrack_txns"), orderBy("timestamp", "asc"), limit(100));
+      onSnapshot(txQuery, (querySnapshot) => {
+        transactions = [];
+        querySnapshot.forEach((doc) => {
+          transactions.push(doc.data());
+        });
+        renderCards();
+        renderTransactions();
+      });
+    }
 
     window.toggleOverseasMode = function() {
       isOverseasMode = document.getElementById('overseasSwitch').checked;
-      localStorage.setItem('is_overseas_mode', JSON.stringify(isOverseasMode));
       updateOverseasUI();
       runRecommendation();
     };
@@ -729,7 +833,6 @@
         }
       }
 
-      // Default fallback for Overseas general spend if unfamiliar MCC is entered
       if (isOverseasMode) {
         return {
           code: "FCY-GEN",
@@ -1131,7 +1234,7 @@
       });
     };
 
-    window.saveTransaction = function() {
+    window.saveTransaction = async function() {
       const desc = document.getElementById('descInput').value.trim() || 'General Expense';
       const amt = parseFloat(document.getElementById('amtInput').value);
       const cardId = document.getElementById('cardSelect').value;
@@ -1163,25 +1266,22 @@
 
         if (vault[card.vaultKey]) {
           vault[card.vaultKey].points += earnedRawPoints;
-          localStorage.setItem('vault_sg_v7', JSON.stringify(vault));
+          await setDoc(doc(db, "milestrack_shared", "vault"), vault);
         }
       }
 
-      transactions.push({
-        id: Date.now(),
+      const txRecord = {
+        id: String(Date.now()),
         timestamp: Date.now(),
         desc,
         amt,
         cardId,
         miles: earnedMiles,
         date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
-      });
+      };
 
-      localStorage.setItem('tx_sg_v11', JSON.stringify(transactions));
+      await setDoc(doc(db, "milestrack_txns", txRecord.id), txRecord);
 
-      renderVault();
-      renderCards();
-      renderTransactions();
       closeModal();
       document.getElementById('descInput').value = '';
       document.getElementById('amtInput').value = '';
@@ -1204,7 +1304,7 @@
       }
     };
 
-    window.saveVaultBalances = function() {
+    window.saveVaultBalances = async function() {
       vault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
       vault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
       vault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
@@ -1213,8 +1313,7 @@
       vault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
       vault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
 
-      localStorage.setItem('vault_sg_v7', JSON.stringify(vault));
-      renderVault();
+      await setDoc(doc(db, "milestrack_shared", "vault"), vault);
       document.getElementById('vaultOverlay').classList.remove('open');
     };
 
@@ -1238,7 +1337,7 @@
       }
     };
 
-    window.saveSettings = function() {
+    window.saveSettings = async function() {
       const uobVsDay = parseInt(document.getElementById('uobVsCutoff').value, 10) || 18;
       const citiDay = parseInt(document.getElementById('citiCutoff').value, 10) || 15;
       citiApprovalDate = document.getElementById('citiApprovalInput').value || '2023-01';
@@ -1247,18 +1346,13 @@
       uobRenewals.visaSig = document.getElementById('uobVsRenewalInput').value;
       uobRenewals.ppv = document.getElementById('uobPpvRenewalInput').value;
 
-      localStorage.setItem('citi_approval_date', citiApprovalDate);
-      localStorage.setItem('uob_renewals', JSON.stringify(uobRenewals));
+      const settingsData = {
+        citiApprovalDate,
+        uobRenewals,
+        cutoffDays: { uobVs: uobVsDay, citi: citiDay }
+      };
 
-      cards.forEach(c => {
-        if (c.id.startsWith('uob-vs')) c.cutoffDay = uobVsDay;
-        if (c.id === 'citi-rewards') c.cutoffDay = citiDay;
-      });
-
-      localStorage.setItem('cards_sg_v11', JSON.stringify(cards));
-      renderCards();
-      renderExpiryRadar();
-      checkUobFeeDefense();
+      await setDoc(doc(db, "milestrack_shared", "settings"), settingsData);
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
@@ -1276,9 +1370,6 @@
     }
 
     updateOverseasUI();
-    renderVault();
-    renderCards();
-    renderTransactions();
   </script>
 </body>
 </html>
