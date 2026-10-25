@@ -633,3 +633,652 @@
 
     let uobRenewals = JSON.parse(localStorage.getItem('uob_renewals')) || {
       solitaire: '2023-11',
+      visaSig: '2024-03',
+      ppv: '2024-05'
+    };
+
+    window.toggleOverseasMode = function() {
+      isOverseasMode = document.getElementById('overseasSwitch').checked;
+      localStorage.setItem('is_overseas_mode', JSON.stringify(isOverseasMode));
+      updateOverseasUI();
+      runRecommendation();
+    };
+
+    function updateOverseasUI() {
+      const bar = document.getElementById('overseasBar');
+      const icon = document.getElementById('overseasIcon');
+      const text = document.getElementById('overseasText');
+      const card = document.getElementById('recommenderCard');
+      const badge = document.getElementById('recModeBadge');
+
+      document.getElementById('overseasSwitch').checked = isOverseasMode;
+
+      if (isOverseasMode) {
+        bar.classList.add('active');
+        icon.style.color = 'var(--fcy-cyan)';
+        text.innerHTML = '<span style="color:var(--fcy-cyan);">✈️ Mode: Overseas Travel (FCY Spend)</span>';
+        card.classList.add('fcy-mode');
+        badge.innerHTML = '<span style="color:var(--fcy-cyan);font-weight:700;">FCY Mode Active</span>';
+      } else {
+        bar.classList.remove('active');
+        icon.style.color = '#94a3b8';
+        text.innerText = 'Mode: Singapore (Local SGD)';
+        card.classList.remove('fcy-mode');
+        badge.innerText = 'Local SGD';
+      }
+    }
+
+    function isTxInActiveCycle(txTimestamp, card) {
+      const txDate = new Date(txTimestamp);
+      const now = new Date();
+
+      if (card.cycleType === 'uncapped') return txDate.getFullYear() === now.getFullYear();
+      if (card.cycleType === 'calendar') return txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth();
+      if (card.cycleType === 'statement') {
+        const cutoff = card.cutoffDay || 15;
+        let cycleStart, cycleEnd;
+        if (now.getDate() >= cutoff) {
+          cycleStart = new Date(now.getFullYear(), now.getMonth(), cutoff, 0, 0, 0);
+          cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, cutoff, 0, 0, 0);
+        } else {
+          cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, cutoff, 0, 0, 0);
+          cycleEnd = new Date(now.getFullYear(), now.getMonth(), cutoff, 0, 0, 0);
+        }
+        return txDate >= cycleStart && txDate < cycleEnd;
+      }
+      return true;
+    }
+
+    function getDaysUntilCycleEnd(card) {
+      const now = new Date();
+      if (card.cycleType === 'calendar') {
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return Math.max(0, endOfMonth.getDate() - now.getDate());
+      }
+      if (card.cycleType === 'statement') {
+        const cutoff = card.cutoffDay || 15;
+        const today = now.getDate();
+        if (today < cutoff) {
+          return cutoff - today;
+        } else {
+          const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+          return (endOfCurrentMonth - today) + cutoff;
+        }
+      }
+      return 999;
+    }
+
+    function getCycleLabel(card) {
+      if (card.cycleType === 'uncapped') return 'No Monthly Cap';
+      if (card.cycleType === 'calendar') return 'Calendar Month (1st - End)';
+      return `Statement Month (Resets on ${card.cutoffDay}th)`;
+    }
+
+    function resolveMccEntry(input) {
+      const clean = (input || '').trim().toLowerCase();
+      if (!clean) return null;
+
+      const codeMatch = clean.match(/\b\d{4}\b/);
+      if (codeMatch && MCC_DATABASE[codeMatch[0]]) {
+        return { code: codeMatch[0], ...MCC_DATABASE[codeMatch[0]] };
+      }
+
+      for (const [code, item] of Object.entries(MCC_DATABASE)) {
+        if (item.name.toLowerCase().includes(clean) || item.notes.toLowerCase().includes(clean)) {
+          return { code, ...item };
+        }
+      }
+
+      // Default fallback for Overseas general spend if unfamiliar MCC is entered
+      if (isOverseasMode) {
+        return {
+          code: "FCY-GEN",
+          name: "General Overseas Spend (Any MCC)",
+          notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap) and 2.8 mpd on Maybank Horizon (S$10k cap).",
+          candidatesOverseas: [
+            { id: "uob-vs-fcy", baseRate: 4.0 },
+            { id: "mb-horizon-vs", baseRate: 2.8 },
+            { id: "kf-uob", baseRate: 1.2 }
+          ]
+        };
+      }
+
+      return null;
+    }
+
+    window.runRecommendation = function() {
+      const inputVal = document.getElementById('mccInput').value;
+      const amt = parseFloat(document.getElementById('recAmount').value) || 100;
+      const resultArea = document.getElementById('recResultArea');
+
+      const mccData = resolveMccEntry(inputVal);
+
+      if (!mccData) {
+        resultArea.innerHTML = `
+          <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">
+            ${isOverseasMode 
+              ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
+              : 'Type a 4-digit MCC (e.g. <b>5814</b>, <b>4722</b>, <b>5411</b>) or retailer name.'}
+          </div>
+        `;
+        return;
+      }
+
+      const candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
+
+      if (candidateList.length === 0) {
+        resultArea.innerHTML = `
+          <div class="mcc-tag-box" style="border-left-color:var(--danger);">
+            <b>MCC ${mccData.code} - ${mccData.name}</b><br>
+            <span style="color:var(--danger);">${mccData.notes}</span>
+          </div>
+        `;
+        return;
+      }
+
+      const scored = candidateList.map(candidate => {
+        const card = cards.find(c => c.id === candidate.id);
+        if (!card) return null;
+
+        const daysLeft = getDaysUntilCycleEnd(card);
+        const isUncapped = card.monthlyCap >= 999999;
+        const remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - card.currentSpend);
+        const fitsUnderCap = remainingCap >= amt;
+
+        let effectiveMpd = candidate.baseRate;
+        if (!isUncapped && remainingCap <= 0) {
+          effectiveMpd = card.baseMpd;
+        }
+
+        let score = effectiveMpd * 100;
+        if (!fitsUnderCap && !isUncapped) score -= 500;
+
+        if (card.minSpend > 0 && card.currentSpend < card.minSpend) {
+          score += (daysLeft <= 10 ? 80 : 30);
+        }
+
+        if (fitsUnderCap && !isUncapped) {
+          score += Math.max(0, (30 - daysLeft));
+        }
+
+        return {
+          card,
+          effectiveMpd,
+          remainingCap,
+          daysLeft,
+          fitsUnderCap,
+          score,
+          cycleNotice: card.cycleType === 'statement' 
+            ? `Resets in ${daysLeft}d (${card.cutoffDay}th)` 
+            : `Resets in ${daysLeft}d (Month-End)`
+        };
+      }).filter(Boolean).sort((a, b) => b.score - a.score);
+
+      const best = scored[0];
+      const runnerUp = scored[1];
+      const estMiles = Math.round(amt * best.effectiveMpd);
+
+      resultArea.innerHTML = `
+        <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
+          <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b><br>
+          ${mccData.notes}
+        </div>
+        <div class="rec-winner-title" style="margin-top:4px;">
+          <span>⭐ <b>${best.card.name}</b></span>
+          <span style="color:var(--accent); font-weight:700;">${best.effectiveMpd} mpd (+${estMiles} mi)</span>
+        </div>
+        <div class="rec-winner-meta">
+          ${best.card.monthlyCap >= 999999 ? 'Uncapped capacity' : `Space Left: <b>$${best.remainingCap.toFixed(2)}</b> / $${best.card.monthlyCap}`} • ${best.cycleNotice}
+        </div>
+        ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.effectiveMpd} mpd)</div>` : ''}
+        ${isOverseasMode ? `<div class="dcc-warning">⚠️ <b>DCC Trap:</b> Always select local currency (e.g. JPY, EUR, USD) at the card machine. Never select SGD!</div>` : ''}
+        <button class="btn-apply-rec" onclick="applyRecommendation('${best.card.id}', ${amt}, '${isOverseasMode ? '[FCY] ' : ''}${mccData.name}')">Log $${amt.toFixed(2)} with This Card</button>
+      `;
+    };
+
+    window.applyRecommendation = function(cardId, amt, desc) {
+      document.getElementById('cardSelect').value = cardId;
+      document.getElementById('amtInput').value = amt;
+      document.getElementById('descInput').value = desc || '';
+      document.getElementById('bonusCategory').value = 'bonus';
+      openModal();
+    };
+
+    window.checkUobFeeDefense = function() {
+      const container = document.getElementById('uobFeeAlertContainer');
+      container.innerHTML = '';
+      const now = new Date();
+      const currentYear = now.getFullYear();
+
+      const uobTargets = [
+        { name: "UOB Lady's Solitaire", key: 'solitaire', pts: 10000, fee: '$414.20', miles: '20,000' },
+        { name: "UOB Visa Signature", key: 'visaSig', pts: 6500, fee: '$218.00', miles: '13,000' },
+        { name: "UOB Preferred Visa", key: 'ppv', pts: 6500, fee: '$196.20', miles: '13,000' }
+      ];
+
+      uobTargets.forEach(card => {
+        const dateVal = uobRenewals[card.key];
+        if (!dateVal) return;
+
+        const [, monthStr] = dateVal.split('-');
+        const renewalMonth = parseInt(monthStr, 10) - 1;
+
+        let nextRenewal = new Date(currentYear, renewalMonth, 1);
+        if (nextRenewal < now) {
+          nextRenewal = new Date(currentYear + 1, renewalMonth, 1);
+        }
+
+        const diffDays = Math.ceil((nextRenewal - now) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 45 && diffDays >= 0) {
+          container.innerHTML += `
+            <div class="fee-alert-card">
+              <div class="fee-alert-title">
+                <span class="material-symbols-outlined" style="font-size:20px;">warning</span>
+                UOB Auto-Deduction Alert: ${card.name}
+              </div>
+              <div class="fee-alert-desc">
+                Renewal in <b>${diffDays} days</b> (${nextRenewal.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}). UOB will automatically wipe <b>${card.pts.toLocaleString()} UNI$ (${card.miles} miles)</b> to pay the ${card.fee} fee!
+              </div>
+            </div>
+          `;
+        }
+      });
+    };
+
+    function getEarliestExpiryDates() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      const dbsEndQuarter = Math.floor(currentMonth / 3) * 3 + 3;
+      const dbsExpiry = new Date(currentYear + 1, dbsEndQuarter, 0);
+
+      const uobEndQuarter = Math.floor(currentMonth / 3) * 3 + 3;
+      const uobExpiry = new Date(currentYear + 2, uobEndQuarter, 0);
+
+      const [appYear, appMonth] = citiApprovalDate.split('-').map(Number);
+      let citiCycleEndYear = appYear + 5;
+      let citiExpiry = new Date(citiCycleEndYear, appMonth, 0);
+      while (citiExpiry < now) {
+        citiExpiry = new Date(citiExpiry.getFullYear() + 5, citiExpiry.getMonth() + 1, 0);
+      }
+
+      const hsbcExpiry = new Date(currentYear, currentMonth + 38, 0);
+      const yuuExpiry = new Date(currentYear + 2, currentMonth + 1, 0);
+
+      return [
+        { key: 'dbs_pts', name: 'DBS Points', expiry: dbsExpiry, pts: vault.dbs_pts.points },
+        { key: 'citi_typ', name: 'Citi TYP (5-Yr Reset)', expiry: citiExpiry, pts: vault.citi_typ.points },
+        { key: 'uob_uni', name: 'UOB UNI$', expiry: uobExpiry, pts: vault.uob_uni.points },
+        { key: 'yuu_pts', name: 'yuu Points', expiry: yuuExpiry, pts: vault.yuu_pts.points },
+        { key: 'hsbc_pts', name: 'HSBC Points', expiry: hsbcExpiry, pts: vault.hsbc_pts.points }
+      ];
+    }
+
+    window.renderExpiryRadar = function() {
+      const container = document.getElementById('radarContainer');
+      container.innerHTML = '';
+      const expiries = getEarliestExpiryDates();
+      const now = new Date();
+
+      expiries.forEach(item => {
+        const diffMs = item.expiry - now;
+        const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        let badgeClass = 'badge-safe';
+        let statusText = `${diffDays} days left`;
+
+        if (diffDays <= 90) {
+          badgeClass = 'badge-crit';
+          statusText = `⚠️ ${diffDays} days! Transfer soon`;
+        } else if (diffDays <= 180) {
+          badgeClass = 'badge-warn';
+          statusText = `${diffDays} days left`;
+        }
+
+        const dateStr = item.expiry.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
+
+        container.innerHTML += `
+          <div class="radar-item">
+            <div>
+              <div style="font-size:0.85rem; font-weight:600;">${item.name}</div>
+              <div style="font-size:0.75rem; color:#94a3b8;">${Number(item.pts).toLocaleString()} pts • Next cliff: ${dateStr}</div>
+            </div>
+            <span class="radar-badge ${badgeClass}">${statusText}</span>
+          </div>
+        `;
+      });
+    };
+
+    window.updateTravelGoal = function(grandTotalMiles) {
+      let unlockedTier = null;
+      let nextTier = null;
+
+      for (let i = 0; i < KRISFLYER_4PAX_TIERS.length; i++) {
+        if (grandTotalMiles >= KRISFLYER_4PAX_TIERS[i].totalMiles) {
+          unlockedTier = KRISFLYER_4PAX_TIERS[i];
+        } else {
+          nextTier = KRISFLYER_4PAX_TIERS[i];
+          break;
+        }
+      }
+
+      const destEl = document.getElementById('travelGoalDest');
+      const progEl = document.getElementById('travelGoalProgress');
+
+      if (!unlockedTier) {
+        const firstTier = KRISFLYER_4PAX_TIERS[0];
+        const gap = firstTier.totalMiles - grandTotalMiles;
+        destEl.innerHTML = `Starting accumulation`;
+        progEl.innerHTML = `Need <b>${gap.toLocaleString()}</b> more miles for 4x Return Business to <b>${firstTier.name}</b> (${firstTier.totalMiles.toLocaleString()} mi)`;
+      } else {
+        destEl.innerHTML = `🎉 Unlocked: <b>${unlockedTier.name}</b>`;
+        if (nextTier) {
+          const gap = nextTier.totalMiles - grandTotalMiles;
+          progEl.innerHTML = `Need <b>${gap.toLocaleString()}</b> more miles to reach <b>${nextTier.name}</b> (${nextTier.totalMiles.toLocaleString()} mi)`;
+        } else {
+          progEl.innerHTML = `🌟 Outstanding! You have reached maximum coverage: USA Long-Haul Return for 4 in Business Class!`;
+        }
+      }
+    };
+
+    window.openTravelTiersModal = function() {
+      const list = document.getElementById('travelTiersList');
+      list.innerHTML = '';
+
+      let grandTotalMiles = 0;
+      for (const [key, item] of Object.entries(vault)) {
+        grandTotalMiles += Math.floor(item.points * item.ratio);
+      }
+
+      KRISFLYER_4PAX_TIERS.forEach(tier => {
+        const isUnlocked = grandTotalMiles >= tier.totalMiles;
+        const pct = Math.min(100, (grandTotalMiles / tier.totalMiles) * 100).toFixed(0);
+        const gap = Math.max(0, tier.totalMiles - grandTotalMiles);
+
+        list.innerHTML += `
+          <div style="background:var(--surface-variant); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.88rem; font-weight:700; color:${isUnlocked ? 'var(--accent)' : '#fff'};">
+                ${isUnlocked ? '✅' : '🔒'} ${tier.name}
+              </span>
+              <span style="font-size:0.8rem; font-weight:700; color:var(--primary);">
+                ${tier.totalMiles.toLocaleString()} mi
+              </span>
+            </div>
+            <div class="progress-bar-bg" style="margin:2px 0;">
+              <div class="progress-bar-fill" style="width:${pct}%; background:${isUnlocked ? 'var(--accent)' : 'var(--primary)'};"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
+              <span>${pct}% funded (${grandTotalMiles.toLocaleString()} mi)</span>
+              <span>${isUnlocked ? 'Unlocked' : `Need ${gap.toLocaleString()} mi`}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('travelTiersOverlay').classList.add('open');
+    };
+
+    window.closeTravelTiersModal = (e) => {
+      if (!e || e.target.id === 'travelTiersOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('travelTiersOverlay').classList.remove('open');
+      }
+    };
+
+    window.renderVault = function() {
+      const container = document.getElementById('vaultContainer');
+      container.innerHTML = '';
+      let grandTotalMiles = 0;
+
+      for (const [key, item] of Object.entries(vault)) {
+        const equivMiles = Math.floor(item.points * item.ratio);
+        grandTotalMiles += equivMiles;
+
+        container.innerHTML += `
+          <div class="vault-item">
+            <span class="vault-label">${item.name}</span>
+            <span class="vault-pts">${Number(item.points).toLocaleString()} ${item.unit}</span>
+            <span class="vault-converted">≈ ${equivMiles.toLocaleString()} miles</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('totalVaultMiles').innerHTML = `${grandTotalMiles.toLocaleString()} <span style="font-size:1.1rem;font-weight:400;">miles</span>`;
+      renderExpiryRadar();
+      checkUobFeeDefense();
+      updateTravelGoal(grandTotalMiles);
+    };
+
+    window.renderCards = function() {
+      const container = document.getElementById('cardsContainer');
+      const select = document.getElementById('cardSelect');
+      container.innerHTML = '';
+      select.innerHTML = '';
+
+      cards.forEach(card => {
+        const activeTxns = transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
+        const currentSpend = activeTxns.reduce((sum, tx) => sum + tx.amt, 0);
+        card.currentSpend = currentSpend;
+
+        const isUncapped = card.monthlyCap >= 999999;
+        let pct = isUncapped ? 100 : Math.min(100, (currentSpend / card.monthlyCap) * 100).toFixed(0);
+        let barColor = 'var(--primary)';
+        let statusNotice = '';
+
+        if (card.minSpend > 0) {
+          if (currentSpend < card.minSpend) {
+            barColor = 'var(--warning)';
+            statusNotice = `<span style="color:var(--warning);font-size:0.75rem;">Need $${(card.minSpend - currentSpend).toFixed(0)} to unlock</span>`;
+          } else {
+            barColor = 'var(--accent)';
+            statusNotice = `<span style="color:var(--accent);font-size:0.75rem;">Unlocked! $${Math.max(0, card.monthlyCap - currentSpend).toFixed(0)} cap left</span>`;
+          }
+        } else if (!isUncapped && currentSpend >= card.monthlyCap) {
+          barColor = 'var(--danger)';
+          statusNotice = `<span style="color:var(--danger);font-size:0.75rem;">Cap reached (now base rate)</span>`;
+        }
+
+        container.innerHTML += `
+          <div class="credit-card">
+            <div class="card-header">
+              <div>
+                <div class="card-name">${card.name}</div>
+                <div class="cycle-pill">${getCycleLabel(card)}</div>
+              </div>
+              <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${pct}%; background: ${barColor};"></div>
+            </div>
+            <div class="card-stats">
+              <span>$${currentSpend.toFixed(2)} spent</span>
+              <span>${statusNotice ? statusNotice : (isUncapped ? 'Uncapped' : `Cap: $${card.monthlyCap} (${pct}%)`)}</span>
+            </div>
+          </div>
+        `;
+
+        select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
+      });
+      window.updateCategoryHint();
+      window.runRecommendation();
+    };
+
+    window.updateCategoryHint = function() {
+      const selectedId = document.getElementById('cardSelect').value;
+      const card = cards.find(c => c.id === selectedId);
+      document.getElementById('cardHint').innerText = card ? `Rule: ${card.hint}` : '';
+    };
+
+    window.renderTransactions = function() {
+      const list = document.getElementById('txList');
+      list.innerHTML = '';
+
+      transactions.slice().reverse().forEach(tx => {
+        const card = cards.find(c => c.id === tx.cardId) || { name: 'Card' };
+        list.innerHTML += `
+          <div class="tx-item">
+            <div>
+              <div class="tx-desc">${tx.desc}</div>
+              <div class="tx-meta">${card.name} • ${tx.date}</div>
+            </div>
+            <div>
+              <div class="tx-miles">+${tx.miles} mi</div>
+              <div class="tx-amt">$${tx.amt.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+      });
+    };
+
+    window.saveTransaction = function() {
+      const desc = document.getElementById('descInput').value.trim() || 'General Expense';
+      const amt = parseFloat(document.getElementById('amtInput').value);
+      const cardId = document.getElementById('cardSelect').value;
+      const isBonus = document.getElementById('bonusCategory').value === 'bonus';
+
+      if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
+      const card = cards.find(c => c.id === cardId);
+      let earnedMiles = 0;
+      let earnedRawPoints = 0;
+
+      if (card) {
+        let isEligible = isBonus && (card.currentSpend < card.monthlyCap);
+        
+        if (card.engine === 'yuu-10') {
+          let rate = (isBonus && !isOverseasMode && card.currentSpend + amt <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
+          earnedMiles = Math.round(amt * rate);
+          earnedRawPoints = Math.round(earnedMiles / 0.28);
+        } else if (card.engine === 'uob-5') {
+          let blocks = Math.floor(amt / 5);
+          let uniPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
+          earnedRawPoints = blocks * uniPerBlock;
+          earnedMiles = earnedRawPoints * 2;
+        } else {
+          let eligibleDollars = Math.floor(amt);
+          let rate = isEligible ? card.bonusMpd : card.baseMpd;
+          earnedMiles = Math.round(eligibleDollars * rate);
+          earnedRawPoints = Math.round(earnedMiles / (vault[card.vaultKey]?.ratio || 1));
+        }
+
+        if (vault[card.vaultKey]) {
+          vault[card.vaultKey].points += earnedRawPoints;
+          localStorage.setItem('vault_sg_v7', JSON.stringify(vault));
+        }
+      }
+
+      transactions.push({
+        id: Date.now(),
+        timestamp: Date.now(),
+        desc,
+        amt,
+        cardId,
+        miles: earnedMiles,
+        date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
+      });
+
+      localStorage.setItem('tx_sg_v11', JSON.stringify(transactions));
+
+      renderVault();
+      renderCards();
+      renderTransactions();
+      closeModal();
+      document.getElementById('descInput').value = '';
+      document.getElementById('amtInput').value = '';
+    };
+
+    window.openVaultModal = function() {
+      document.getElementById('v_uob_uni').value = vault.uob_uni.points;
+      document.getElementById('v_citi_typ').value = vault.citi_typ.points;
+      document.getElementById('v_dbs_pts').value = vault.dbs_pts.points;
+      document.getElementById('v_yuu_pts').value = vault.yuu_pts.points;
+      document.getElementById('v_hsbc_pts').value = vault.hsbc_pts.points;
+      document.getElementById('v_mb_treats').value = vault.mb_treats.points;
+      document.getElementById('v_kf_miles').value = vault.kf_direct.points;
+      document.getElementById('vaultOverlay').classList.add('open');
+    };
+
+    window.closeVaultModal = (e) => {
+      if (!e || e.target.id === 'vaultOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('vaultOverlay').classList.remove('open');
+      }
+    };
+
+    window.saveVaultBalances = function() {
+      vault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
+      vault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
+      vault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
+      vault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts').value) || 0;
+      vault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts').value) || 0;
+      vault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
+      vault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
+
+      localStorage.setItem('vault_sg_v7', JSON.stringify(vault));
+      renderVault();
+      document.getElementById('vaultOverlay').classList.remove('open');
+    };
+
+    window.openSettings = function() {
+      const uobVs = cards.find(c => c.id === 'uob-vs-contactless');
+      const citi = cards.find(c => c.id === 'citi-rewards');
+      document.getElementById('uobVsCutoff').value = uobVs?.cutoffDay || 18;
+      document.getElementById('citiCutoff').value = citi?.cutoffDay || 15;
+      document.getElementById('citiApprovalInput').value = citiApprovalDate;
+
+      document.getElementById('uobLsRenewalInput').value = uobRenewals.solitaire || '';
+      document.getElementById('uobVsRenewalInput').value = uobRenewals.visaSig || '';
+      document.getElementById('uobPpvRenewalInput').value = uobRenewals.ppv || '';
+
+      document.getElementById('settingsOverlay').classList.add('open');
+    };
+
+    window.closeSettings = (e) => {
+      if (!e || e.target.id === 'settingsOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('settingsOverlay').classList.remove('open');
+      }
+    };
+
+    window.saveSettings = function() {
+      const uobVsDay = parseInt(document.getElementById('uobVsCutoff').value, 10) || 18;
+      const citiDay = parseInt(document.getElementById('citiCutoff').value, 10) || 15;
+      citiApprovalDate = document.getElementById('citiApprovalInput').value || '2023-01';
+
+      uobRenewals.solitaire = document.getElementById('uobLsRenewalInput').value;
+      uobRenewals.visaSig = document.getElementById('uobVsRenewalInput').value;
+      uobRenewals.ppv = document.getElementById('uobPpvRenewalInput').value;
+
+      localStorage.setItem('citi_approval_date', citiApprovalDate);
+      localStorage.setItem('uob_renewals', JSON.stringify(uobRenewals));
+
+      cards.forEach(c => {
+        if (c.id.startsWith('uob-vs')) c.cutoffDay = uobVsDay;
+        if (c.id === 'citi-rewards') c.cutoffDay = citiDay;
+      });
+
+      localStorage.setItem('cards_sg_v11', JSON.stringify(cards));
+      renderCards();
+      renderExpiryRadar();
+      checkUobFeeDefense();
+      document.getElementById('settingsOverlay').classList.remove('open');
+    };
+
+    window.openModal = () => document.getElementById('modalOverlay').classList.add('open');
+    window.closeModal = (e) => {
+      if (!e || e.target.id === 'modalOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('modalOverlay').classList.remove('open');
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+      });
+    }
+
+    updateOverseasUI();
+    renderVault();
+    renderCards();
+    renderTransactions();
+  </script>
+</body>
+</html>
