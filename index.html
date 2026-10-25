@@ -28,6 +28,7 @@
       --danger: #ef4444;
       --gold: #fbbf24;
       --fcy-cyan: #38bdf8;
+      --purple: #c084fc;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -68,11 +69,19 @@
     input:checked + .slider { background-color: var(--fcy-cyan); }
     input:checked + .slider:before { transform: translateX(22px); }
 
-    .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 18px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 8px; }
+    /* Personal War Chest Summary Card */
+    .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 18px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 10px; }
     .total-miles { font-size: 2.3rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
-    .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; margin-top: 6px; }
+    /* Sister's Independent Balance Card */
+    .sister-card { background: var(--surface); border: 1px solid rgba(192, 132, 252, 0.25); border-radius: 20px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+    .sister-info { display: flex; flex-direction: column; gap: 2px; }
+    .sister-title { font-size: 0.75rem; text-transform: uppercase; color: var(--purple); font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+    .sister-miles { font-size: 1.35rem; font-weight: 800; color: #fff; }
+    .btn-view-peer { background: rgba(192, 132, 252, 0.15); color: var(--purple); border: 1px solid rgba(192, 132, 252, 0.4); padding: 7px 14px; border-radius: 10px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+    .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; margin-top: 4px; }
     .travel-goal-header { font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     .travel-goal-dest { font-size: 1rem; font-weight: 700; color: #fff; }
     .travel-goal-progress { font-size: 0.78rem; color: #cbd5e1; }
@@ -93,11 +102,14 @@
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
+    /* Vault Grid - Miles-First Visual Hierarchy */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
-    .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; }
-    .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
-    .vault-pts { font-size: 1.05rem; font-weight: 700; color: #fff; margin: 3px 0; }
-    .vault-converted { font-size: 0.78rem; color: var(--accent); }
+    .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+    .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .vault-miles-big { font-size: 1.35rem; font-weight: 800; color: #fff; margin: 2px 0; }
+    .vault-miles-unit { font-size: 0.82rem; font-weight: 500; color: var(--accent); }
+    .vault-raw-pts { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
 
     .radar-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
     .radar-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -146,7 +158,7 @@
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
       <h2 style="font-size:1.35rem;">MilesTrack SG</h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
-        Shared real-time miles & cap tracking for Singapore credit cards.
+        Independent points vaults and miles optimization for you and family.
       </p>
       <button class="btn-google" onclick="loginWithGoogle()">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
@@ -157,10 +169,13 @@
 
   <div class="app-container" id="mainApp" style="display:none;">
     <header>
-      <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div>
+        <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
         <span class="sync-status" id="syncStatusIndicator">● Live Sync</span>
-        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
+        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit My Points Balances">account_balance_wallet</span>
         <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings">settings</span>
         <span class="material-symbols-outlined" onclick="logoutGoogle()" style="cursor:pointer; color:#94a3b8;" title="Sign Out">logout</span>
       </div>
@@ -178,7 +193,6 @@
       </label>
     </div>
 
-    <!-- Responsive Desktop/Mobile Split Grid -->
     <div class="dashboard-grid">
       
       <!-- LEFT COLUMN -->
@@ -228,7 +242,7 @@
         <!-- Monthly Card Bonus Caps -->
         <div>
           <div class="section-title">
-            <span>Monthly Bonus Caps</span>
+            <span>My Monthly Bonus Caps</span>
             <span style="font-size:0.75rem; color:#94a3b8;">Active Billing Cycle</span>
           </div>
           <div class="card-list" id="cardsContainer"></div>
@@ -237,19 +251,19 @@
 
       <!-- RIGHT COLUMN -->
       <div class="col-right">
-        <!-- War Chest + 4-Pax Travel Goal -->
+        <!-- Separate Personal War Chest -->
         <div class="summary-card">
-          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">Total Mileage War Chest</div>
-          <div class="total-miles" id="totalVaultMiles">0 <span style="font-size:1.1rem;font-weight:400;">miles</span></div>
+          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">My Personal Mileage War Chest</div>
+          <div class="total-miles" id="myTotalVaultMiles">0 mi</div>
           
           <div class="summary-subtext">
-            <span>Available Across All Banks</span>
-            <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update Balances ✏️</span>
+            <span>My Bank Balances Only</span>
+            <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update My Points ✏️</span>
           </div>
 
           <div class="travel-goal-badge" onclick="openTravelTiersModal()">
             <div class="travel-goal-header">
-              <span>✈️ 4 Pax Business Return Target</span>
+              <span>✈️ 4 Pax Business Return Target (My Miles)</span>
               <span style="text-decoration:underline;">View All Zones ❯</span>
             </div>
             <div class="travel-goal-dest" id="travelGoalDest">Calculating...</div>
@@ -257,11 +271,21 @@
           </div>
         </div>
 
-        <!-- Points Vault Breakdown -->
+        <!-- Sister's Independent Balance Peek Card -->
+        <div class="sister-card">
+          <div class="sister-info">
+            <span class="sister-title"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
+            <div class="sister-miles" id="sisterMilesDisplay">0 miles</div>
+            <span style="font-size:0.75rem; color:#94a3b8;" id="sisterStatusDisplay">Synced via Cloud</span>
+          </div>
+          <button class="btn-view-peer" onclick="openSisterVaultModal()">View Breakdown ❯</button>
+        </div>
+
+        <!-- My Points Vault Breakdown (Miles First Hierarchy) -->
         <div>
           <div class="section-title">
-            <span>Bank Points Vault</span>
-            <span style="font-size:0.75rem; color:#94a3b8;">Shared Cloud Vault</span>
+            <span>My Bank Points Vault</span>
+            <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" onclick="openVaultModal()">Update Balances ✏️</span>
           </div>
           <div class="vault-grid" id="vaultContainer"></div>
         </div>
@@ -269,7 +293,7 @@
         <!-- Expiry Radar -->
         <div>
           <div class="section-title">
-            <span>Points Expiry Radar</span>
+            <span>Points Expiry Radar (My Cards)</span>
             <span style="font-size:0.75rem; color:#94a3b8;" onclick="openSettings()" style="cursor:pointer;">Configure Expiry ⚙️</span>
           </div>
           <div class="radar-card" id="radarContainer"></div>
@@ -277,7 +301,7 @@
 
         <!-- Recent Transactions -->
         <div>
-          <div class="section-title">Recent Transactions (Shared Live)</div>
+          <div class="section-title">My Recent Transactions</div>
           <div id="txList"></div>
         </div>
       </div>
@@ -289,6 +313,18 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
+  <!-- Sister's Vault Viewer Modal (Read-Only) -->
+  <div class="modal-overlay" id="sisterVaultOverlay" onclick="closeSisterVaultModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem; color:var(--purple);">Sister's Points Vault (Separate)</h2>
+        <span class="material-symbols-outlined" onclick="closeSisterVaultModal()" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.8rem; color:#94a3b8;">Her independent points balances across Singapore banks (not merged with yours):</p>
+      <div class="vault-grid" id="sisterVaultContainer" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
   <!-- Travel Tiers Modal -->
   <div class="modal-overlay" id="travelTiersOverlay" onclick="closeTravelTiersModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -297,7 +333,7 @@
         <span class="material-symbols-outlined" onclick="closeTravelTiersModal()" style="cursor:pointer;">close</span>
       </div>
       <p style="font-size:0.78rem; color:#94a3b8;">
-        KrisFlyer Saver Round-Trip Business Class requirement for 4 passengers (2 adults + 2 children):
+        KrisFlyer Saver Round-Trip Business Class requirement for 4 passengers based solely on your miles:
       </p>
       <div id="travelTiersList" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
@@ -335,18 +371,18 @@
         <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
       </div>
 
-      <button class="btn-submit" onclick="saveTransaction()">Save & Sync Everywhere</button>
+      <button class="btn-submit" onclick="saveTransaction()">Save to My Ledger</button>
     </div>
   </div>
 
-  <!-- Points Vault Edit Modal -->
+  <!-- My Points Vault Edit Modal -->
   <div class="modal-overlay" id="vaultOverlay" onclick="closeVaultModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">Edit Points Balances</h2>
+        <h2 style="font-size:1.15rem;">Edit My Points Balances</h2>
         <span class="material-symbols-outlined" onclick="closeVaultModal()" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your banking apps:</p>
+      <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your personal banking apps:</p>
 
       <div class="form-group">
         <label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label>
@@ -385,7 +421,7 @@
         <input type="number" id="v_kf_miles" class="form-control">
       </div>
 
-      <button class="btn-submit" onclick="saveVaultBalances()">Save to Cloud Vault</button>
+      <button class="btn-submit" onclick="saveVaultBalances()">Save My Vault</button>
     </div>
   </div>
 
@@ -436,14 +472,14 @@
         <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
       </div>
 
-      <button class="btn-submit" onclick="saveSettings()">Save Settings</button>
+      <button class="btn-submit" onclick="saveSettings()">Save My Settings</button>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
@@ -456,6 +492,7 @@
 
     let app, auth, db, googleProvider;
     let currentUser = null;
+    let myUserDocKey = null;
 
     const KRISFLYER_4PAX_TIERS = [
       { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
@@ -468,7 +505,6 @@
       { name: "USA West / East Coast (Zone 12/13)", oneWay: 112500, totalMiles: 900000 }
     ];
 
-    // Participating yuu Partner Brands for 4-Merchant Requirement
     const YUU_PARTNER_BRANDS = [
       "cold storage", "cs fresh", "jasons", "giant", 
       "guardian", "7-eleven", "7-11", "foodpanda", 
@@ -758,12 +794,17 @@
 
     let cards = INITIAL_CARDS;
     let transactions = [];
-    let vault = DEFAULT_VAULT;
+    let myVault = DEFAULT_VAULT;
+    let sisterVault = DEFAULT_VAULT;
     let citiApprovalDate = '2023-01';
     let isOverseasMode = false;
     let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05', prvi: '2024-07' };
 
-    // Initialize Firebase Services
+    function sanitizeKey(email) {
+      return (email || "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+    }
+
+    // Initialize Firebase
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
@@ -772,13 +813,16 @@
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
+        myUserDocKey = sanitizeKey(user.email);
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('fabButton').style.display = 'flex';
         document.getElementById('syncStatusIndicator').innerText = "● Cloud Connected";
+        document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email}`;
         subscribeToCloudData();
       } else {
         currentUser = null;
+        myUserDocKey = null;
         document.getElementById('authOverlay').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('fabButton').style.display = 'none';
@@ -800,16 +844,30 @@
     };
 
     function subscribeToCloudData() {
-      onSnapshot(doc(db, "milestrack_shared", "vault"), (docSnap) => {
+      if (!myUserDocKey) return;
+
+      // 1. Subscribe to My Isolated Vault
+      onSnapshot(doc(db, "milestrack_vaults", myUserDocKey), (docSnap) => {
         if (docSnap.exists()) {
-          vault = { ...DEFAULT_VAULT, ...docSnap.data() };
+          myVault = { ...DEFAULT_VAULT, ...docSnap.data() };
           renderVault();
         } else {
-          setDoc(doc(db, "milestrack_shared", "vault"), DEFAULT_VAULT);
+          setDoc(doc(db, "milestrack_vaults", myUserDocKey), DEFAULT_VAULT);
         }
-      }, (err) => console.error("Vault read error:", err));
+      }, (err) => console.error("My vault read error:", err));
 
-      onSnapshot(doc(db, "milestrack_shared", "settings"), (docSnap) => {
+      // 2. Subscribe to All Vaults to Peek at Sister's Separate Balance
+      onSnapshot(collection(db, "milestrack_vaults"), (snapshot) => {
+        snapshot.forEach(docSnap => {
+          if (docSnap.id !== myUserDocKey) {
+            sisterVault = { ...DEFAULT_VAULT, ...docSnap.data() };
+            renderSisterVaultModal();
+          }
+        });
+      }, (err) => console.error("Sister vault read error:", err));
+
+      // 3. Subscribe to My Isolated Settings
+      onSnapshot(doc(db, "milestrack_settings", myUserDocKey), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.citiApprovalDate) citiApprovalDate = data.citiApprovalDate;
@@ -826,7 +884,14 @@
         }
       });
 
-      const txQuery = query(collection(db, "milestrack_txns"), orderBy("timestamp", "asc"), limit(100));
+      // 4. Subscribe to My Own Transactions Only
+      const txQuery = query(
+        collection(db, "milestrack_txns"), 
+        where("owner", "==", myUserDocKey),
+        orderBy("timestamp", "asc"), 
+        limit(100)
+      );
+      
       onSnapshot(txQuery, (querySnapshot) => {
         transactions = [];
         querySnapshot.forEach((doc) => {
@@ -1110,12 +1175,12 @@
       const ocbcExpiry = new Date(currentYear + 2, currentMonth + 1, 0);
 
       return [
-        { key: 'dbs_pts', name: 'DBS Points', expiry: dbsExpiry, pts: vault.dbs_pts?.points || 0 },
-        { key: 'citi_typ', name: 'Citi TYP (5-Yr Reset)', expiry: citiExpiry, pts: vault.citi_typ?.points || 0 },
-        { key: 'uob_uni', name: 'UOB UNI$', expiry: uobExpiry, pts: vault.uob_uni?.points || 0 },
-        { key: 'ocbc_pts', name: 'OCBC$', expiry: ocbcExpiry, pts: vault.ocbc_pts?.points || 0 },
-        { key: 'yuu_pts', name: 'yuu Points', expiry: yuuExpiry, pts: vault.yuu_pts?.points || 0 },
-        { key: 'hsbc_pts', name: 'HSBC Points', expiry: hsbcExpiry, pts: vault.hsbc_pts?.points || 0 }
+        { key: 'dbs_pts', name: 'DBS Points', expiry: dbsExpiry, pts: myVault.dbs_pts?.points || 0 },
+        { key: 'citi_typ', name: 'Citi TYP (5-Yr Reset)', expiry: citiExpiry, pts: myVault.citi_typ?.points || 0 },
+        { key: 'uob_uni', name: 'UOB UNI$', expiry: uobExpiry, pts: myVault.uob_uni?.points || 0 },
+        { key: 'ocbc_pts', name: 'OCBC$', expiry: ocbcExpiry, pts: myVault.ocbc_pts?.points || 0 },
+        { key: 'yuu_pts', name: 'yuu Points', expiry: yuuExpiry, pts: myVault.yuu_pts?.points || 0 },
+        { key: 'hsbc_pts', name: 'HSBC Points', expiry: hsbcExpiry, pts: myVault.hsbc_pts?.points || 0 }
       ];
     }
 
@@ -1153,12 +1218,12 @@
       });
     };
 
-    window.updateTravelGoal = function(grandTotalMiles) {
+    window.updateTravelGoal = function(personalTotalMiles) {
       let unlockedTier = null;
       let nextTier = null;
 
       for (let i = 0; i < KRISFLYER_4PAX_TIERS.length; i++) {
-        if (grandTotalMiles >= KRISFLYER_4PAX_TIERS[i].totalMiles) {
+        if (personalTotalMiles >= KRISFLYER_4PAX_TIERS[i].totalMiles) {
           unlockedTier = KRISFLYER_4PAX_TIERS[i];
         } else {
           nextTier = KRISFLYER_4PAX_TIERS[i];
@@ -1171,13 +1236,13 @@
 
       if (!unlockedTier) {
         const firstTier = KRISFLYER_4PAX_TIERS[0];
-        const gap = firstTier.totalMiles - grandTotalMiles;
+        const gap = firstTier.totalMiles - personalTotalMiles;
         destEl.innerHTML = `Starting accumulation`;
         progEl.innerHTML = `Need <b>${gap.toLocaleString()}</b> more miles for 4x Return Business to <b>${firstTier.name}</b> (${firstTier.totalMiles.toLocaleString()} mi)`;
       } else {
         destEl.innerHTML = `🎉 Unlocked: <b>${unlockedTier.name}</b>`;
         if (nextTier) {
-          const gap = nextTier.totalMiles - grandTotalMiles;
+          const gap = nextTier.totalMiles - personalTotalMiles;
           progEl.innerHTML = `Need <b>${gap.toLocaleString()}</b> more miles to reach <b>${nextTier.name}</b> (${nextTier.totalMiles.toLocaleString()} mi)`;
         } else {
           progEl.innerHTML = `🌟 Outstanding! You have reached maximum coverage: USA Long-Haul Return for 4 in Business Class!`;
@@ -1189,15 +1254,15 @@
       const list = document.getElementById('travelTiersList');
       list.innerHTML = '';
 
-      let grandTotalMiles = 0;
-      for (const [key, item] of Object.entries(vault)) {
-        grandTotalMiles += Math.floor(item.points * item.ratio);
+      let personalTotalMiles = 0;
+      for (const [key, item] of Object.entries(myVault)) {
+        personalTotalMiles += Math.floor((item.points || 0) * (item.ratio || 1));
       }
 
       KRISFLYER_4PAX_TIERS.forEach(tier => {
-        const isUnlocked = grandTotalMiles >= tier.totalMiles;
-        const pct = Math.min(100, (grandTotalMiles / tier.totalMiles) * 100).toFixed(0);
-        const gap = Math.max(0, tier.totalMiles - grandTotalMiles);
+        const isUnlocked = personalTotalMiles >= tier.totalMiles;
+        const pct = Math.min(100, (personalTotalMiles / tier.totalMiles) * 100).toFixed(0);
+        const gap = Math.max(0, tier.totalMiles - personalTotalMiles);
 
         list.innerHTML += `
           <div style="background:var(--surface-variant); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px;">
@@ -1213,7 +1278,7 @@
               <div class="progress-bar-fill" style="width:${pct}%; background:${isUnlocked ? 'var(--accent)' : 'var(--primary)'};"></div>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
-              <span>${pct}% funded (${grandTotalMiles.toLocaleString()} mi)</span>
+              <span>${pct}% funded (${personalTotalMiles.toLocaleString()} mi)</span>
               <span>${isUnlocked ? 'Unlocked' : `Need ${gap.toLocaleString()} mi`}</span>
             </div>
           </div>
@@ -1229,28 +1294,66 @@
       }
     };
 
+    // Render My Isolated Vault (Miles Highlighted & Prominent)
     window.renderVault = function() {
       const container = document.getElementById('vaultContainer');
       container.innerHTML = '';
-      let grandTotalMiles = 0;
+      let myGrandTotalMiles = 0;
 
-      for (const [key, item] of Object.entries(vault)) {
-        const equivMiles = Math.floor(item.points * item.ratio);
-        grandTotalMiles += equivMiles;
+      for (const [key, item] of Object.entries(myVault)) {
+        const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
+        myGrandTotalMiles += equivMiles;
 
         container.innerHTML += `
           <div class="vault-item">
             <span class="vault-label">${item.name}</span>
-            <span class="vault-pts">${Number(item.points).toLocaleString()} ${item.unit}</span>
-            <span class="vault-converted">≈ ${equivMiles.toLocaleString()} miles</span>
+            <div class="vault-miles-big">
+              ${equivMiles.toLocaleString()} <span class="vault-miles-unit">miles</span>
+            </div>
+            <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
           </div>
         `;
       }
 
-      document.getElementById('totalVaultMiles').innerHTML = `${grandTotalMiles.toLocaleString()} <span style="font-size:1.1rem;font-weight:400;">miles</span>`;
+      document.getElementById('myTotalVaultMiles').innerText = `${myGrandTotalMiles.toLocaleString()} mi`;
       renderExpiryRadar();
       checkUobFeeDefense();
-      updateTravelGoal(grandTotalMiles);
+      updateTravelGoal(myGrandTotalMiles);
+    };
+
+    // Render Sister's Vault Modal & Dashboard Card (Miles Highlighted & Prominent)
+    window.renderSisterVaultModal = function() {
+      const container = document.getElementById('sisterVaultContainer');
+      container.innerHTML = '';
+      let sisterGrandTotal = 0;
+
+      for (const [key, item] of Object.entries(sisterVault)) {
+        const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
+        sisterGrandTotal += equivMiles;
+
+        container.innerHTML += `
+          <div class="vault-item" style="border-color: rgba(192, 132, 252, 0.2);">
+            <span class="vault-label" style="color:var(--purple);">${item.name}</span>
+            <div class="vault-miles-big">
+              ${equivMiles.toLocaleString()} <span class="vault-miles-unit" style="color:var(--purple);">miles</span>
+            </div>
+            <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('sisterMilesDisplay').innerText = `${sisterGrandTotal.toLocaleString()} miles`;
+    };
+
+    window.openSisterVaultModal = function() {
+      renderSisterVaultModal();
+      document.getElementById('sisterVaultOverlay').classList.add('open');
+    };
+
+    window.closeSisterVaultModal = (e) => {
+      if (!e || e.target.id === 'sisterVaultOverlay' || e.target.tagName === 'SPAN') {
+        document.getElementById('sisterVaultOverlay').classList.remove('open');
+      }
     };
 
     window.renderCards = function() {
@@ -1375,22 +1478,23 @@
           let blocks = Math.floor(amt / 5);
           let ptsPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
           earnedRawPoints = blocks * ptsPerBlock;
-          earnedMiles = earnedRawPoints * (vault[card.vaultKey]?.ratio || 1);
+          earnedMiles = earnedRawPoints * (myVault[card.vaultKey]?.ratio || 1);
         } else {
           let eligibleDollars = Math.floor(amt);
           let rate = isEligible ? card.bonusMpd : card.baseMpd;
           earnedMiles = Math.round(eligibleDollars * rate);
-          earnedRawPoints = Math.round(earnedMiles / (vault[card.vaultKey]?.ratio || 1));
+          earnedRawPoints = Math.round(earnedMiles / (myVault[card.vaultKey]?.ratio || 1));
         }
 
-        if (vault[card.vaultKey]) {
-          vault[card.vaultKey].points += earnedRawPoints;
-          await setDoc(doc(db, "milestrack_shared", "vault"), vault);
+        if (myVault[card.vaultKey]) {
+          myVault[card.vaultKey].points += earnedRawPoints;
+          await setDoc(doc(db, "milestrack_vaults", myUserDocKey), myVault);
         }
       }
 
       const txRecord = {
         id: String(Date.now()),
+        owner: myUserDocKey,
         timestamp: Date.now(),
         desc,
         amt,
@@ -1407,15 +1511,15 @@
     };
 
     window.openVaultModal = function() {
-      document.getElementById('v_uob_uni').value = vault.uob_uni?.points || 0;
-      document.getElementById('v_citi_typ').value = vault.citi_typ?.points || 0;
-      document.getElementById('v_citi_miles').value = vault.citi_miles?.points || 0;
-      document.getElementById('v_dbs_pts').value = vault.dbs_pts?.points || 0;
-      document.getElementById('v_yuu_pts').value = vault.yuu_pts?.points || 0;
-      document.getElementById('v_ocbc_pts').value = vault.ocbc_pts?.points || 0;
-      document.getElementById('v_hsbc_pts').value = vault.hsbc_pts?.points || 0;
-      document.getElementById('v_mb_treats').value = vault.mb_treats?.points || 0;
-      document.getElementById('v_kf_miles').value = vault.kf_direct?.points || 0;
+      document.getElementById('v_uob_uni').value = myVault.uob_uni?.points || 0;
+      document.getElementById('v_citi_typ').value = myVault.citi_typ?.points || 0;
+      document.getElementById('v_citi_miles').value = myVault.citi_miles?.points || 0;
+      document.getElementById('v_dbs_pts').value = myVault.dbs_pts?.points || 0;
+      document.getElementById('v_yuu_pts').value = myVault.yuu_pts?.points || 0;
+      document.getElementById('v_ocbc_pts').value = myVault.ocbc_pts?.points || 0;
+      document.getElementById('v_hsbc_pts').value = myVault.hsbc_pts?.points || 0;
+      document.getElementById('v_mb_treats').value = myVault.mb_treats?.points || 0;
+      document.getElementById('v_kf_miles').value = myVault.kf_direct?.points || 0;
       document.getElementById('vaultOverlay').classList.add('open');
     };
 
@@ -1426,20 +1530,20 @@
     };
 
     window.saveVaultBalances = async function() {
-      if (!vault.uob_uni) vault = DEFAULT_VAULT;
-      vault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
-      vault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
-      if (!vault.citi_miles) vault.citi_miles = DEFAULT_VAULT.citi_miles;
-      vault.citi_miles.points = parseFloat(document.getElementById('v_citi_miles').value) || 0;
-      vault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
-      vault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts').value) || 0;
-      if (!vault.ocbc_pts) vault.ocbc_pts = DEFAULT_VAULT.ocbc_pts;
-      vault.ocbc_pts.points = parseFloat(document.getElementById('v_ocbc_pts').value) || 0;
-      vault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts').value) || 0;
-      vault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
-      vault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
+      if (!myVault.uob_uni) myVault = DEFAULT_VAULT;
+      myVault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
+      myVault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
+      if (!myVault.citi_miles) myVault.citi_miles = DEFAULT_VAULT.citi_miles;
+      myVault.citi_miles.points = parseFloat(document.getElementById('v_citi_miles').value) || 0;
+      myVault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
+      myVault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts').value) || 0;
+      if (!myVault.ocbc_pts) myVault.ocbc_pts = DEFAULT_VAULT.ocbc_pts;
+      myVault.ocbc_pts.points = parseFloat(document.getElementById('v_ocbc_pts').value) || 0;
+      myVault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts').value) || 0;
+      myVault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
+      myVault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
 
-      await setDoc(doc(db, "milestrack_shared", "vault"), vault);
+      await setDoc(doc(db, "milestrack_vaults", myUserDocKey), myVault);
       document.getElementById('vaultOverlay').classList.remove('open');
     };
 
@@ -1480,7 +1584,7 @@
         cutoffDays: { uobVs: uobVsDay, citi: citiDay }
       };
 
-      await setDoc(doc(db, "milestrack_shared", "settings"), settingsData);
+      await setDoc(doc(db, "milestrack_settings", myUserDocKey), settingsData);
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
