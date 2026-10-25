@@ -69,17 +69,15 @@
     input:checked + .slider { background-color: var(--fcy-cyan); }
     input:checked + .slider:before { transform: translateX(22px); }
 
-    /* Personal War Chest Summary Card */
     .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 18px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 10px; }
     .total-miles { font-size: 2.3rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
-    /* Sister's Independent Balance Card */
     .sister-card { background: var(--surface); border: 1px solid rgba(192, 132, 252, 0.25); border-radius: 20px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
     .sister-info { display: flex; flex-direction: column; gap: 2px; }
     .sister-title { font-size: 0.75rem; text-transform: uppercase; color: var(--purple); font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
     .sister-miles { font-size: 1.35rem; font-weight: 800; color: #fff; }
-    .btn-view-peer { background: rgba(192, 132, 252, 0.15); color: var(--purple); border: 1px solid rgba(192, 132, 252, 0.4); padding: 7px 14px; border-radius: 10px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .btn-view-peer { background: rgba(192, 132, 252, 0.15); color: var(--purple); border: 1px solid rgba(192, 132, 252, 0.4); padding: 7px 14px; border-radius: 10px; font-weight: 600; font-size: 0.8rem; cursor: pointer; }
 
     .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; margin-top: 4px; }
     .travel-goal-header { font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
@@ -102,11 +100,9 @@
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
-    /* Vault Grid - Miles-First Visual Hierarchy */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
     .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    
     .vault-miles-big { font-size: 1.35rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .vault-miles-unit { font-size: 0.82rem; font-weight: 500; color: var(--accent); }
     .vault-raw-pts { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
@@ -175,7 +171,7 @@
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="sync-status" id="syncStatusIndicator">● Live Sync</span>
-        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit My Points Balances">account_balance_wallet</span>
+        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
         <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings">settings</span>
         <span class="material-symbols-outlined" onclick="logoutGoogle()" style="cursor:pointer; color:#94a3b8;" title="Sign Out">logout</span>
       </div>
@@ -242,7 +238,7 @@
         <!-- Monthly Card Bonus Caps -->
         <div>
           <div class="section-title">
-            <span>My Monthly Bonus Caps</span>
+            <span id="cardBonusTitle">My Monthly Bonus Caps</span>
             <span style="font-size:0.75rem; color:#94a3b8;">Active Billing Cycle</span>
           </div>
           <div class="card-list" id="cardsContainer"></div>
@@ -253,12 +249,12 @@
       <div class="col-right">
         <!-- Separate Personal War Chest -->
         <div class="summary-card">
-          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;">My Personal Mileage War Chest</div>
+          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">My Personal Mileage War Chest</div>
           <div class="total-miles" id="myTotalVaultMiles">0 mi</div>
           
           <div class="summary-subtext">
-            <span>My Bank Balances Only</span>
-            <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update My Points ✏️</span>
+            <span>Household Points Only</span>
+            <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update Points ✏️</span>
           </div>
 
           <div class="travel-goal-badge" onclick="openTravelTiersModal()">
@@ -274,9 +270,9 @@
         <!-- Sister's Independent Balance Peek Card -->
         <div class="sister-card">
           <div class="sister-info">
-            <span class="sister-title"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
+            <span class="sister-title" id="peerCardTitle"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
             <div class="sister-miles" id="sisterMilesDisplay">0 miles</div>
-            <span style="font-size:0.75rem; color:#94a3b8;" id="sisterStatusDisplay">Synced via Cloud</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">Synced via Cloud</span>
           </div>
           <button class="btn-view-peer" onclick="openSisterVaultModal()">View Breakdown ❯</button>
         </div>
@@ -284,7 +280,7 @@
         <!-- My Points Vault Breakdown (Miles First Hierarchy) -->
         <div>
           <div class="section-title">
-            <span>My Bank Points Vault</span>
+            <span id="vaultSectionTitle">My Bank Points Vault</span>
             <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" onclick="openVaultModal()">Update Balances ✏️</span>
           </div>
           <div class="vault-grid" id="vaultContainer"></div>
@@ -293,7 +289,7 @@
         <!-- Expiry Radar -->
         <div>
           <div class="section-title">
-            <span>Points Expiry Radar (My Cards)</span>
+            <span>Points Expiry Radar</span>
             <span style="font-size:0.75rem; color:#94a3b8;" onclick="openSettings()" style="cursor:pointer;">Configure Expiry ⚙️</span>
           </div>
           <div class="radar-card" id="radarContainer"></div>
@@ -301,7 +297,7 @@
 
         <!-- Recent Transactions -->
         <div>
-          <div class="section-title">My Recent Transactions</div>
+          <div class="section-title">Recent Transactions</div>
           <div id="txList"></div>
         </div>
       </div>
@@ -317,10 +313,10 @@
   <div class="modal-overlay" id="sisterVaultOverlay" onclick="closeSisterVaultModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem; color:var(--purple);">Sister's Points Vault (Separate)</h2>
+        <h2 style="font-size:1.15rem; color:var(--purple);" id="peerModalTitle">Sister's Points Vault (Separate)</h2>
         <span class="material-symbols-outlined" onclick="closeSisterVaultModal()" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.8rem; color:#94a3b8;">Her independent points balances across Singapore banks (not merged with yours):</p>
+      <p style="font-size:0.8rem; color:#94a3b8;">Independent points balances across Singapore banks (not merged with yours):</p>
       <div class="vault-grid" id="sisterVaultContainer" style="margin-top:10px;"></div>
     </div>
   </div>
@@ -371,18 +367,18 @@
         <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
       </div>
 
-      <button class="btn-submit" onclick="saveTransaction()">Save to My Ledger</button>
+      <button class="btn-submit" onclick="saveTransaction()">Save to Ledger</button>
     </div>
   </div>
 
-  <!-- My Points Vault Edit Modal -->
+  <!-- Points Vault Edit Modal -->
   <div class="modal-overlay" id="vaultOverlay" onclick="closeVaultModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">Edit My Points Balances</h2>
+        <h2 style="font-size:1.15rem;">Edit Points Balances</h2>
         <span class="material-symbols-outlined" onclick="closeVaultModal()" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your personal banking apps:</p>
+      <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your banking apps:</p>
 
       <div class="form-group">
         <label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label>
@@ -421,7 +417,7 @@
         <input type="number" id="v_kf_miles" class="form-control">
       </div>
 
-      <button class="btn-submit" onclick="saveVaultBalances()">Save My Vault</button>
+      <button class="btn-submit" onclick="saveVaultBalances()">Save to Vault</button>
     </div>
   </div>
 
@@ -472,14 +468,30 @@
         <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
       </div>
 
-      <button class="btn-submit" onclick="saveSettings()">Save My Settings</button>
+      <button class="btn-submit" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Explicit Mapping for Household vs Sister
+    const PRIMARY_EMAILS = [
+      "zjunyuan@gmail.com",
+      "eunice.er.yc@gmail.com"
+    ];
+    const SISTER_EMAILS = [
+      "minsyyy@gmail.com"
+    ];
+
+    function resolveVaultKey(email = "") {
+      const clean = email.toLowerCase().trim();
+      if (PRIMARY_EMAILS.includes(clean)) return "primary";
+      if (SISTER_EMAILS.includes(clean)) return "sister";
+      return clean.replace(/[^a-zA-Z0-9]/g, "_");
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
@@ -492,7 +504,8 @@
 
     let app, auth, db, googleProvider;
     let currentUser = null;
-    let myUserDocKey = null;
+    let myVaultKey = "primary";
+    let peerVaultKey = "sister";
 
     const KRISFLYER_4PAX_TIERS = [
       { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
@@ -795,14 +808,10 @@
     let cards = INITIAL_CARDS;
     let transactions = [];
     let myVault = DEFAULT_VAULT;
-    let sisterVault = DEFAULT_VAULT;
+    let peerVault = DEFAULT_VAULT;
     let citiApprovalDate = '2023-01';
     let isOverseasMode = false;
     let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05', prvi: '2024-07' };
-
-    function sanitizeKey(email) {
-      return (email || "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-    }
 
     // Initialize Firebase
     app = initializeApp(firebaseConfig);
@@ -810,24 +819,71 @@
     db = getFirestore(app);
     googleProvider = new GoogleAuthProvider();
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
-        myUserDocKey = sanitizeKey(user.email);
+        const resolvedKey = resolveVaultKey(user.email);
+        myVaultKey = resolvedKey;
+        peerVaultKey = (resolvedKey === "sister") ? "primary" : "sister";
+
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('fabButton').style.display = 'flex';
         document.getElementById('syncStatusIndicator').innerText = "● Cloud Connected";
-        document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email}`;
+        document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email} (${myVaultKey === 'primary' ? 'Household' : 'Sister'})`;
+
+        if (myVaultKey === "sister") {
+          document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Household Vault (Brother)';
+          document.getElementById('peerModalTitle').innerText = "Household Points Vault (Brother)";
+          document.getElementById('warChestTitle').innerText = "My Personal Mileage War Chest";
+          document.getElementById('cardBonusTitle').innerText = "My Monthly Bonus Caps";
+          document.getElementById('vaultSectionTitle').innerText = "My Bank Points Vault";
+        } else {
+          document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister\'s Vault (Separate)';
+          document.getElementById('peerModalTitle').innerText = "Sister's Points Vault (Separate)";
+          document.getElementById('warChestTitle').innerText = "Household Mileage War Chest";
+          document.getElementById('cardBonusTitle').innerText = "Household Monthly Bonus Caps";
+          document.getElementById('vaultSectionTitle').innerText = "Household Bank Points Vault";
+        }
+
+        renderCards();
+        renderVault();
+
+        await checkAndMigrateSharedVault();
         subscribeToCloudData();
       } else {
         currentUser = null;
-        myUserDocKey = null;
         document.getElementById('authOverlay').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('fabButton').style.display = 'none';
       }
     });
+
+    async function checkAndMigrateSharedVault() {
+      if (myVaultKey !== "primary") return;
+      try {
+        const primDocRef = doc(db, "milestrack_vaults", "primary");
+        const primDocSnap = await getDoc(primDocRef);
+
+        let myPointsSum = 0;
+        if (primDocSnap.exists()) {
+          const data = primDocSnap.data();
+          for (const k in data) myPointsSum += (data[k]?.points || 0);
+        }
+
+        if (!primDocSnap.exists() || myPointsSum === 0) {
+          const sharedDocRef = doc(db, "milestrack_shared", "vault");
+          const sharedSnap = await getDoc(sharedDocRef);
+          if (sharedSnap.exists()) {
+            myVault = { ...DEFAULT_VAULT, ...sharedSnap.data() };
+            await setDoc(primDocRef, myVault);
+            renderVault();
+          }
+        }
+      } catch (e) {
+        console.warn("Migration notice:", e);
+      }
+    }
 
     window.loginWithGoogle = async function() {
       try {
@@ -844,30 +900,26 @@
     };
 
     function subscribeToCloudData() {
-      if (!myUserDocKey) return;
-
-      // 1. Subscribe to My Isolated Vault
-      onSnapshot(doc(db, "milestrack_vaults", myUserDocKey), (docSnap) => {
+      // 1. My Active Vault
+      onSnapshot(doc(db, "milestrack_vaults", myVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           myVault = { ...DEFAULT_VAULT, ...docSnap.data() };
           renderVault();
         } else {
-          setDoc(doc(db, "milestrack_vaults", myUserDocKey), DEFAULT_VAULT);
+          setDoc(doc(db, "milestrack_vaults", myVaultKey), DEFAULT_VAULT);
         }
-      }, (err) => console.error("My vault read error:", err));
+      }, (err) => console.error("My vault error:", err));
 
-      // 2. Subscribe to All Vaults to Peek at Sister's Separate Balance
-      onSnapshot(collection(db, "milestrack_vaults"), (snapshot) => {
-        snapshot.forEach(docSnap => {
-          if (docSnap.id !== myUserDocKey) {
-            sisterVault = { ...DEFAULT_VAULT, ...docSnap.data() };
-            renderSisterVaultModal();
-          }
-        });
-      }, (err) => console.error("Sister vault read error:", err));
+      // 2. Peer Vault
+      onSnapshot(doc(db, "milestrack_vaults", peerVaultKey), (docSnap) => {
+        if (docSnap.exists()) {
+          peerVault = { ...DEFAULT_VAULT, ...docSnap.data() };
+          renderSisterVaultModal();
+        }
+      }, (err) => console.error("Peer vault error:", err));
 
-      // 3. Subscribe to My Isolated Settings
-      onSnapshot(doc(db, "milestrack_settings", myUserDocKey), (docSnap) => {
+      // 3. My Active Settings
+      onSnapshot(doc(db, "milestrack_settings", myVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.citiApprovalDate) citiApprovalDate = data.citiApprovalDate;
@@ -884,10 +936,10 @@
         }
       });
 
-      // 4. Subscribe to My Own Transactions Only
+      // 4. My Active Ledger Transactions
       const txQuery = query(
         collection(db, "milestrack_txns"), 
-        where("owner", "==", myUserDocKey),
+        where("owner", "==", myVaultKey),
         orderBy("timestamp", "asc"), 
         limit(100)
       );
@@ -1111,6 +1163,7 @@
 
     window.checkUobFeeDefense = function() {
       const container = document.getElementById('uobFeeAlertContainer');
+      if (!container) return;
       container.innerHTML = '';
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -1186,6 +1239,7 @@
 
     window.renderExpiryRadar = function() {
       const container = document.getElementById('radarContainer');
+      if (!container) return;
       container.innerHTML = '';
       const expiries = getEarliestExpiryDates();
       const now = new Date();
@@ -1294,9 +1348,9 @@
       }
     };
 
-    // Render My Isolated Vault (Miles Highlighted & Prominent)
     window.renderVault = function() {
       const container = document.getElementById('vaultContainer');
+      if (!container) return;
       container.innerHTML = '';
       let myGrandTotalMiles = 0;
 
@@ -1321,28 +1375,31 @@
       updateTravelGoal(myGrandTotalMiles);
     };
 
-    // Render Sister's Vault Modal & Dashboard Card (Miles Highlighted & Prominent)
     window.renderSisterVaultModal = function() {
       const container = document.getElementById('sisterVaultContainer');
-      container.innerHTML = '';
-      let sisterGrandTotal = 0;
+      let peerGrandTotal = 0;
 
-      for (const [key, item] of Object.entries(sisterVault)) {
+      if (container) container.innerHTML = '';
+
+      for (const [key, item] of Object.entries(peerVault)) {
         const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
-        sisterGrandTotal += equivMiles;
+        peerGrandTotal += equivMiles;
 
-        container.innerHTML += `
-          <div class="vault-item" style="border-color: rgba(192, 132, 252, 0.2);">
-            <span class="vault-label" style="color:var(--purple);">${item.name}</span>
-            <div class="vault-miles-big">
-              ${equivMiles.toLocaleString()} <span class="vault-miles-unit" style="color:var(--purple);">miles</span>
+        if (container) {
+          container.innerHTML += `
+            <div class="vault-item" style="border-color: rgba(192, 132, 252, 0.2);">
+              <span class="vault-label" style="color:var(--purple);">${item.name}</span>
+              <div class="vault-miles-big">
+                ${equivMiles.toLocaleString()} <span class="vault-miles-unit" style="color:var(--purple);">miles</span>
+              </div>
+              <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
             </div>
-            <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
-          </div>
-        `;
+          `;
+        }
       }
 
-      document.getElementById('sisterMilesDisplay').innerText = `${sisterGrandTotal.toLocaleString()} miles`;
+      const disp = document.getElementById('sisterMilesDisplay');
+      if (disp) disp.innerText = `${peerGrandTotal.toLocaleString()} miles`;
     };
 
     window.openSisterVaultModal = function() {
@@ -1359,6 +1416,8 @@
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
+      if (!container || !select) return;
+
       container.innerHTML = '';
       select.innerHTML = '';
 
@@ -1437,6 +1496,7 @@
 
     window.renderTransactions = function() {
       const list = document.getElementById('txList');
+      if (!list) return;
       list.innerHTML = '';
 
       transactions.slice().reverse().forEach(tx => {
@@ -1488,13 +1548,13 @@
 
         if (myVault[card.vaultKey]) {
           myVault[card.vaultKey].points += earnedRawPoints;
-          await setDoc(doc(db, "milestrack_vaults", myUserDocKey), myVault);
+          await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
         }
       }
 
       const txRecord = {
         id: String(Date.now()),
-        owner: myUserDocKey,
+        owner: myVaultKey,
         timestamp: Date.now(),
         desc,
         amt,
@@ -1543,7 +1603,7 @@
       myVault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
       myVault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
 
-      await setDoc(doc(db, "milestrack_vaults", myUserDocKey), myVault);
+      await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
       document.getElementById('vaultOverlay').classList.remove('open');
     };
 
@@ -1584,7 +1644,7 @@
         cutoffDays: { uobVs: uobVsDay, citi: citiDay }
       };
 
-      await setDoc(doc(db, "milestrack_settings", myUserDocKey), settingsData);
+      await setDoc(doc(db, "milestrack_settings", myVaultKey), settingsData);
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
