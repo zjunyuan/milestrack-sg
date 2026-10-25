@@ -27,6 +27,7 @@
       --warning: #f97316;
       --danger: #ef4444;
       --gold: #fbbf24;
+      --fcy-cyan: #38bdf8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -35,11 +36,24 @@
     header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
+    /* Overseas Mode Switch Header */
+    .overseas-toggle-bar { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
+    .overseas-toggle-bar.active { background: rgba(56, 189, 248, 0.12); border-color: var(--fcy-cyan); }
+    .toggle-label { font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+    /* Switch */
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--fcy-cyan); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
     .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 8px; }
     .total-miles { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
-    /* 4-Pax Travel Goal Callout inside Summary Card */
+    /* 4-Pax Travel Goal Callout */
     .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; margin-top: 4px; }
     .travel-goal-header { font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     .travel-goal-dest { font-size: 0.95rem; font-weight: 700; color: #fff; }
@@ -47,6 +61,7 @@
 
     /* Recommender Widget */
     .recommender-card { background: var(--surface); border: 1px solid rgba(158, 202, 255, 0.25); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .recommender-card.fcy-mode { border-color: var(--fcy-cyan); }
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
     .rec-inputs { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
@@ -54,6 +69,7 @@
     .rec-winner-title { font-weight: 700; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
     .rec-winner-meta { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
     .mcc-tag-box { font-size: 0.75rem; color: #94a3b8; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 8px; border-left: 3px solid var(--primary); }
+    .dcc-warning { font-size: 0.72rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; margin-top: 4px; }
     .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
     /* Fee Defense Alert Card */
@@ -118,22 +134,53 @@
       </div>
     </header>
 
-    <!-- Smart Recommender Widget (Check-MCC SG Database Embedded) -->
-    <div class="recommender-card">
+    <!-- Overseas / FCY Mode Toggle -->
+    <div class="overseas-toggle-bar" id="overseasBar">
+      <div class="toggle-label">
+        <span class="material-symbols-outlined" id="overseasIcon" style="color:#94a3b8;">travel</span>
+        <span id="overseasText">Mode: Singapore (Local SGD)</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="overseasSwitch" onchange="toggleOverseasMode()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- Smart Recommender Widget (MCC & Overseas Aware) -->
+    <div class="recommender-card" id="recommenderCard">
       <div class="rec-header">
         <span class="rec-title">
-          <span class="material-symbols-outlined" style="font-size:20px;">storefront</span>
-          Merchant & MCC Recommender
+          <span class="material-symbols-outlined" style="font-size:20px;">calculate</span>
+          <span id="recTitleText">MCC & Card Recommender</span>
         </span>
-        <span style="font-size:0.75rem; color:#94a3b8;">Check-MCC SG Index</span>
+        <span style="font-size:0.75rem; color:#94a3b8;" id="recModeBadge">Local SGD</span>
       </div>
 
       <div class="rec-inputs">
-        <input type="text" id="mccInput" list="merchantDatalist" class="form-control" placeholder="Search merchant (e.g. Uniqlo, Agoda, McD) or MCC" oninput="runRecommendation()">
-        <input type="number" id="recAmount" class="form-control" placeholder="SGD $" value="60" oninput="runRecommendation()">
+        <input type="text" id="mccInput" list="mccDatalist" class="form-control" placeholder="Type MCC (e.g. 5814) or retailer" oninput="runRecommendation()">
+        <input type="number" id="recAmount" class="form-control" placeholder="Amt (SGD equiv)" value="100" oninput="runRecommendation()">
       </div>
 
-      <datalist id="merchantDatalist"></datalist>
+      <datalist id="mccDatalist">
+        <option value="5812 - Restaurants & Dining">
+        <option value="5814 - Fast Food (McD, KFC, Starbucks)">
+        <option value="5411 - Supermarkets & Groceries">
+        <option value="5311 - Department Stores (Takashimaya, Tangs)">
+        <option value="5651 - Family Clothing (Uniqlo, Zara)">
+        <option value="5621 - Women's Ready-to-Wear">
+        <option value="4511 - Airlines & Air Carriers (SIA, Scoot)">
+        <option value="4722 - Travel Agencies & OTAs (Agoda, Klook)">
+        <option value="7011 - Hotels & Resorts">
+        <option value="4111 - Commuter Transport / SimplyGo">
+        <option value="4121 - Taxis & Ride-Hailing (Grab, Gojek)">
+        <option value="5541 - Petrol Service Stations (Shell, SPC, Esso)">
+        <option value="5542 - Automated Fuel Dispensers">
+        <option value="5999 - General Retail & Souvenirs">
+        <option value="4900 - Utilities (SP Group, Senoko)">
+        <option value="6300 - Insurance Premiums">
+        <option value="9399 - Government Services & Taxes">
+        <option value="6540 - Wallet Top-Ups (GrabPay, Revolut)">
+      </datalist>
 
       <div class="rec-result" id="recResultArea"></div>
     </div>
@@ -200,9 +247,8 @@
         <span class="material-symbols-outlined" onclick="closeTravelTiersModal()" style="cursor:pointer;">close</span>
       </div>
       <p style="font-size:0.78rem; color:#94a3b8;">
-        Singapore Airlines KrisFlyer Saver Return Business Class requirement for 4 passengers (2 adults + 2 children):
+        KrisFlyer Saver Round-Trip Business Class requirement for 4 passengers (2 adults + 2 children):
       </p>
-
       <div id="travelTiersList" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
   </div>
@@ -221,7 +267,7 @@
       </div>
 
       <div class="form-group">
-        <label>Amount (SGD)</label>
+        <label>Amount (SGD Equiv)</label>
         <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01">
       </div>
 
@@ -294,4 +340,296 @@
       </div>
 
       <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin
+        <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
+          UOB Auto-Deduction Defense (Card Renewal Months)
+        </label>
+        <div class="form-group">
+          <label>UOB Lady's Solitaire Renewal Month</label>
+          <input type="month" id="uobLsRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB Visa Signature Renewal Month</label>
+          <input type="month" id="uobVsRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB Preferred Visa Renewal Month</label>
+          <input type="month" id="uobPpvRenewalInput" class="form-control">
+        </div>
+      </div>
+
+      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
+        <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
+          Citi Rewards Approval Date (5-Year Cycle)
+        </label>
+        <input type="month" id="citiApprovalInput" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
+        <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
+      </div>
+
+      <div class="form-group">
+        <label>Citi Rewards Statement Cutoff Day (1 - 31)</label>
+        <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
+      </div>
+
+      <button class="btn-submit" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+
+  <script type="module">
+    const KRISFLYER_4PAX_TIERS = [
+      { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
+      { name: "Bangkok / Phuket / Vietnam (Zone 3)", oneWay: 25000, totalMiles: 200000 },
+      { name: "Hong Kong / Taipei (Zone 4)", oneWay: 36500, totalMiles: 292000 },
+      { name: "Perth / Darwin (Zone 8)", oneWay: 42500, totalMiles: 340000 },
+      { name: "Tokyo / Osaka / Seoul (Zone 7)", oneWay: 54500, totalMiles: 436000 },
+      { name: "Sydney / Melbourne / Auckland (Zone 9)", oneWay: 72000, totalMiles: 576000 },
+      { name: "London / Paris / Zurich (Zone 11)", oneWay: 108500, totalMiles: 868000 },
+      { name: "USA West / East Coast (Zone 12/13)", oneWay: 112500, totalMiles: 900000 }
+    ];
+
+    const MCC_DATABASE = {
+      "5812": {
+        name: "Restaurants & Dining Places",
+        notes: "Sit-down restaurants, cafes. All dining cards eligible.",
+        candidatesLocal: [
+          { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "kf-uob", baseRate: 3.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5814": {
+        name: "Fast Food & Quick Service (McD, KFC, Starbucks, GrabFood)",
+        notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Use UOB PPV, Solitaire, or Maybank World.",
+        candidatesLocal: [
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "kf-uob", baseRate: 3.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5411": {
+        name: "Grocery Stores & Supermarkets",
+        notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG. Overseas: use UOB Visa Signature (4 mpd) or Maybank Horizon (2.8 mpd).",
+        candidatesLocal: [
+          { id: "dbs-yuu", baseRate: 10.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5311": {
+        name: "Department Stores (Takashimaya, Tangs, Isetan)",
+        notes: "Department store shopping.",
+        candidatesLocal: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5651": {
+        name: "Family Clothing & Fashion (Uniqlo, Zara)",
+        notes: "Fashion apparel bonus eligible.",
+        candidatesLocal: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5621": {
+        name: "Women's Ready-to-Wear Stores",
+        notes: "Fashion apparel bonus eligible.",
+        candidatesLocal: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "4511": {
+        name: "Airlines & Air Carriers (Singapore Airlines, Scoot)",
+        notes: "⚠️ Citi Rewards strictly EXCLUDES airfares! Use DBS WWMC, Solitaire, Maybank Horizon, or KF UOB.",
+        candidatesLocal: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 3.24 },
+          { id: "kf-uob", baseRate: 3.0 }
+        ],
+        candidatesOverseas: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 3.24 },
+          { id: "uob-vs-fcy", baseRate: 4.0 }
+        ]
+      },
+      "4722": {
+        name: "Travel Agencies & OTAs (Agoda, Klook, Trip.com, Expedia)",
+        notes: "⚠️ EXCLUDED on Citi Rewards AND HSBC Rev! Use DBS WWMC or Solitaire (Travel).",
+        candidatesLocal: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "uob-vs-fcy", baseRate: 4.0 }
+        ]
+      },
+      "7011": {
+        name: "Hotels, Motels & Resorts",
+        notes: "⚠️ Citi Rewards strictly EXCLUDES hotels! Use DBS WWMC, Solitaire (Travel), or Maybank Horizon.",
+        candidatesLocal: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 3.24 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "4111": {
+        name: "Commuter Transport / Transit",
+        notes: "Local SimplyGo earns 10 mpd on yuu. Overseas transit: use UOB VS (4 mpd) or Maybank Horizon (2.8 mpd).",
+        candidatesLocal: [
+          { id: "dbs-yuu", baseRate: 10.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "4121": {
+        name: "Taxis & Ride-Hailing (Grab, Gojek, Uber)",
+        notes: "Ride hailing and taxis.",
+        candidatesLocal: [
+          { id: "dbs-yuu", baseRate: 10.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "kf-uob", baseRate: 3.0 },
+          { id: "dbs-wwmc", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "dbs-wwmc", baseRate: 4.0 }
+        ]
+      },
+      "5541": {
+        name: "Petrol / Service Stations",
+        notes: "⚠️ HSBC Revolution strictly EXCLUDES petrol! Local: UOB VS or Maybank World. Overseas: UOB VS FCY.",
+        candidatesLocal: [
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "5999": {
+        name: "General Retail, Souvenirs & Specialty Stores",
+        notes: "All general retail and souvenir spending.",
+        candidatesLocal: [
+          { id: "citi-rewards", baseRate: 4.0 },
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "4900": {
+        name: "Utilities",
+        notes: "❌ Excluded from rewards across all cards.",
+        candidatesLocal: [],
+        candidatesOverseas: []
+      },
+      "6300": {
+        name: "Insurance",
+        notes: "❌ Excluded from rewards across all cards.",
+        candidatesLocal: [],
+        candidatesOverseas: []
+      },
+      "9399": {
+        name: "Government / Taxes",
+        notes: "❌ Excluded from rewards across all cards.",
+        candidatesLocal: [],
+        candidatesOverseas: []
+      },
+      "6540": {
+        name: "Stored Value Card / Wallet Top-Ups",
+        notes: "❌ Excluded from rewards across all cards.",
+        candidatesLocal: [],
+        candidatesOverseas: []
+      }
+    };
+
+    const DEFAULT_VAULT = {
+      uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
+      citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval' },
+      dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1 yr from quarter end' },
+      yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
+      hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
+      mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
+      kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
+    };
+
+    const INITIAL_CARDS = [
+      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo.' },
+      { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
+      { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
+      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
+      { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.' },
+      { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', vaultKey: 'citi_typ', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & in-store fashion. Statement month cycle.' },
+      { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', cycleType: 'calendar', badgeClass: '', hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.' },
+      { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Dining)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Restaurants, cafes, bars. Local and overseas.' },
+      { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Travel)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. Local and overseas.' },
+      { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', vaultKey: 'hsbc_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814).' },
+      { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.2, baseMpd: 0.4, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: 'Dining & Petrol in SG. Uncapped 3.2 mpd.' },
+      { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', vaultKey: 'kf_direct', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.0, baseMpd: 1.2, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: 'Uncapped 3.0 mpd on SIA, Dining, Online, Taxis.' },
+      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 2.8, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.' }
+    ];
+
+    let cards = JSON.parse(localStorage.getItem('cards_sg_v11')) || INITIAL_CARDS;
+    let transactions = JSON.parse(localStorage.getItem('tx_sg_v11')) || [];
+    let vault = JSON.parse(localStorage.getItem('vault_sg_v7')) || DEFAULT_VAULT;
+    let citiApprovalDate = localStorage.getItem('citi_approval_date') || '2023-01';
+    let isOverseasMode = JSON.parse(localStorage.getItem('is_overseas_mode')) || false;
+
+    let uobRenewals = JSON.parse(localStorage.getItem('uob_renewals')) || {
+      solitaire: '2023-11',
