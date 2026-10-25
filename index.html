@@ -100,6 +100,7 @@
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
+    /* Vault Grid - Big Miles Typography */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
     .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -133,6 +134,11 @@
     .tx-meta { font-size: 0.75rem; color: #94a3b8; }
     .tx-miles { color: var(--accent); font-weight: 700; font-size: 0.95rem; text-align: right; }
     .tx-amt { font-size: 0.75rem; color: #94a3b8; text-align: right; }
+
+    /* Card Checkbox Grid inside Settings */
+    .checklist-grid { display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; margin-top: 4px; }
+    .checklist-item { display: flex; align-items: center; gap: 10px; background: var(--surface-variant); padding: 8px 12px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; }
+    .checklist-item input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
 
     .fab { position: fixed; bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 20px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer; z-index: 99; transition: transform 0.2s; }
     .fab:hover { transform: scale(1.05); }
@@ -238,7 +244,7 @@
         <!-- Monthly Card Bonus Caps -->
         <div>
           <div class="section-title">
-            <span id="cardBonusTitle">My Monthly Bonus Caps</span>
+            <span id="cardBonusTitle">Monthly Bonus Caps</span>
             <span style="font-size:0.75rem; color:#94a3b8;">Active Billing Cycle</span>
           </div>
           <div class="card-list" id="cardsContainer"></div>
@@ -249,11 +255,11 @@
       <div class="col-right">
         <!-- Separate Personal War Chest -->
         <div class="summary-card">
-          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">My Personal Mileage War Chest</div>
+          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
           <div class="total-miles" id="myTotalVaultMiles">0 mi</div>
           
           <div class="summary-subtext">
-            <span>Household Points Only</span>
+            <span>Active Vault Points Only</span>
             <span onclick="openVaultModal()" style="color:var(--primary); cursor:pointer;">Update Points ✏️</span>
           </div>
 
@@ -277,10 +283,10 @@
           <button class="btn-view-peer" onclick="openSisterVaultModal()">View Breakdown ❯</button>
         </div>
 
-        <!-- My Points Vault Breakdown (Miles First Hierarchy) -->
+        <!-- Points Vault Breakdown (Miles First Hierarchy) -->
         <div>
           <div class="section-title">
-            <span id="vaultSectionTitle">My Bank Points Vault</span>
+            <span id="vaultSectionTitle">Bank Points Vault</span>
             <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" onclick="openVaultModal()">Update Balances ✏️</span>
           </div>
           <div class="vault-grid" id="vaultContainer"></div>
@@ -421,14 +427,26 @@
     </div>
   </div>
 
-  <!-- Settings Modal -->
+  <!-- Settings Modal (With Card Ownership Checklist) -->
   <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">Settings & Annual Renewal</h2>
+        <h2 style="font-size:1.15rem;">Settings & Card Wallet</h2>
         <span class="material-symbols-outlined" onclick="closeSettings()" style="cursor:pointer;">close</span>
       </div>
 
+      <!-- Card Ownership Checklist -->
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
+          My Card Wallet (Active Cards)
+        </label>
+        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
+          Uncheck cards you do not hold. Unchecked cards are hidden from caps and recommender.
+        </p>
+        <div class="checklist-grid" id="cardChecklistContainer"></div>
+      </div>
+
+      <!-- UOB Fee Defense Settings -->
       <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
         <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
           UOB Auto-Deduction Defense (Card Renewal Months)
@@ -451,6 +469,7 @@
         </div>
       </div>
 
+      <!-- Citi 5-Year Rule -->
       <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
         <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
           Citi Rewards Approval Date (5-Year Cycle)
@@ -458,6 +477,7 @@
         <input type="month" id="citiApprovalInput" class="form-control">
       </div>
 
+      <!-- Statement Cutoffs -->
       <div class="form-group">
         <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
         <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
@@ -477,7 +497,9 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Explicit Mapping for Household vs Sister
+    // -------------------------------------------------------------
+    // EXPLICIT ROLE MAPPING
+    // -------------------------------------------------------------
     const PRIMARY_EMAILS = [
       "zjunyuan@gmail.com",
       "eunice.er.yc@gmail.com"
@@ -784,7 +806,7 @@
       kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
     };
 
-    const INITIAL_CARDS = [
+    const ALL_MASTER_CARDS = [
       { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo. Req: S$800 min spend + 4 distinct merchants.' },
       { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
       { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
@@ -805,7 +827,8 @@
       { id: 'citi-pm', name: 'Citi PremierMiles', bank: 'Citi', vaultKey: 'citi_miles', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.2, baseMpd: 1.2, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).' }
     ];
 
-    let cards = INITIAL_CARDS;
+    let enabledCardIds = ALL_MASTER_CARDS.map(c => c.id);
+    let cards = ALL_MASTER_CARDS;
     let transactions = [];
     let myVault = DEFAULT_VAULT;
     let peerVault = DEFAULT_VAULT;
@@ -918,18 +941,23 @@
         }
       }, (err) => console.error("Peer vault error:", err));
 
-      // 3. My Active Settings
+      // 3. My Active Settings & Card Wallet Inventory
       onSnapshot(doc(db, "milestrack_settings", myVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.citiApprovalDate) citiApprovalDate = data.citiApprovalDate;
           if (data.uobRenewals) uobRenewals = { ...uobRenewals, ...data.uobRenewals };
+          if (data.enabledCards && Array.isArray(data.enabledCards)) {
+            enabledCardIds = data.enabledCards;
+          }
           if (data.cutoffDays) {
-            cards.forEach(c => {
+            ALL_MASTER_CARDS.forEach(c => {
               if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
               if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
             });
           }
+          // Filter active cards by enabled checklist
+          cards = ALL_MASTER_CARDS.filter(c => enabledCardIds.includes(c.id));
           renderCards();
           renderExpiryRadar();
           checkUobFeeDefense();
@@ -1083,17 +1111,20 @@
 
       const candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
 
-      if (candidateList.length === 0) {
+      // Filter candidates strictly to cards you actively own
+      const myOwnedCandidates = candidateList.filter(c => enabledCardIds.includes(c.id));
+
+      if (myOwnedCandidates.length === 0) {
         resultArea.innerHTML = `
           <div class="mcc-tag-box" style="border-left-color:var(--danger);">
             <b>MCC ${mccData.code} - ${mccData.name}</b><br>
-            <span style="color:var(--danger);">${mccData.notes}</span>
+            <span style="color:var(--danger);">${candidateList.length > 0 ? "You do not own any cards that earn bonus miles on this category." : mccData.notes}</span>
           </div>
         `;
         return;
       }
 
-      const scored = candidateList.map(candidate => {
+      const scored = myOwnedCandidates.map(candidate => {
         const card = cards.find(c => c.id === candidate.id);
         if (!card) return null;
 
@@ -1500,7 +1531,7 @@
       list.innerHTML = '';
 
       transactions.slice().reverse().forEach(tx => {
-        const card = cards.find(c => c.id === tx.cardId) || { name: 'Card' };
+        const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
         list.innerHTML += `
           <div class="tx-item">
             <div>
@@ -1523,7 +1554,7 @@
       const isBonus = document.getElementById('bonusCategory').value === 'bonus';
 
       if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
-      const card = cards.find(c => c.id === cardId);
+      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
       let earnedMiles = 0;
       let earnedRawPoints = 0;
 
@@ -1607,9 +1638,26 @@
       document.getElementById('vaultOverlay').classList.remove('open');
     };
 
+    // Render the Card Checklist in Settings
+    function renderCardChecklist() {
+      const container = document.getElementById('cardChecklistContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      ALL_MASTER_CARDS.forEach(card => {
+        const isChecked = enabledCardIds.includes(card.id) ? 'checked' : '';
+        container.innerHTML += `
+          <label class="checklist-item">
+            <input type="checkbox" id="chk_${card.id}" value="${card.id}" ${isChecked}>
+            <span>${card.name}</span>
+          </label>
+        `;
+      });
+    }
+
     window.openSettings = function() {
-      const uobVs = cards.find(c => c.id === 'uob-vs-contactless');
-      const citi = cards.find(c => c.id === 'citi-rewards');
+      const uobVs = ALL_MASTER_CARDS.find(c => c.id === 'uob-vs-contactless');
+      const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
       document.getElementById('uobVsCutoff').value = uobVs?.cutoffDay || 18;
       document.getElementById('citiCutoff').value = citi?.cutoffDay || 15;
       document.getElementById('citiApprovalInput').value = citiApprovalDate;
@@ -1619,6 +1667,7 @@
       document.getElementById('uobPpvRenewalInput').value = uobRenewals.ppv || '';
       document.getElementById('uobPrviRenewalInput').value = uobRenewals.prvi || '';
 
+      renderCardChecklist();
       document.getElementById('settingsOverlay').classList.add('open');
     };
 
@@ -1638,13 +1687,24 @@
       uobRenewals.ppv = document.getElementById('uobPpvRenewalInput').value;
       uobRenewals.prvi = document.getElementById('uobPrviRenewalInput').value;
 
+      // Collect checked cards
+      const selected = [];
+      ALL_MASTER_CARDS.forEach(card => {
+        const chk = document.getElementById(`chk_${card.id}`);
+        if (chk && chk.checked) selected.push(card.id);
+      });
+      enabledCardIds = selected.length > 0 ? selected : ALL_MASTER_CARDS.map(c => c.id);
+      cards = ALL_MASTER_CARDS.filter(c => enabledCardIds.includes(c.id));
+
       const settingsData = {
         citiApprovalDate,
         uobRenewals,
+        enabledCards: enabledCardIds,
         cutoffDays: { uobVs: uobVsDay, citi: citiDay }
       };
 
       await setDoc(doc(db, "milestrack_settings", myVaultKey), settingsData);
+      renderCards();
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
