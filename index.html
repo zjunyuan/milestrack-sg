@@ -38,6 +38,7 @@
     header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
+    .version-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(158, 202, 255, 0.12); color: var(--primary); border: 1px solid rgba(158, 202, 255, 0.25); vertical-align: middle; }
     .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
@@ -158,7 +159,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG</h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.2.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -172,7 +173,11 @@
   <div class="app-container" id="mainApp" style="display:none;">
     <header>
       <div>
-        <h1><span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> MilesTrack SG</h1>
+        <h1>
+          <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
+          MilesTrack SG 
+          <span class="version-tag" id="headerVersionTag">v1.2.0</span>
+        </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -498,8 +503,17 @@
     import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // -------------------------------------------------------------
-    // EXPLICIT ROLE MAPPING
+    // APPLICATION BUILD VERSION
     // -------------------------------------------------------------
+    const APP_VERSION = "v1.2.0";
+
+    // Update version badges immediately in DOM
+    const authVer = document.getElementById("authVersionTag");
+    const headerVer = document.getElementById("headerVersionTag");
+    if (authVer) authVer.innerText = APP_VERSION;
+    if (headerVer) headerVer.innerText = APP_VERSION;
+
+    // Explicit Mapping for Household vs Sister
     const PRIMARY_EMAILS = [
       "zjunyuan@gmail.com",
       "eunice.er.yc@gmail.com"
@@ -1717,7 +1731,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+        navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).catch(err => console.error(err));
       });
     }
 
