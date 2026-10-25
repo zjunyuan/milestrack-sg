@@ -33,7 +33,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg); color: var(--on-surface); min-height: 100vh; display: flex; justify-content: center; padding-bottom: 90px; }
     
-    /* Layout Containers */
     .app-container { width: 100%; max-width: 1180px; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
     header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -41,7 +40,6 @@
     .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
-    /* Desktop Split Grid */
     .dashboard-grid { display: flex; flex-direction: column; gap: 16px; width: 100%; }
 
     @media (min-width: 900px) {
@@ -54,13 +52,11 @@
       .modal-overlay { align-items: center !important; }
     }
 
-    /* Login Screen */
     .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 16px; }
     .auth-box { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.6); }
     .btn-google { background: #fff; color: #1f2937; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; width: 100%; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .btn-google img { width: 20px; height: 20px; }
 
-    /* Overseas Mode Switch Header */
     .overseas-toggle-bar { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 16px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
     .overseas-toggle-bar.active { background: rgba(56, 189, 248, 0.12); border-color: var(--fcy-cyan); }
     .toggle-label { font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -185,7 +181,7 @@
     <!-- Responsive Desktop/Mobile Split Grid -->
     <div class="dashboard-grid">
       
-      <!-- LEFT COLUMN: Recommender & Card Quotas -->
+      <!-- LEFT COLUMN -->
       <div class="col-left">
         <!-- Recommender Widget -->
         <div class="recommender-card" id="recommenderCard">
@@ -239,7 +235,7 @@
         </div>
       </div>
 
-      <!-- RIGHT COLUMN: Portfolio, Expiry & Transactions -->
+      <!-- RIGHT COLUMN -->
       <div class="col-right">
         <!-- War Chest + 4-Pax Travel Goal -->
         <div class="summary-card">
@@ -353,7 +349,7 @@
       <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your banking apps:</p>
 
       <div class="form-group">
-        <label>UOB UNI$ (PPV, VS, Lady's)</label>
+        <label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label>
         <input type="number" id="v_uob_uni" class="form-control">
       </div>
       <div class="form-group">
@@ -361,12 +357,20 @@
         <input type="number" id="v_citi_typ" class="form-control">
       </div>
       <div class="form-group">
-        <label>DBS Points (DBS WWMC)</label>
+        <label>Citi Miles (Citi PremierMiles - Standalone)</label>
+        <input type="number" id="v_citi_miles" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>DBS Points (DBS WWMC, Altitude, Vantage)</label>
         <input type="number" id="v_dbs_pts" class="form-control">
       </div>
       <div class="form-group">
         <label>DBS yuu Points</label>
         <input type="number" id="v_yuu_pts" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>OCBC$ (OCBC Rewards / Titanium)</label>
+        <input type="number" id="v_ocbc_pts" class="form-control">
       </div>
       <div class="form-group">
         <label>HSBC Reward Points (Revolution)</label>
@@ -408,6 +412,10 @@
         <div class="form-group" style="margin-top:6px;">
           <label>UOB Preferred Visa Renewal Month</label>
           <input type="month" id="uobPpvRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB PRVI Miles Renewal Month</label>
+          <input type="month" id="uobPrviRenewalInput" class="form-control">
         </div>
       </div>
 
@@ -468,13 +476,17 @@
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "kf-uob", baseRate: 3.0 }
+          { id: "kf-uob", baseRate: 3.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
         ],
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 },
+          { id: "dbs-vantage", baseRate: 2.2 }
         ]
       },
       "5814": {
@@ -484,83 +496,96 @@
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "kf-uob", baseRate: 3.0 }
+          { id: "kf-uob", baseRate: 3.0 },
+          { id: "dbs-vantage", baseRate: 1.5 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "uob-ls-dining", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "5411": {
         name: "Grocery Stores & Supermarkets",
-        notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG. Overseas: use UOB Visa Signature (4 mpd) or Maybank Horizon (2.8 mpd).",
+        notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG. General supermarkets: UOB PPV or HSBC Rev.",
         candidatesLocal: [
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 }
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "5311": {
         name: "Department Stores (Takashimaya, Tangs, Isetan)",
-        notes: "Department store shopping.",
+        notes: "Department store shopping. OCBC Rewards & Citi Rewards eligible.",
         candidatesLocal: [
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
       "5651": {
         name: "Family Clothing & Fashion (Uniqlo, Zara)",
-        notes: "Fashion apparel bonus eligible.",
+        notes: "Apparel bonus eligible across Citi, OCBC Rewards, and HSBC.",
         candidatesLocal: [
           { id: "citi-rewards", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
       "5621": {
         name: "Women's Ready-to-Wear Stores",
-        notes: "Fashion apparel bonus eligible.",
+        notes: "Fashion apparel bonus eligible across Citi & OCBC Rewards.",
         candidatesLocal: [
           { id: "citi-rewards", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
       "4511": {
         name: "Airlines & Air Carriers (Singapore Airlines, Scoot)",
-        notes: "⚠️ Citi Rewards strictly EXCLUDES airfares! Use DBS WWMC, Solitaire, Maybank Horizon, or KF UOB.",
+        notes: "⚠️ Citi Rewards strictly EXCLUDES airfares! Use DBS WWMC, Solitaire, Maybank Horizon, or PRVI Miles.",
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 3.24 },
-          { id: "kf-uob", baseRate: 3.0 }
+          { id: "kf-uob", baseRate: 3.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
         ],
         candidatesOverseas: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 3.24 },
-          { id: "uob-vs-fcy", baseRate: 4.0 }
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "4722": {
@@ -568,12 +593,15 @@
         notes: "⚠️ EXCLUDED on Citi Rewards AND HSBC Rev! Use DBS WWMC or Solitaire (Travel).",
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
-          { id: "uob-ls-travel", baseRate: 4.0 }
+          { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
         ],
         candidatesOverseas: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "uob-vs-fcy", baseRate: 4.0 }
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "7011": {
@@ -582,12 +610,14 @@
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 3.24 }
+          { id: "mb-horizon-vs", baseRate: 3.24 },
+          { id: "dbs-vantage", baseRate: 1.5 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "4111": {
@@ -622,11 +652,13 @@
         notes: "⚠️ HSBC Revolution strictly EXCLUDES petrol! Local: UOB VS or Maybank World. Overseas: UOB VS FCY.",
         candidatesLocal: [
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 }
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "dbs-vantage", baseRate: 1.5 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "5999": {
@@ -636,44 +668,28 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 }
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
-      "4900": {
-        name: "Utilities",
-        notes: "❌ Excluded from rewards across all cards.",
-        candidatesLocal: [],
-        candidatesOverseas: []
-      },
-      "6300": {
-        name: "Insurance",
-        notes: "❌ Excluded from rewards across all cards.",
-        candidatesLocal: [],
-        candidatesOverseas: []
-      },
-      "9399": {
-        name: "Government / Taxes",
-        notes: "❌ Excluded from rewards across all cards.",
-        candidatesLocal: [],
-        candidatesOverseas: []
-      },
-      "6540": {
-        name: "Stored Value Card / Wallet Top-Ups",
-        notes: "❌ Excluded from rewards across all cards.",
-        candidatesLocal: [],
-        candidatesOverseas: []
-      }
+      "4900": { name: "Utilities", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+      "6300": { name: "Insurance", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+      "9399": { name: "Government / Taxes", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+      "6540": { name: "Stored Value Card / Wallet Top-Ups", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] }
     };
 
     const DEFAULT_VAULT = {
       uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
       citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval' },
-      dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1 yr from quarter end' },
+      citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)' },
+      dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires' },
       yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
+      ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned' },
       hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
       mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
       kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
@@ -686,13 +702,18 @@
       { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
       { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.' },
       { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', vaultKey: 'citi_typ', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & in-store fashion. Statement month cycle.' },
+      { id: 'ocbc-rewards', name: 'OCBC Rewards / Titanium', bank: 'OCBC', vaultKey: 'ocbc_pts', monthlyCap: 1110, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'ocbc-5', cycleType: 'calendar', badgeClass: '', hint: 'Department stores, fashion whitelist & HeyMax vouchers (S$1,110 cap).' },
       { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', cycleType: 'calendar', badgeClass: '', hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.' },
       { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Dining)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Restaurants, cafes, bars. Local and overseas.' },
       { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Travel)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. Local and overseas.' },
       { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', vaultKey: 'hsbc_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814).' },
       { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.2, baseMpd: 0.4, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: 'Dining & Petrol in SG. Uncapped 3.2 mpd.' },
       { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', vaultKey: 'kf_direct', monthlyCap: 999999, minSpend: 0, bonusMpd: 3.0, baseMpd: 1.2, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: 'Uncapped 3.0 mpd on SIA, Dining, Online, Taxis.' },
-      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 2.8, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.' }
+      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 2.8, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.' },
+      { id: 'dbs-vantage', name: 'DBS Vantage Card', bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.5, baseMpd: 1.5, engine: 'dbs-5', cycleType: 'uncapped', badgeClass: '', hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.' },
+      { id: 'uob-prvi', name: 'UOB PRVI Miles', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.4, baseMpd: 1.4, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.' },
+      { id: 'dbs-altitude', name: 'DBS Altitude Card', bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.3, baseMpd: 1.3, engine: 'dbs-5', cycleType: 'uncapped', badgeClass: '', hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.' },
+      { id: 'citi-pm', name: 'Citi PremierMiles', bank: 'Citi', vaultKey: 'citi_miles', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.2, baseMpd: 1.2, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).' }
     ];
 
     let cards = INITIAL_CARDS;
@@ -700,9 +721,9 @@
     let vault = DEFAULT_VAULT;
     let citiApprovalDate = '2023-01';
     let isOverseasMode = false;
-    let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05' };
+    let uobRenewals = { solitaire: '2023-11', visaSig: '2024-03', ppv: '2024-05', prvi: '2024-07' };
 
-    // Initialize Firebase Services
+    // Initialize Firebase
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
@@ -741,7 +762,7 @@
     function subscribeToCloudData() {
       onSnapshot(doc(db, "milestrack_shared", "vault"), (docSnap) => {
         if (docSnap.exists()) {
-          vault = docSnap.data();
+          vault = { ...DEFAULT_VAULT, ...docSnap.data() };
           renderVault();
         } else {
           setDoc(doc(db, "milestrack_shared", "vault"), DEFAULT_VAULT);
@@ -752,7 +773,7 @@
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.citiApprovalDate) citiApprovalDate = data.citiApprovalDate;
-          if (data.uobRenewals) uobRenewals = data.uobRenewals;
+          if (data.uobRenewals) uobRenewals = { ...uobRenewals, ...data.uobRenewals };
           if (data.cutoffDays) {
             cards.forEach(c => {
               if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
@@ -871,10 +892,12 @@
         return {
           code: "FCY-GEN",
           name: "General Overseas Spend (Any MCC)",
-          notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap) and 2.8 mpd on Maybank Horizon (S$10k cap).",
+          notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 2.8 mpd on Maybank Horizon (S$10k cap), or 2.4 mpd on UOB PRVI.",
           candidatesOverseas: [
             { id: "uob-vs-fcy", baseRate: 4.0 },
             { id: "mb-horizon-vs", baseRate: 2.8 },
+            { id: "uob-prvi", baseRate: 2.4 },
+            { id: "dbs-vantage", baseRate: 2.2 },
             { id: "kf-uob", baseRate: 1.2 }
           ]
         };
@@ -990,7 +1013,8 @@
       const uobTargets = [
         { name: "UOB Lady's Solitaire", key: 'solitaire', pts: 10000, fee: '$414.20', miles: '20,000' },
         { name: "UOB Visa Signature", key: 'visaSig', pts: 6500, fee: '$218.00', miles: '13,000' },
-        { name: "UOB Preferred Visa", key: 'ppv', pts: 6500, fee: '$196.20', miles: '13,000' }
+        { name: "UOB Preferred Visa", key: 'ppv', pts: 6500, fee: '$196.20', miles: '13,000' },
+        { name: "UOB PRVI Miles", key: 'prvi', pts: 6500, fee: '$261.60', miles: '13,000' }
       ];
 
       uobTargets.forEach(card => {
@@ -1043,11 +1067,13 @@
 
       const hsbcExpiry = new Date(currentYear, currentMonth + 38, 0);
       const yuuExpiry = new Date(currentYear + 2, currentMonth + 1, 0);
+      const ocbcExpiry = new Date(currentYear + 2, currentMonth + 1, 0);
 
       return [
         { key: 'dbs_pts', name: 'DBS Points', expiry: dbsExpiry, pts: vault.dbs_pts?.points || 0 },
         { key: 'citi_typ', name: 'Citi TYP (5-Yr Reset)', expiry: citiExpiry, pts: vault.citi_typ?.points || 0 },
         { key: 'uob_uni', name: 'UOB UNI$', expiry: uobExpiry, pts: vault.uob_uni?.points || 0 },
+        { key: 'ocbc_pts', name: 'OCBC$', expiry: ocbcExpiry, pts: vault.ocbc_pts?.points || 0 },
         { key: 'yuu_pts', name: 'yuu Points', expiry: yuuExpiry, pts: vault.yuu_pts?.points || 0 },
         { key: 'hsbc_pts', name: 'HSBC Points', expiry: hsbcExpiry, pts: vault.hsbc_pts?.points || 0 }
       ];
@@ -1286,11 +1312,11 @@
           let rate = (isBonus && !isOverseasMode && card.currentSpend + amt <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
           earnedMiles = Math.round(amt * rate);
           earnedRawPoints = Math.round(earnedMiles / 0.28);
-        } else if (card.engine === 'uob-5') {
+        } else if (card.engine === 'uob-5' || card.engine === 'ocbc-5') {
           let blocks = Math.floor(amt / 5);
-          let uniPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
-          earnedRawPoints = blocks * uniPerBlock;
-          earnedMiles = earnedRawPoints * 2;
+          let ptsPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
+          earnedRawPoints = blocks * ptsPerBlock;
+          earnedMiles = earnedRawPoints * (vault[card.vaultKey]?.ratio || 1);
         } else {
           let eligibleDollars = Math.floor(amt);
           let rate = isEligible ? card.bonusMpd : card.baseMpd;
@@ -1324,8 +1350,10 @@
     window.openVaultModal = function() {
       document.getElementById('v_uob_uni').value = vault.uob_uni?.points || 0;
       document.getElementById('v_citi_typ').value = vault.citi_typ?.points || 0;
+      document.getElementById('v_citi_miles').value = vault.citi_miles?.points || 0;
       document.getElementById('v_dbs_pts').value = vault.dbs_pts?.points || 0;
       document.getElementById('v_yuu_pts').value = vault.yuu_pts?.points || 0;
+      document.getElementById('v_ocbc_pts').value = vault.ocbc_pts?.points || 0;
       document.getElementById('v_hsbc_pts').value = vault.hsbc_pts?.points || 0;
       document.getElementById('v_mb_treats').value = vault.mb_treats?.points || 0;
       document.getElementById('v_kf_miles').value = vault.kf_direct?.points || 0;
@@ -1342,8 +1370,12 @@
       if (!vault.uob_uni) vault = DEFAULT_VAULT;
       vault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni').value) || 0;
       vault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ').value) || 0;
+      if (!vault.citi_miles) vault.citi_miles = DEFAULT_VAULT.citi_miles;
+      vault.citi_miles.points = parseFloat(document.getElementById('v_citi_miles').value) || 0;
       vault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts').value) || 0;
       vault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts').value) || 0;
+      if (!vault.ocbc_pts) vault.ocbc_pts = DEFAULT_VAULT.ocbc_pts;
+      vault.ocbc_pts.points = parseFloat(document.getElementById('v_ocbc_pts').value) || 0;
       vault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts').value) || 0;
       vault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats').value) || 0;
       vault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles').value) || 0;
@@ -1362,6 +1394,7 @@
       document.getElementById('uobLsRenewalInput').value = uobRenewals.solitaire || '';
       document.getElementById('uobVsRenewalInput').value = uobRenewals.visaSig || '';
       document.getElementById('uobPpvRenewalInput').value = uobRenewals.ppv || '';
+      document.getElementById('uobPrviRenewalInput').value = uobRenewals.prvi || '';
 
       document.getElementById('settingsOverlay').classList.add('open');
     };
@@ -1380,6 +1413,7 @@
       uobRenewals.solitaire = document.getElementById('uobLsRenewalInput').value;
       uobRenewals.visaSig = document.getElementById('uobVsRenewalInput').value;
       uobRenewals.ppv = document.getElementById('uobPpvRenewalInput').value;
+      uobRenewals.prvi = document.getElementById('uobPrviRenewalInput').value;
 
       const settingsData = {
         citiApprovalDate,
