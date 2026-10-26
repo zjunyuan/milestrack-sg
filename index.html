@@ -86,7 +86,7 @@
     .switch-sm .slider:before { height: 16px; width: 16px; left: 3px; bottom: 3px; }
     .switch-sm input:checked + .slider:before { transform: translateX(18px); }
 
-    /* Quick Presets Carousel */
+    /* Quick Presets Ribbon */
     .presets-section { display: flex; flex-direction: column; gap: 6px; }
     .presets-header { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     .presets-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -ms-overflow-style: none; }
@@ -133,7 +133,6 @@
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
-    /* Segmented Channel Control */
     .channel-selector { display: flex; background: rgba(0,0,0,0.3); padding: 3px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
     .channel-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .channel-btn.active { background: var(--surface-variant); color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
@@ -179,7 +178,6 @@
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
-    /* Category Tracker Cards */
     .category-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .category-header { display: flex; justify-content: space-between; align-items: center; }
     .category-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
@@ -288,7 +286,6 @@
     .yuu-partner-alert { font-size: 0.74rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); color: #cbd5e1; padding: 8px 12px; border-radius: 10px; line-height: 1.35; margin-top: 2px; }
     .yuu-partner-alert a { color: var(--gold); font-weight: 700; text-decoration: underline; }
 
-    /* Card Detail Sheet */
     .card-detail-header { display: flex; align-items: center; gap: 14px; }
     .card-detail-thumb { width: 56px; height: 35px; border-radius: 6px; padding: 4px 6px; }
     .card-detail-title { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.25; }
@@ -313,7 +310,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.2</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.3</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -330,7 +327,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.7.2</span>
+          <span class="version-tag" id="headerVersionTag">v1.7.3</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -357,7 +354,6 @@
           </label>
         </div>
 
-        <!-- Quick Presets Ribbon -->
         <div class="presets-section">
           <div class="presets-header">
             <span>⚡ Quick Log Presets</span>
@@ -518,7 +514,7 @@
           <div class="radar-card" id="radarContainer"></div>
         </div>
 
-        <!-- Desktop Category Cap Tracker (Fills negative space on large screens) -->
+        <!-- Desktop Category Cap Tracker (Balances Desktop Column 2) -->
         <div id="desktopCategorySection" style="display:none; flex-direction:column; gap:10px;">
           <div class="section-title" style="margin-top:6px;">
             <span>Category Cap Tracker</span>
@@ -796,7 +792,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.2";
+    const APP_VERSION = "v1.7.3";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1016,6 +1012,8 @@
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1036,8 +1034,9 @@
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "hsbc-rev", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 2.4 },
           { id: "uob-prvi", baseRate: 2.4 },
           { id: "dbs-vantage", baseRate: 2.2 }
@@ -1056,15 +1055,16 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "hsbc-rev", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 2.4 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
       "5814": {
         name: "Fast Food & Quick Service (McD, KFC, Starbucks, GrabFood)",
-        notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Use UOB PPV, Solitaire, or KF UOB.",
+        notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Use UOB PPV, Solitaire, Maybank World, or KF UOB.",
         candidatesLocal: [
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ls-dining", baseRate: 4.0 },
@@ -1074,6 +1074,7 @@
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1089,8 +1090,9 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
       "5462": {
@@ -1104,8 +1106,9 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
       "5499": {
@@ -1122,6 +1125,8 @@
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "dbs-wwmc", baseRate: 4.0 }
         ]
       },
@@ -1136,6 +1141,7 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1153,6 +1159,7 @@
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "citi-rewards", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
@@ -1169,6 +1176,7 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
@@ -1185,6 +1193,7 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
@@ -1204,6 +1213,7 @@
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 3.0 },
           { id: "mb-horizon-vs", baseRate: 3.24 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1222,6 +1232,8 @@
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "kf-uob", baseRate: 2.4 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1238,6 +1250,7 @@
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1252,6 +1265,7 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
@@ -1266,6 +1280,7 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "dbs-wwmc", baseRate: 4.0 }
         ]
@@ -1280,6 +1295,7 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1296,6 +1312,7 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
@@ -1532,13 +1549,13 @@
         bank: 'Maybank', 
         vaultKey: 'mb_treats', 
         monthlyCap: 999999, 
-        minSpend: 0, 
-        bonusMpd: 0.4, 
+        minSpend: 800, 
+        bonusMpd: 3.2, 
         baseMpd: 0.4, 
         engine: 'citi-1', 
-        cycleType: 'uncapped', 
+        cycleType: 'calendar', 
         badgeClass: '', 
-        hint: '4.0 mpd only at whitelisted dining groups (Paradise, Les Amis). General dining earns 0.4 mpd.', 
+        hint: 'FCY spend: 3.2 mpd (min S$4,000/mo), 2.8 mpd (min S$800/mo), uncapped. 4.0 mpd at select dining groups (Paradise/Les Amis).', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-maybank'
@@ -1994,6 +2011,7 @@
         candidatesOverseas: [
           { id: "ocbc-rewards", baseRate: 6.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
@@ -2022,9 +2040,10 @@
         return {
           code: "FCY-GEN",
           name: "General Overseas Spend (Any MCC)",
-          notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 2.8 mpd on Maybank Horizon (S$10k cap), or 2.4 mpd on UOB PRVI.",
+          notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend), or 2.4 mpd on UOB PRVI.",
           candidatesOverseas: [
             { id: "uob-vs-fcy", baseRate: 4.0 },
+            { id: "mb-world-mc", baseRate: 3.2 },
             { id: "mb-horizon-vs", baseRate: 2.8 },
             { id: "uob-prvi", baseRate: 2.4 },
             { id: "dbs-vantage", baseRate: 2.2 },
@@ -2107,7 +2126,7 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Waterfall Allocator
+    // Smart Waterfall Allocator with Maybank Tiered FCY Logic
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -2168,11 +2187,26 @@
           remainingCap = Math.max(0, 1000 - currentSpend);
         }
 
+        let evaluatedRate = cand.baseRate;
+
+        // Maybank World Mastercard Tiered FCY rate evaluation:
+        // S$4,000+ -> 3.2 mpd | S$800+ -> 2.8 mpd | below S$800 -> 0.4 mpd
+        if (cand.id === 'mb-world-mc' && isOverseasMode) {
+          const totalProjectedSpend = currentSpend + amt;
+          if (totalProjectedSpend >= 4000) {
+            evaluatedRate = 3.2;
+          } else if (totalProjectedSpend >= 800) {
+            evaluatedRate = 2.8;
+          } else {
+            evaluatedRate = 0.4;
+          }
+        }
+
         const daysLeft = getDaysUntilCycleEnd(card);
 
         return {
           card,
-          rate: cand.baseRate,
+          rate: evaluatedRate,
           remainingCap,
           isUncapped,
           daysLeft
@@ -2191,11 +2225,20 @@
           const takeAmt = candidate.isUncapped ? unallocatedAmt : Math.min(candidate.remainingCap, unallocatedAmt);
           if (takeAmt <= 0) continue;
 
-          const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, candidate.rate);
+          let finalStepRate = candidate.rate;
+          if (candidate.card.id === 'mb-world-mc' && isOverseasMode) {
+            const cardCurrent = Number(candidate.card.currentSpend) || 0;
+            const stepTotal = cardCurrent + takeAmt;
+            if (stepTotal >= 4000) finalStepRate = 3.2;
+            else if (stepTotal >= 800) finalStepRate = 2.8;
+            else finalStepRate = 0.4;
+          }
+
+          const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, finalStepRate);
           allocationSteps.push({
             card: candidate.card,
             amount: takeAmt,
-            rate: candidate.rate,
+            rate: finalStepRate,
             miles: earnedMiles,
             isBase: false
           });
@@ -2501,7 +2544,6 @@
       }
     };
 
-    // Render Pooled Category Cap Tracker (For Desktop and Mobile)
     window.renderCategoryTracker = function() {
       const desktopContainer = document.getElementById('categoryCardsDesktop');
       const mobileContainer = document.getElementById('categoryCardsMobile');
@@ -2632,7 +2674,6 @@
       }
     };
 
-    // Render Cards with Thumbnails & Detail Modal Opener
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
