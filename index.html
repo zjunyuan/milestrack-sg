@@ -58,6 +58,12 @@
       .vault-grid { grid-template-columns: repeat(3, 1fr) !important; }
       .modal-sheet { border-radius: 24px !important; margin: auto !important; max-height: 80vh !important; }
       .modal-overlay { align-items: center !important; }
+      #tabContentCategory { display: none !important; }
+      #desktopCategorySection { display: flex !important; }
+    }
+
+    @media (max-width: 899px) {
+      #desktopCategorySection { display: none !important; }
     }
 
     .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 16px; }
@@ -80,6 +86,33 @@
     .switch-sm .slider:before { height: 16px; width: 16px; left: 3px; bottom: 3px; }
     .switch-sm input:checked + .slider:before { transform: translateX(18px); }
 
+    /* Quick Presets Carousel */
+    .presets-section { display: flex; flex-direction: column; gap: 6px; }
+    .presets-header { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+    .presets-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -ms-overflow-style: none; }
+    .presets-scroll::-webkit-scrollbar { display: none; }
+
+    .preset-chip {
+      background: var(--surface);
+      border: 1px solid var(--surface-variant);
+      color: var(--on-surface);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .preset-chip:active { transform: scale(0.96); }
+    .preset-chip:hover { border-color: var(--primary); background: rgba(158, 202, 255, 0.08); }
+    .preset-icon { font-size: 1rem; line-height: 1; }
+
     .summary-card { background: linear-gradient(135deg, #0b2545 0%, #1e1f24 100%); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 18px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 10px; }
     .total-miles { font-size: 2.3rem; font-weight: 800; color: #fff; margin: 2px 0; }
     .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
@@ -99,6 +132,11 @@
     .recommender-card.fcy-mode { border-color: var(--fcy-cyan); }
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+    /* Segmented Channel Control */
+    .channel-selector { display: flex; background: rgba(0,0,0,0.3); padding: 3px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+    .channel-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .channel-btn.active { background: var(--surface-variant); color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 
     .rec-inputs { display: flex; gap: 8px; width: 100%; align-items: center; }
     .mcc-input-wrapper { position: relative; flex: 1; display: flex; align-items: center; min-width: 0; }
@@ -121,11 +159,6 @@
     .btn-clear-mcc:hover { color: #fff; background: rgba(255,255,255,0.1); }
     #recAmount { width: 95px; flex-shrink: 0; text-align: right; font-weight: 700; }
 
-    /* Segmented Channel Control (In-Person vs Online) */
-    .channel-selector { display: flex; background: rgba(0,0,0,0.3); padding: 3px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
-    .channel-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .channel-btn.active { background: var(--surface-variant); color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-
     .rec-pref-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.22); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
     .rec-pref-label { font-size: 0.76rem; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
 
@@ -145,6 +178,13 @@
     .fee-alert-card { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
+
+    /* Category Tracker Cards */
+    .category-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .category-header { display: flex; justify-content: space-between; align-items: center; }
+    .category-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .category-chip-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+    .category-chip { font-size: 0.72rem; color: #cbd5e1; background: rgba(255,255,255,0.06); padding: 3px 7px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); }
 
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
@@ -248,7 +288,7 @@
     .yuu-partner-alert { font-size: 0.74rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); color: #cbd5e1; padding: 8px 12px; border-radius: 10px; line-height: 1.35; margin-top: 2px; }
     .yuu-partner-alert a { color: var(--gold); font-weight: 700; text-decoration: underline; }
 
-    /* Card Detail Sheet Enhancements */
+    /* Card Detail Sheet */
     .card-detail-header { display: flex; align-items: center; gap: 14px; }
     .card-detail-thumb { width: 56px; height: 35px; border-radius: 6px; padding: 4px 6px; }
     .card-detail-title { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.25; }
@@ -273,7 +313,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.2</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -290,7 +330,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.7.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.7.2</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -317,6 +357,15 @@
           </label>
         </div>
 
+        <!-- Quick Presets Ribbon -->
+        <div class="presets-section">
+          <div class="presets-header">
+            <span>⚡ Quick Log Presets</span>
+            <span style="font-size:0.7rem; color:#94a3b8;">1-Tap Fill</span>
+          </div>
+          <div class="presets-scroll" id="presetsBar"></div>
+        </div>
+
         <div class="recommender-card" id="recommenderCard">
           <div class="rec-header">
             <span class="rec-title">
@@ -326,7 +375,6 @@
             <span style="font-size:0.75rem; color:#94a3b8;" id="recModeBadge">Local SGD</span>
           </div>
 
-          <!-- Channel Selector: In-Person vs Online -->
           <div class="channel-selector">
             <button type="button" class="channel-btn active" id="btnChannelInPerson" onclick="setChannelMode('inperson')">
               <span class="material-symbols-outlined" style="font-size:16px;">storefront</span>
@@ -355,7 +403,6 @@
             <input type="text" inputmode="decimal" id="recAmount" class="form-control" placeholder="Amt" value="100" oninput="onRecAmountInput(this)">
           </div>
 
-          <!-- Contactless Mode Selector (Visible only in In-Person mode) -->
           <div class="rec-pref-row" id="contactlessPrefRow">
             <div class="rec-pref-label">
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">contactless</span>
@@ -416,7 +463,16 @@
         </div>
       </div>
 
-      <!-- TAB 2: MILES & BANK VAULT DETAILS -->
+      <!-- TAB 2 (Mobile only): CATEGORY CAPS -->
+      <div class="tab-content" id="tabContentCategory" style="display:none;">
+        <div class="section-title" style="margin-top:0;">
+          <span>Category Cap Tracker</span>
+          <span style="font-size:0.75rem; color:#94a3b8;">Pooled 4 mpd Capacity</span>
+        </div>
+        <div id="categoryCardsMobile" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <!-- TAB 3 (Desktop Col 2 & Mobile Tab 3): MILES VAULT & DESKTOP CATEGORY TRACKER -->
       <div class="tab-content" id="tabContentVault" style="display:none;">
         <div class="summary-card">
           <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
@@ -461,19 +517,33 @@
           </div>
           <div class="radar-card" id="radarContainer"></div>
         </div>
+
+        <!-- Desktop Category Cap Tracker (Fills negative space on large screens) -->
+        <div id="desktopCategorySection" style="display:none; flex-direction:column; gap:10px;">
+          <div class="section-title" style="margin-top:6px;">
+            <span>Category Cap Tracker</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">Pooled 4 mpd Capacity</span>
+          </div>
+          <div id="categoryCardsDesktop" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
       </div>
 
     </div>
   </div>
 
+  <!-- 3-Tab Bottom Navigation Bar for Mobile -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="nav-tab active" id="btnTabCards" onclick="switchTab('cards')">
       <span class="material-symbols-outlined">credit_card</span>
       <span>Cards & Caps</span>
     </button>
+    <button class="nav-tab" id="btnTabCategory" onclick="switchTab('category')">
+      <span class="material-symbols-outlined">donut_large</span>
+      <span>Category Caps</span>
+    </button>
     <button class="nav-tab" id="btnTabVault" onclick="switchTab('vault')">
       <span class="material-symbols-outlined">account_balance_wallet</span>
-      <span>Miles & Vault</span>
+      <span>Miles Vault</span>
     </button>
   </nav>
 
@@ -726,7 +796,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.1";
+    const APP_VERSION = "v1.7.2";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -736,19 +806,29 @@
     window.switchTab = function(tabName) {
       if (window.innerWidth >= 900) return;
       const cardsTab = document.getElementById('tabContentCards');
+      const categoryTab = document.getElementById('tabContentCategory');
       const vaultTab = document.getElementById('tabContentVault');
+
       const btnCards = document.getElementById('btnTabCards');
+      const btnCategory = document.getElementById('btnTabCategory');
       const btnVault = document.getElementById('btnTabVault');
+
+      cardsTab.style.display = 'none';
+      categoryTab.style.display = 'none';
+      vaultTab.style.display = 'none';
+
+      btnCards.classList.remove('active');
+      btnCategory.classList.remove('active');
+      btnVault.classList.remove('active');
 
       if (tabName === 'cards') {
         cardsTab.style.display = 'flex';
-        vaultTab.style.display = 'none';
         btnCards.classList.add('active');
-        btnVault.classList.remove('active');
+      } else if (tabName === 'category') {
+        categoryTab.style.display = 'flex';
+        btnCategory.classList.add('active');
       } else {
-        cardsTab.style.display = 'none';
         vaultTab.style.display = 'flex';
-        btnCards.classList.remove('active');
         btnVault.classList.add('active');
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -756,14 +836,28 @@
 
     window.addEventListener('resize', () => {
       const cardsTab = document.getElementById('tabContentCards');
+      const categoryTab = document.getElementById('tabContentCategory');
       const vaultTab = document.getElementById('tabContentVault');
       if (window.innerWidth >= 900) {
         cardsTab.style.display = 'flex';
+        categoryTab.style.display = 'none';
         vaultTab.style.display = 'flex';
       } else {
-        const isCardsActive = document.getElementById('btnTabCards').classList.contains('active');
-        cardsTab.style.display = isCardsActive ? 'flex' : 'none';
-        vaultTab.style.display = isCardsActive ? 'none' : 'flex';
+        const isCatActive = document.getElementById('btnTabCategory').classList.contains('active');
+        const isVaultActive = document.getElementById('btnTabVault').classList.contains('active');
+        if (isCatActive) {
+          categoryTab.style.display = 'flex';
+          cardsTab.style.display = 'none';
+          vaultTab.style.display = 'none';
+        } else if (isVaultActive) {
+          vaultTab.style.display = 'flex';
+          cardsTab.style.display = 'none';
+          categoryTab.style.display = 'none';
+        } else {
+          cardsTab.style.display = 'flex';
+          categoryTab.style.display = 'none';
+          vaultTab.style.display = 'none';
+        }
       }
     });
 
@@ -796,7 +890,60 @@
     let myVaultKey = "primary";
     let peerVaultKey = "sister";
 
-    let currentChannel = "inperson"; // 'inperson' | 'online'
+    let currentChannel = "inperson";
+
+    const DEFAULT_PRESETS = [
+      { id: 'p_fp', label: 'foodpanda', icon: '🐼', cardId: 'dbs-yuu', desc: 'foodpanda' },
+      { id: 'p_cs', label: 'Cold Storage', icon: '🛒', cardId: 'dbs-yuu', desc: 'Cold Storage' },
+      { id: 'p_fairprice_app', label: 'FairPrice App', icon: '🍎', cardId: 'uob-ppv-online', desc: 'NTUC FairPrice (App)' },
+      { id: 'p_mcd_online', label: "McDonald's (Online)", icon: '🍔', cardId: 'uob-ls-dining', desc: "McDonald's" },
+      { id: 'p_dine', label: 'Restaurant', icon: '🍽️', cardId: 'uob-ls-dining', desc: 'Restaurant Dining' }
+    ];
+
+    const CATEGORY_POOLS = [
+      {
+        id: "dining",
+        name: "Dining & Food Places",
+        icon: "🍽️",
+        cardIds: ["uob-ls-dining", "hsbc-rev", "uob-ppv-contactless", "uob-vs-contactless"],
+        notes: "Restaurants, cafes, caterers. Contactless tap applies in-person."
+      },
+      {
+        id: "groceries",
+        name: "Supermarkets & Groceries",
+        icon: "🛒",
+        cardIds: ["dbs-yuu", "uob-ppv-contactless", "uob-ppv-online", "hsbc-rev"],
+        notes: "yuu stores (Cold Storage/Giant), FairPrice App & general supermarkets."
+      },
+      {
+        id: "shopping",
+        name: "Online Shopping & Fashion",
+        icon: "🛍️",
+        cardIds: ["ocbc-rewards", "dbs-wwmc", "citi-rewards", "uob-ppv-online"],
+        notes: "OCBC 6 mpd promo, Shopee, Lazada, Taobao, Uniqlo, fashion whitelists."
+      },
+      {
+        id: "travel",
+        name: "Travel, Flights & Hotels",
+        icon: "✈️",
+        cardIds: ["dbs-wwmc", "uob-ls-travel"],
+        notes: "SIA, Scoot, Agoda, Klook, OTA hotels. Citi & HSBC strictly excluded."
+      },
+      {
+        id: "transport",
+        name: "Transport & SimplyGo",
+        icon: "🚇",
+        cardIds: ["dbs-yuu", "uob-ppv-contactless", "dbs-wwmc"],
+        notes: "SimplyGo bus/train, Grab, Gojek ride hailing."
+      },
+      {
+        id: "petrol",
+        name: "Petrol / Fuel",
+        icon: "⛽",
+        cardIds: ["uob-vs-contactless"],
+        notes: "Shell, SPC, Esso, Caltex. Must meet S$1,000 statement baseline on UOB VS."
+      }
+    ];
 
     const KRISFLYER_4PAX_TIERS = [
       { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
@@ -1524,8 +1671,10 @@
           document.getElementById('vaultSectionTitle').innerText = "Household Bank Points Vault";
         }
 
+        renderPresets();
         renderCards();
         renderVault();
+        renderCategoryTracker();
 
         await checkAndMigrateSharedVault();
         subscribeToCloudData();
@@ -1610,6 +1759,7 @@
           }
           cards = ALL_MASTER_CARDS.filter(c => enabledCardIds.includes(c.id));
           renderCards();
+          renderCategoryTracker();
           renderExpiryRadar();
           checkUobFeeDefense();
         }
@@ -1628,6 +1778,7 @@
         });
         transactions.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         renderCards();
+        renderCategoryTracker();
         renderTransactions();
       }, (err) => {
         console.error("Transactions snapshot listener error:", err);
@@ -1710,7 +1861,51 @@
       return `Statement Month (Resets on ${card.cutoffDay}th)`;
     }
 
-    // Dynamic Comma Formatting Handler for Amount Input
+    window.renderPresets = function() {
+      const container = document.getElementById('presetsBar');
+      if (!container) return;
+      container.innerHTML = '';
+
+      DEFAULT_PRESETS.forEach(preset => {
+        container.innerHTML += `
+          <button type="button" class="preset-chip" onclick="quickLogPreset('${preset.id}')" title="Log to ${preset.cardId}">
+            <span class="preset-icon">${preset.icon}</span>
+            <span>${preset.label}</span>
+          </button>
+        `;
+      });
+    };
+
+    window.quickLogPreset = function(presetId) {
+      const preset = DEFAULT_PRESETS.find(p => p.id === presetId);
+      if (!preset) return;
+
+      document.getElementById('editTxId').value = '';
+      document.getElementById('cardSelect').value = preset.cardId;
+      window.onCardSelectChange();
+
+      if (preset.cardId === 'dbs-yuu') {
+        const yuuSelect = document.getElementById('yuuMerchantSelect');
+        yuuSelect.value = preset.desc;
+        window.onYuuMerchantChange();
+      } else {
+        document.getElementById('descInput').value = preset.desc;
+      }
+
+      document.getElementById('bonusCategory').value = 'bonus';
+      document.getElementById('amtInput').value = '';
+
+      document.getElementById('modalFormTitle').innerText = `Log: ${preset.label}`;
+      document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+
+      window.openModal();
+
+      setTimeout(() => {
+        const amtBox = document.getElementById('amtInput');
+        if (amtBox) amtBox.focus();
+      }, 200);
+    };
+
     window.onRecAmountInput = function(inputEl) {
       let raw = inputEl.value.replace(/[^0-9.]/g, '');
       const parts = raw.split('.');
@@ -1724,7 +1919,6 @@
       runRecommendation();
     };
 
-    // Channel Mode Selector (In-Person vs Online)
     window.setChannelMode = function(mode) {
       currentChannel = mode;
       const btnInPerson = document.getElementById('btnChannelInPerson');
@@ -1743,7 +1937,6 @@
       runRecommendation();
     };
 
-    // Auto-detect channel based on search query
     function autoDetectChannel(queryStr) {
       const q = (queryStr || "").toLowerCase().trim();
       const onlineKeywords = ["shopee", "lazada", "taobao", "tiktok", "agoda", "klook", "trip.com", "expedia", "deliveroo", "air carrier", "airline", "sia", "scoot", "online", "4511", "4722"];
@@ -1756,7 +1949,6 @@
       }
     }
 
-    // Input handlers with ✕ Clear Button
     window.handleMccInput = function(inputEl) {
       const clearBtn = document.getElementById('btnClearMcc');
       if (clearBtn) {
@@ -1774,7 +1966,6 @@
       runRecommendation();
     };
 
-    // OCBC 6 mpd Promo Resolver
     function checkOcbc6MpdPromo(input) {
       const clean = (input || "").toLowerCase().trim();
       const promoMerchants = [
@@ -1916,7 +2107,7 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Waterfall Allocator with Channel Interlock, Comma Parsing, and Exclusions
+    // Smart Waterfall Allocator
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -1944,25 +2135,13 @@
         const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
         if (!cardObj) return false;
 
-        // Channel filter: In-Person vs Online
-        if (currentChannel === 'online' && cardObj.channelMode === 'inperson') {
-          return false; // Skip tap-only cards online
-        }
-        if (currentChannel === 'inperson' && cardObj.channelMode === 'online') {
-          return false; // Skip online-only cards (e.g. DBS WWMC) in-person
-        }
+        if (currentChannel === 'online' && cardObj.channelMode === 'inperson') return false;
+        if (currentChannel === 'inperson' && cardObj.channelMode === 'online') return false;
+        if (currentChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) return false;
 
-        // Contactless Tap filter in In-Person mode
-        if (currentChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) {
-          return false;
-        }
-
-        // Citi Rewards physical in-store exception: only fashion / department stores qualify
         if (currentChannel === 'inperson' && cardObj.id === 'citi-rewards') {
           const eligibleInStoreMccs = ["5311", "5651", "5621", "OCBC-6MPD"];
-          if (!eligibleInStoreMccs.includes(mccData.code)) {
-            return false;
-          }
+          if (!eligibleInStoreMccs.includes(mccData.code)) return false;
         }
 
         return true;
@@ -1985,7 +2164,6 @@
         const isUncapped = card.monthlyCap >= 999999;
         
         let remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - currentSpend);
-        
         if (cand.id === 'ocbc-rewards' && cand.baseRate === 6.0) {
           remainingCap = Math.max(0, 1000 - currentSpend);
         }
@@ -2004,7 +2182,6 @@
       const primary = scoredCandidates[0];
       const requiresSplit = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
 
-      // RECURSIVE N-CARD WATERFALL ALLOCATION
       if (requiresSplit) {
         let unallocatedAmt = amt;
         const allocationSteps = [];
@@ -2090,7 +2267,6 @@
         }
       }
 
-      // Single card recommendation
       const singleCard = primary;
       let effectiveMpd = singleCard.rate;
       if (!singleCard.isUncapped && singleCard.remainingCap <= 0) {
@@ -2325,6 +2501,72 @@
       }
     };
 
+    // Render Pooled Category Cap Tracker (For Desktop and Mobile)
+    window.renderCategoryTracker = function() {
+      const desktopContainer = document.getElementById('categoryCardsDesktop');
+      const mobileContainer = document.getElementById('categoryCardsMobile');
+      
+      let html = '';
+
+      CATEGORY_POOLS.forEach(cat => {
+        const activeCards = cards.filter(c => cat.cardIds.includes(c.id));
+        if (activeCards.length === 0) return;
+
+        let catTotalCap = 0;
+        let catTotalSpent = 0;
+        const chips = [];
+
+        activeCards.forEach(c => {
+          const isUncapped = c.monthlyCap >= 999999;
+          const cap = isUncapped ? 0 : c.monthlyCap;
+          const spent = Number(c.currentSpend) || 0;
+
+          if (!isUncapped) catTotalCap += cap;
+          catTotalSpent += spent;
+
+          chips.push(`
+            <span class="category-chip">
+              ${c.bank} ${c.name.split(' ')[1] || ''}: <b>$${spent.toFixed(0)}</b>/${isUncapped ? '∞' : '$' + cap}
+            </span>
+          `);
+        });
+
+        const catRemaining = Math.max(0, catTotalCap - catTotalSpent);
+        const pct = catTotalCap > 0 ? Math.min(100, (catTotalSpent / catTotalCap) * 100).toFixed(0) : 0;
+        const barColor = pct >= 90 ? "var(--danger)" : (pct >= 70 ? "var(--warning)" : "var(--primary)");
+
+        html += `
+          <div class="category-card">
+            <div class="category-header">
+              <div class="category-title">
+                <span>${cat.icon}</span>
+                <span>${cat.name}</span>
+              </div>
+              <span style="font-size:0.8rem; font-weight:700; color:${pct >= 90 ? 'var(--danger)' : 'var(--accent)'};">
+                $${catRemaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} left
+              </span>
+            </div>
+
+            <div class="progress-bar-bg" style="height:7px;">
+              <div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
+              <span>$${catTotalSpent.toFixed(2)} spent of $${catTotalCap.toLocaleString()}</span>
+              <span>${pct}% pooled cap used</span>
+            </div>
+
+            <div class="category-chip-container">
+              ${chips.join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      if (desktopContainer) desktopContainer.innerHTML = html;
+      if (mobileContainer) mobileContainer.innerHTML = html;
+    };
+
     window.renderVault = function() {
       const container = document.getElementById('vaultContainer');
       if (!container) return;
@@ -2390,7 +2632,7 @@
       }
     };
 
-    // Render Cards with Thumbnails & Click Handler for Detail Sheet
+    // Render Cards with Thumbnails & Detail Modal Opener
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
@@ -2493,7 +2735,6 @@
       window.runRecommendation();
     };
 
-    // Card Details Modal Controller
     window.openCardDetailModal = function(cardId) {
       const card = cards.find(c => c.id === cardId) || ALL_MASTER_CARDS.find(c => c.id === cardId);
       if (!card) return;
@@ -2929,6 +3170,7 @@
 
       await setDoc(doc(db, "milestrack_settings", myVaultKey), settingsData);
       renderCards();
+      renderCategoryTracker();
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
