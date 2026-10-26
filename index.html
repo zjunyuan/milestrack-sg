@@ -98,7 +98,13 @@
     .recommender-card.fcy-mode { border-color: var(--fcy-cyan); }
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
-    .rec-inputs { display: grid; grid-template-columns: 2.2fr 1fr; gap: 10px; }
+
+    /* Flex-based input row ensuring amount field never overflows */
+    .rec-inputs { display: flex; gap: 8px; width: 100%; align-items: center; }
+    .rec-inputs input { min-width: 0; }
+    #mccInput { flex: 1; }
+    #recAmount { width: 85px; flex-shrink: 0; }
+
     .rec-result { background: var(--surface-variant); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
     .rec-winner-title { font-weight: 700; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
     .rec-winner-meta { font-size: 0.8rem; color: #cbd5e1; line-height: 1.35; }
@@ -129,12 +135,21 @@
 
     .section-title { font-size: 1rem; font-weight: 600; margin: 6px 4px 4px; display: flex; justify-content: space-between; align-items: center; }
     .card-list { display: flex; flex-direction: column; gap: 10px; }
-    .credit-card { background-color: var(--surface); border-radius: 16px; padding: 14px 16px; border: 1px solid var(--surface-variant); display: flex; flex-direction: column; gap: 8px; }
+    .credit-card { background-color: var(--surface); border-radius: 16px; padding: 14px 16px; border: 1px solid var(--surface-variant); display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s; }
+    
+    /* Visual distinction for Statement Month cards */
+    .credit-card.statement-cycle {
+      background: linear-gradient(145deg, #1d222e 0%, #171920 100%);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+    }
+
     .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .card-name { font-weight: 600; font-size: 0.95rem; }
     .card-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: var(--surface-variant); color: var(--primary); }
     .badge-gold { color: var(--gold); border: 1px solid rgba(251, 191, 36, 0.3); }
-    .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
+
+    .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
+    .cycle-pill.statement-pill { background: rgba(56, 189, 248, 0.12); color: var(--fcy-cyan); border: 1px solid rgba(56, 189, 248, 0.28); }
 
     .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; margin: 2px 0; }
     .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
@@ -182,7 +197,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.4.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.4.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -199,7 +214,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.4.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.4.1</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -240,7 +255,7 @@
 
           <div class="rec-inputs">
             <input type="text" id="mccInput" list="mccDatalist" class="form-control" placeholder="Type MCC (e.g. 5814) or retailer" oninput="runRecommendation()">
-            <input type="number" id="recAmount" class="form-control" placeholder="Amt (SGD equiv)" value="100" oninput="runRecommendation()">
+            <input type="number" id="recAmount" class="form-control" placeholder="Amt" value="100" oninput="runRecommendation()">
           </div>
 
           <datalist id="mccDatalist">
@@ -561,7 +576,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.4.0";
+    const APP_VERSION = "v1.4.1";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -570,7 +585,7 @@
 
     // Mobile Tab Switching Handler
     window.switchTab = function(tabName) {
-      if (window.innerWidth >= 900) return; // ignore on desktop
+      if (window.innerWidth >= 900) return;
       const cardsTab = document.getElementById('tabContentCards');
       const vaultTab = document.getElementById('tabContentVault');
       const btnCards = document.getElementById('btnTabCards');
@@ -651,7 +666,6 @@
 
     function detectYuuMerchant(desc = "") {
       const clean = (desc || "").toLowerCase();
-      // Cold Storage On The Go exclusion
       if (clean.includes("on the go") || clean.includes("onthego")) {
         return null;
       }
@@ -1648,6 +1662,7 @@
         card.currentSpend = currentSpend;
 
         const isUncapped = card.monthlyCap >= 999999;
+        const isStatement = card.cycleType === 'statement';
         let pct = isUncapped ? 100 : Math.min(100, (currentSpend / card.monthlyCap) * 100).toFixed(0);
         let barColor = 'var(--primary)';
         let statusNotice = '';
@@ -1685,11 +1700,11 @@
         }
 
         container.innerHTML += `
-          <div class="credit-card">
+          <div class="credit-card ${isStatement ? 'statement-cycle' : ''}">
             <div class="card-header">
               <div>
                 <div class="card-name">${card.name}</div>
-                <div class="cycle-pill">${getCycleLabel(card)}</div>
+                <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
               </div>
               <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
             </div>
