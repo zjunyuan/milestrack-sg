@@ -169,7 +169,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -186,7 +186,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.3.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.3.1</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -508,9 +508,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.3.0";
+    const APP_VERSION = "v1.3.1";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -980,12 +980,11 @@
         }
       });
 
-      // 4. My Active Ledger Transactions
+      // 4. My Active Ledger Transactions (avoid composite index requirement by sorting in memory)
       const txQuery = query(
         collection(db, "milestrack_txns"), 
         where("owner", "==", myVaultKey),
-        orderBy("timestamp", "asc"), 
-        limit(100)
+        limit(200)
       );
       
       onSnapshot(txQuery, (querySnapshot) => {
@@ -993,8 +992,11 @@
         querySnapshot.forEach((d) => {
           transactions.push({ ...d.data(), firestoreId: d.id });
         });
+        transactions.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         renderCards();
         renderTransactions();
+      }, (err) => {
+        console.error("Transactions snapshot listener error:", err);
       });
     }
 
@@ -1175,9 +1177,10 @@
         const card = cards.find(c => c.id === candidate.id);
         if (!card) return null;
 
+        const currentSpend = Number(card.currentSpend) || 0;
         const daysLeft = getDaysUntilCycleEnd(card);
         const isUncapped = card.monthlyCap >= 999999;
-        const remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - card.currentSpend);
+        const remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - currentSpend);
         const fitsUnderCap = remainingCap >= amt;
 
         let effectiveMpd = candidate.baseRate;
@@ -1205,7 +1208,7 @@
         let score = effectiveMpd * 100;
         if (!fitsUnderCap && !isUncapped) score -= 500;
 
-        if (card.minSpend > 0 && card.currentSpend < card.minSpend) {
+        if (card.minSpend > 0 && currentSpend < card.minSpend) {
           score += (daysLeft <= 10 ? 80 : 30);
         }
 
@@ -1520,7 +1523,7 @@
 
       cards.forEach(card => {
         const activeTxns = transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
-        const currentSpend = activeTxns.reduce((sum, tx) => sum + tx.amt, 0);
+        const currentSpend = activeTxns.reduce((sum, tx) => sum + (Number(tx.amt) || 0), 0);
         card.currentSpend = currentSpend;
 
         const isUncapped = card.monthlyCap >= 999999;
@@ -1614,7 +1617,7 @@
             </div>
             <div>
               <div class="tx-miles">+${tx.miles} mi</div>
-              <div class="tx-amt">$${tx.amt.toFixed(2)}</div>
+              <div class="tx-amt">$${Number(tx.amt || 0).toFixed(2)}</div>
             </div>
             <div class="tx-actions">
               <button class="btn-tx-action" onclick="openEditModal('${tx.id}')" title="Edit entry">
@@ -1653,59 +1656,66 @@
       const tx = transactions.find(t => t.id === txId);
       if (!tx) return;
 
-      if (!confirm(`Delete "${tx.desc}" ($${tx.amt.toFixed(2)}) and deduct +${tx.miles} miles from your vault?`)) {
+      if (!confirm(`Delete "${tx.desc}" ($${Number(tx.amt || 0).toFixed(2)}) and deduct +${tx.miles} miles from your vault?`)) {
         return;
       }
 
-      const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
-      if (card && myVault[card.vaultKey]) {
-        const rawPtsToDeduct = tx.earnedRawPoints || Math.round(tx.miles / (myVault[card.vaultKey]?.ratio || 1));
-        myVault[card.vaultKey].points = Math.max(0, (myVault[card.vaultKey].points || 0) - rawPtsToDeduct);
-        await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
-      }
+      try {
+        const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
+        if (card && myVault[card.vaultKey]) {
+          const rawPtsToDeduct = Number(tx.earnedRawPoints) || Math.round((Number(tx.miles) || 0) / (myVault[card.vaultKey]?.ratio || 1));
+          myVault[card.vaultKey].points = Math.max(0, (Number(myVault[card.vaultKey].points) || 0) - rawPtsToDeduct);
+          await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
+        }
 
-      const docId = tx.firestoreId || tx.id;
-      await deleteDoc(doc(db, "milestrack_txns", docId));
+        const docId = tx.firestoreId || tx.id;
+        await deleteDoc(doc(db, "milestrack_txns", docId));
+      } catch (err) {
+        console.error("Delete failed:", err);
+        alert("Failed to delete transaction: " + err.message);
+      }
     };
 
     // Save or Update Transaction
     window.saveTransaction = async function() {
-      const editId = document.getElementById('editTxId').value;
-      const desc = document.getElementById('descInput').value.trim() || 'General Expense';
-      const amt = parseFloat(document.getElementById('amtInput').value);
-      const cardId = document.getElementById('cardSelect').value;
-      const isBonus = document.getElementById('bonusCategory').value === 'bonus';
+      try {
+        const editId = document.getElementById('editTxId').value;
+        const desc = document.getElementById('descInput').value.trim() || 'General Expense';
+        const amt = parseFloat(document.getElementById('amtInput').value);
+        const cardId = document.getElementById('cardSelect').value;
+        const isBonus = document.getElementById('bonusCategory').value === 'bonus';
 
-      if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
-      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+        if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
+        const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+        if (!card) return alert('Please select a valid card');
 
-      // If updating, reverse old transaction points from vault first
-      if (editId) {
-        const oldTx = transactions.find(t => t.id === editId);
-        if (oldTx) {
-          const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
-          if (oldCard && myVault[oldCard.vaultKey]) {
-            const oldPts = oldTx.earnedRawPoints || Math.round(oldTx.miles / (myVault[oldCard.vaultKey]?.ratio || 1));
-            myVault[oldCard.vaultKey].points = Math.max(0, (myVault[oldCard.vaultKey].points || 0) - oldPts);
+        const cardCurrentSpend = Number(card.currentSpend) || 0;
+
+        // If updating, reverse old transaction points from vault first
+        if (editId) {
+          const oldTx = transactions.find(t => t.id === editId);
+          if (oldTx) {
+            const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
+            if (oldCard && myVault[oldCard.vaultKey]) {
+              const oldPts = Number(oldTx.earnedRawPoints) || Math.round((Number(oldTx.miles) || 0) / (myVault[oldCard.vaultKey]?.ratio || 1));
+              myVault[oldCard.vaultKey].points = Math.max(0, (Number(myVault[oldCard.vaultKey].points) || 0) - oldPts);
+            }
           }
         }
-      }
 
-      let earnedMiles = 0;
-      let earnedRawPoints = 0;
-
-      if (card) {
-        let isEligible = isBonus && (card.currentSpend < card.monthlyCap);
+        let earnedMiles = 0;
+        let earnedRawPoints = 0;
+        let isEligible = isBonus && (cardCurrentSpend < card.monthlyCap);
         
         if (card.engine === 'yuu-10') {
-          let rate = (isBonus && !isOverseasMode && card.currentSpend + amt <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
+          let rate = (isBonus && !isOverseasMode && (cardCurrentSpend + amt) <= card.monthlyCap) ? card.bonusMpd : card.baseMpd;
           earnedMiles = Math.round(amt * rate);
           earnedRawPoints = Math.round(earnedMiles / 0.28);
         } else if (card.engine === 'uob-5' || card.engine === 'ocbc-5') {
           let blocks = Math.floor(amt / 5);
           let ptsPerBlock = isEligible ? (card.bonusMpd * 1.25) : (card.baseMpd * 1.25);
-          earnedRawPoints = blocks * ptsPerBlock;
-          earnedMiles = earnedRawPoints * (myVault[card.vaultKey]?.ratio || 1);
+          earnedRawPoints = Math.round(blocks * ptsPerBlock);
+          earnedMiles = Math.round(earnedRawPoints * (myVault[card.vaultKey]?.ratio || 1));
         } else {
           let eligibleDollars = Math.floor(amt);
           let rate = isEligible ? card.bonusMpd : card.baseMpd;
@@ -1713,34 +1723,40 @@
           earnedRawPoints = Math.round(earnedMiles / (myVault[card.vaultKey]?.ratio || 1));
         }
 
+        earnedMiles = isNaN(earnedMiles) ? 0 : earnedMiles;
+        earnedRawPoints = isNaN(earnedRawPoints) ? 0 : earnedRawPoints;
+
         if (myVault[card.vaultKey]) {
-          myVault[card.vaultKey].points += earnedRawPoints;
+          myVault[card.vaultKey].points = (Number(myVault[card.vaultKey].points) || 0) + earnedRawPoints;
           await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
         }
+
+        const txRecordId = editId || String(Date.now());
+        const txRecord = {
+          id: txRecordId,
+          owner: myVaultKey,
+          timestamp: editId ? (transactions.find(t => t.id === editId)?.timestamp || Date.now()) : Date.now(),
+          desc,
+          amt,
+          cardId,
+          bonusCategory: isBonus ? 'bonus' : 'base',
+          miles: earnedMiles,
+          earnedRawPoints,
+          date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
+        };
+
+        await setDoc(doc(db, "milestrack_txns", txRecordId), txRecord);
+
+        closeModal();
+        document.getElementById('editTxId').value = '';
+        document.getElementById('descInput').value = '';
+        document.getElementById('amtInput').value = '';
+        document.getElementById('modalFormTitle').innerText = "Log Transaction";
+        document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+      } catch (err) {
+        console.error("Save transaction error:", err);
+        alert("Failed to save transaction: " + err.message);
       }
-
-      const txRecordId = editId || String(Date.now());
-      const txRecord = {
-        id: txRecordId,
-        owner: myVaultKey,
-        timestamp: editId ? (transactions.find(t => t.id === editId)?.timestamp || Date.now()) : Date.now(),
-        desc,
-        amt,
-        cardId,
-        bonusCategory: isBonus ? 'bonus' : 'base',
-        miles: earnedMiles,
-        earnedRawPoints,
-        date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
-      };
-
-      await setDoc(doc(db, "milestrack_txns", txRecordId), txRecord);
-
-      closeModal();
-      document.getElementById('editTxId').value = '';
-      document.getElementById('descInput').value = '';
-      document.getElementById('amtInput').value = '';
-      document.getElementById('modalFormTitle').innerText = "Log Transaction";
-      document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
     };
 
     // Backup & Export Utility Handlers
@@ -1777,7 +1793,7 @@
         t.date,
         `"${(t.desc || '').replace(/"/g, '""')}"`,
         t.cardId,
-        t.amt.toFixed(2),
+        Number(t.amt || 0).toFixed(2),
         t.miles,
         t.bonusCategory || 'bonus'
       ]);
