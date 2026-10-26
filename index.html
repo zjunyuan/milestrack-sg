@@ -105,7 +105,6 @@
     #mccInput { flex: 1; }
     #recAmount { width: 85px; flex-shrink: 0; }
 
-    /* Contactless Preference Sub-bar */
     .rec-pref-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.22); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
     .rec-pref-label { font-size: 0.76rem; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
 
@@ -150,12 +149,14 @@
       border: 1px solid rgba(56, 189, 248, 0.28);
     }
 
-    .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .card-name { font-weight: 600; font-size: 0.95rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .card-header-left { display: flex; align-items: center; gap: 12px; }
+    .card-thumb { width: 44px; height: 28px; border-radius: 5px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0; background: #262930; }
+    .card-name { font-weight: 600; font-size: 0.95rem; line-height: 1.25; }
     .card-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: var(--surface-variant); color: var(--primary); }
     .badge-gold { color: var(--gold); border: 1px solid rgba(251, 191, 36, 0.3); }
 
-    .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
+    .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 3px; }
     .cycle-pill.statement-pill { background: rgba(56, 189, 248, 0.12); color: var(--fcy-cyan); border: 1px solid rgba(56, 189, 248, 0.28); }
 
     .progress-bar-container { position: relative; margin: 2px 0; }
@@ -207,7 +208,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.5.2</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.6.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -224,7 +225,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.5.2</span>
+          <span class="version-tag" id="headerVersionTag">v1.6.0</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -588,7 +589,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.5.2";
+    const APP_VERSION = "v1.6.0";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -717,14 +718,16 @@
     const MCC_DATABASE = {
       "5812": {
         name: "Restaurants & Dining Places",
-        notes: "Sit-down restaurants, cafes. All dining cards eligible.",
+        notes: "Sit-down restaurants, cafes. All dining and contactless cards eligible.",
         candidatesLocal: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 }, // Uncapped 2.4 mpd with S$1k SIA spend
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "kf-uob", baseRate: 2.4 },
           { id: "dbs-vantage", baseRate: 1.5 },
           { id: "uob-prvi", baseRate: 1.4 },
-          { id: "mb-world-mc", baseRate: 0.4 } // 4 mpd only at whitelisted groups (Paradise, Les Amis)
+          { id: "mb-world-mc", baseRate: 0.4 }
         ],
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
@@ -821,7 +824,7 @@
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 3.0 }, // 3.0 mpd on SIA/Scoot
+          { id: "kf-uob", baseRate: 3.0 },
           { id: "mb-horizon-vs", baseRate: 3.24 },
           { id: "dbs-vantage", baseRate: 1.5 },
           { id: "uob-prvi", baseRate: 1.4 }
@@ -946,24 +949,297 @@
     };
 
     const ALL_MASTER_CARDS = [
-      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', isContactlessOnly: false },
-      { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo only.', isContactlessOnly: true },
-      { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.', isContactlessOnly: false },
-      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 min in statement cycle for 4.0 mpd (Contactless/Petrol).', isContactlessOnly: true },
-      { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', isContactlessOnly: false },
-      { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', vaultKey: 'citi_typ', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & in-store fashion. Statement month cycle.', isContactlessOnly: false },
-      { id: 'ocbc-rewards', name: 'OCBC Rewards / Titanium', bank: 'OCBC', vaultKey: 'ocbc_pts', monthlyCap: 1110, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'ocbc-5', cycleType: 'calendar', badgeClass: '', hint: 'Department stores, fashion whitelist & HeyMax vouchers (S$1,110 cap).', isContactlessOnly: false },
-      { id: 'dbs-wwmc', name: "DBS Woman's World Card", bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'dbs-5', cycleType: 'calendar', badgeClass: '', hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.', isContactlessOnly: false },
-      { id: 'uob-ls-dining', name: "UOB Lady's Solitaire (Dining)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Restaurants, cafes, bars. Local and overseas.', isContactlessOnly: false },
-      { id: 'uob-ls-travel', name: "UOB Lady's Solitaire (Travel)", bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 750, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Airlines, hotels, OTA bookings. Local and overseas.', isContactlessOnly: false },
-      { id: 'hsbc-rev', name: 'HSBC Revolution', bank: 'HSBC', vaultKey: 'hsbc_pts', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: 'Dining & retail. Avoid Fast Food (MCC 5814).', isContactlessOnly: false },
-      { id: 'kf-uob', name: 'KrisFlyer UOB Credit Card', bank: 'UOB', vaultKey: 'kf_direct', monthlyCap: 999999, minSpend: 0, bonusMpd: 2.4, baseMpd: 1.2, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: 'Uncapped 2.4 mpd on Dining, Online & Transport (requires S$1,000 SIA spend/yr). 3.0 mpd on SIA/Scoot/Kris+.', isContactlessOnly: false },
-      { id: 'mb-world-mc', name: 'Maybank World Mastercard', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 999999, minSpend: 0, bonusMpd: 0.4, baseMpd: 0.4, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: '4.0 mpd only at whitelisted dining groups (Paradise, Les Amis). General dining earns 0.4 mpd.', isContactlessOnly: false },
-      { id: 'mb-horizon-vs', name: 'Maybank Horizon Visa Signature', bank: 'Maybank', vaultKey: 'mb_treats', monthlyCap: 10000, minSpend: 800, bonusMpd: 2.8, baseMpd: 0.24, engine: 'citi-1', cycleType: 'calendar', badgeClass: '', hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', isContactlessOnly: false },
-      { id: 'dbs-vantage', name: 'DBS Vantage Card', bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.5, baseMpd: 1.5, engine: 'dbs-5', cycleType: 'uncapped', badgeClass: '', hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', isContactlessOnly: false },
-      { id: 'uob-prvi', name: 'UOB PRVI Miles', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.4, baseMpd: 1.4, engine: 'uob-5', cycleType: 'uncapped', badgeClass: '', hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', isContactlessOnly: false },
-      { id: 'dbs-altitude', name: 'DBS Altitude Card', bank: 'DBS', vaultKey: 'dbs_pts', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.3, baseMpd: 1.3, engine: 'dbs-5', cycleType: 'uncapped', badgeClass: '', hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', isContactlessOnly: false },
-      { id: 'citi-pm', name: 'Citi PremierMiles', bank: 'Citi', vaultKey: 'citi_miles', monthlyCap: 999999, minSpend: 0, bonusMpd: 1.2, baseMpd: 1.2, engine: 'citi-1', cycleType: 'uncapped', badgeClass: '', hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', isContactlessOnly: false }
+      { 
+        id: 'dbs-yuu', 
+        name: 'DBS yuu Card (10 mpd)', 
+        bank: 'DBS', 
+        vaultKey: 'yuu_pts', 
+        monthlyCap: 822.86, 
+        minSpend: 800, 
+        bonusMpd: 10.0, 
+        baseMpd: 0.14, 
+        engine: 'yuu-10', 
+        cycleType: 'calendar', 
+        badgeClass: 'badge-gold', 
+        hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
+        isContactlessOnly: false,
+        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/dbs-yuu-card/dbs-yuu-card-320x202.png'
+      },
+      { 
+        id: 'uob-ppv-contactless', 
+        name: 'UOB Preferred Visa (Mobile Tap)', 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 600, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Apple/Google Pay tap & SimplyGo only.', 
+        isContactlessOnly: true,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-preferred-platinum-visa-card/preferred-platinum-card.png'
+      },
+      { 
+        id: 'uob-ppv-online', 
+        name: 'UOB Preferred Visa (Online)', 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 600, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Shopee, Lazada, FairPrice Online, GrabFood.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-preferred-platinum-visa-card/preferred-platinum-card.png'
+      },
+      { 
+        id: 'uob-vs-contactless', 
+        name: 'UOB Visa Signature (Contactless / Petrol)', 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 1200, 
+        minSpend: 1000, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'statement', 
+        cutoffDay: 18, 
+        badgeClass: '', 
+        hint: 'Must hit S$1,000 min in statement cycle for 4.0 mpd (Contactless/Petrol).', 
+        isContactlessOnly: true,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-visa-signature-card/visa-sig-card.png'
+      },
+      { 
+        id: 'uob-vs-fcy', 
+        name: 'UOB Visa Signature (FCY Overseas)', 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 1200, 
+        minSpend: 1000, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'statement', 
+        cutoffDay: 18, 
+        badgeClass: '', 
+        hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-visa-signature-card/visa-sig-card.png'
+      },
+      { 
+        id: 'citi-rewards', 
+        name: 'Citi Rewards', 
+        bank: 'Citi', 
+        vaultKey: 'citi_typ', 
+        monthlyCap: 1000, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'citi-1', 
+        cycleType: 'statement', 
+        cutoffDay: 15, 
+        badgeClass: '', 
+        hint: 'Online shopping & in-store fashion. Statement month cycle.', 
+        isContactlessOnly: false,
+        img: 'https://www.citibank.com.sg/global_docs/images/cards/rewards-card.png'
+      },
+      { 
+        id: 'ocbc-rewards', 
+        name: 'OCBC Rewards / Titanium', 
+        bank: 'OCBC', 
+        vaultKey: 'ocbc_pts', 
+        monthlyCap: 1110, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'ocbc-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Department stores, fashion whitelist & HeyMax vouchers (S$1,110 cap).', 
+        isContactlessOnly: false,
+        img: 'https://www.ocbc.com/iwov-resources/sg/ocbc/personal/img/cards/rewards-card/card-face.png'
+      },
+      { 
+        id: 'dbs-wwmc', 
+        name: "DBS Woman's World Card", 
+        bank: 'DBS', 
+        vaultKey: 'dbs_pts', 
+        monthlyCap: 1000, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'dbs-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.', 
+        isContactlessOnly: false,
+        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/womens-card/womens-world-card.png'
+      },
+      { 
+        id: 'uob-ls-dining', 
+        name: "UOB Lady's Solitaire (Dining)", 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 750, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Restaurants, cafes, bars. Local and overseas.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-ladys-card/ladys-solitaire-card.png'
+      },
+      { 
+        id: 'uob-ls-travel', 
+        name: "UOB Lady's Solitaire (Travel)", 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 750, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'uob-5', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Airlines, hotels, OTA bookings. Local and overseas.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-ladys-card/ladys-solitaire-card.png'
+      },
+      { 
+        id: 'hsbc-rev', 
+        name: 'HSBC Revolution', 
+        bank: 'HSBC', 
+        vaultKey: 'hsbc_pts', 
+        monthlyCap: 1000, 
+        minSpend: 0, 
+        bonusMpd: 4.0, 
+        baseMpd: 0.4, 
+        engine: 'citi-1', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: 'Dining & retail. Avoid Fast Food (MCC 5814).', 
+        isContactlessOnly: false,
+        img: 'https://www.hsbc.com.sg/content/dam/hsbc/sg/images/credit-cards/revolution-card-320x202.png'
+      },
+      { 
+        id: 'kf-uob', 
+        name: 'KrisFlyer UOB Credit Card', 
+        bank: 'UOB', 
+        vaultKey: 'kf_direct', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 2.4, 
+        baseMpd: 1.2, 
+        engine: 'uob-5', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: 'Uncapped 2.4 mpd on Dining, Online & Transport (requires S$1,000 SIA spend/yr). 3.0 mpd on SIA/Scoot/Kris+.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/krisflyer-uob-credit-card/krisflyer-uob-card.png'
+      },
+      { 
+        id: 'mb-world-mc', 
+        name: 'Maybank World Mastercard', 
+        bank: 'Maybank', 
+        vaultKey: 'mb_treats', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 0.4, 
+        baseMpd: 0.4, 
+        engine: 'citi-1', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: '4.0 mpd only at whitelisted dining groups (Paradise, Les Amis). General dining earns 0.4 mpd.', 
+        isContactlessOnly: false,
+        img: 'https://www.maybank2u.com.sg/iwov-resources/sg/images/personal/cards/credit-cards/world-mastercard.png'
+      },
+      { 
+        id: 'mb-horizon-vs', 
+        name: 'Maybank Horizon Visa Signature', 
+        bank: 'Maybank', 
+        vaultKey: 'mb_treats', 
+        monthlyCap: 10000, 
+        minSpend: 800, 
+        bonusMpd: 2.8, 
+        baseMpd: 0.24, 
+        engine: 'citi-1', 
+        cycleType: 'calendar', 
+        badgeClass: '', 
+        hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
+        isContactlessOnly: false,
+        img: 'https://www.maybank2u.com.sg/iwov-resources/sg/images/personal/cards/credit-cards/horizon-visa-signature.png'
+      },
+      { 
+        id: 'dbs-vantage', 
+        name: 'DBS Vantage Card', 
+        bank: 'DBS', 
+        vaultKey: 'dbs_pts', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 1.5, 
+        baseMpd: 1.5, 
+        engine: 'dbs-5', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
+        isContactlessOnly: false,
+        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/vantage-card/vantage-card-320x202.png'
+      },
+      { 
+        id: 'uob-prvi', 
+        name: 'UOB PRVI Miles', 
+        bank: 'UOB', 
+        vaultKey: 'uob_uni', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 1.4, 
+        baseMpd: 1.4, 
+        engine: 'uob-5', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
+        isContactlessOnly: false,
+        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-prvimiles-card/prvimiles-visa-card.png'
+      },
+      { 
+        id: 'dbs-altitude', 
+        name: 'DBS Altitude Card', 
+        bank: 'DBS', 
+        vaultKey: 'dbs_pts', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 1.3, 
+        baseMpd: 1.3, 
+        engine: 'dbs-5', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', 
+        isContactlessOnly: false,
+        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/altitude-visa-signature-card/altitude-visa-signature-card.png'
+      },
+      { 
+        id: 'citi-pm', 
+        name: 'Citi PremierMiles', 
+        bank: 'Citi', 
+        vaultKey: 'citi_miles', 
+        monthlyCap: 999999, 
+        minSpend: 0, 
+        bonusMpd: 1.2, 
+        baseMpd: 1.2, 
+        engine: 'citi-1', 
+        cycleType: 'uncapped', 
+        badgeClass: '', 
+        hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
+        isContactlessOnly: false,
+        img: 'https://www.citibank.com.sg/global_docs/images/cards/premiermiles-card.png'
+      }
     ];
 
     let enabledCardIds = ALL_MASTER_CARDS.map(c => c.id);
@@ -1062,7 +1338,6 @@
     };
 
     function subscribeToCloudData() {
-      // 1. My Active Vault
       onSnapshot(doc(db, "milestrack_vaults", myVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           myVault = { ...DEFAULT_VAULT, ...docSnap.data() };
@@ -1072,7 +1347,6 @@
         }
       }, (err) => console.error("My vault error:", err));
 
-      // 2. Peer Vault
       onSnapshot(doc(db, "milestrack_vaults", peerVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           peerVault = { ...DEFAULT_VAULT, ...docSnap.data() };
@@ -1080,7 +1354,6 @@
         }
       }, (err) => console.error("Peer vault error:", err));
 
-      // 3. My Active Settings & Card Wallet Inventory
       onSnapshot(doc(db, "milestrack_settings", myVaultKey), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -1102,7 +1375,6 @@
         }
       });
 
-      // 4. My Active Ledger Transactions
       const txQuery = query(
         collection(db, "milestrack_txns"), 
         where("owner", "==", myVaultKey),
@@ -1291,7 +1563,6 @@
       }
     };
 
-    // Calculate actual miles earned
     function calcEarnedMiles(card, amount, rate) {
       if (card.engine === 'yuu-10') {
         return Math.round(amount * rate);
@@ -1325,12 +1596,11 @@
 
       const candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
       
-      // Filter candidates by ownership AND by contactless preference
       const myOwnedCandidates = candidateList.filter(c => {
         if (!enabledCardIds.includes(c.id)) return false;
         const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
         if (!allowContactless && cardObj && cardObj.isContactlessOnly) {
-          return false; // Skip card if user wants to keep contactless cap or contactless is unavailable
+          return false;
         }
         return true;
       });
@@ -1752,6 +2022,7 @@
       }
     };
 
+    // Render Cards with Thumbnails & UOB Visa Signature Defense Meter
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
@@ -1819,12 +2090,23 @@
           statusNotice = `<span style="color:var(--danger);font-size:0.75rem;">Cap reached (now base rate)</span>`;
         }
 
+        const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="28" viewBox="0 0 44 28"><rect width="44" height="28" rx="4" fill="%23262930"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="sans-serif" font-size="9" font-weight="bold">${card.bank}</text></svg>`;
+
         container.innerHTML += `
           <div class="credit-card ${isStatement ? 'statement-cycle' : ''}">
             <div class="card-header">
-              <div>
-                <div class="card-name">${card.name}</div>
-                <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
+              <div class="card-header-left">
+                <img 
+                  class="card-thumb" 
+                  src="${card.img || ''}" 
+                  alt="${card.name}" 
+                  loading="lazy" 
+                  onerror="this.onerror=null; this.src='${fallbackSvg}';"
+                />
+                <div>
+                  <div class="card-name">${card.name}</div>
+                  <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
+                </div>
               </div>
               <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
             </div>
