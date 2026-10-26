@@ -95,13 +95,14 @@
     .rec-winner-meta { font-size: 0.8rem; color: #cbd5e1; line-height: 1.35; }
     .mcc-tag-box { font-size: 0.76rem; color: #94a3b8; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--primary); }
     .dcc-warning { font-size: 0.75rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; margin-top: 4px; }
+    .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); margin-top: 4px; line-height: 1.35; }
     .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
     .fee-alert-card { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
-    /* Vault Grid - Big Miles Typography */
+    /* Vault Grid */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
     .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -130,16 +131,25 @@
     .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
     .card-stats { display: flex; justify-content: space-between; font-size: 0.78rem; color: #94a3b8; }
 
+    /* Transaction Item with Inline Actions */
     .tx-item { background-color: var(--surface); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .tx-desc { font-weight: 500; font-size: 0.9rem; }
     .tx-meta { font-size: 0.75rem; color: #94a3b8; }
     .tx-miles { color: var(--accent); font-weight: 700; font-size: 0.95rem; text-align: right; }
     .tx-amt { font-size: 0.75rem; color: #94a3b8; text-align: right; }
+    .tx-actions { display: flex; align-items: center; gap: 10px; margin-left: 12px; }
+    .btn-tx-action { background: none; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: color 0.2s; }
+    .btn-tx-action:hover { color: #fff; background: var(--surface-variant); }
+    .btn-tx-delete:hover { color: var(--danger); }
 
     /* Card Checkbox Grid inside Settings */
     .checklist-grid { display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; margin-top: 4px; }
     .checklist-item { display: flex; align-items: center; gap: 10px; background: var(--surface-variant); padding: 8px 12px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; }
     .checklist-item input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+    .backup-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+    .btn-backup { background: var(--surface-variant); border: 1px solid var(--outline); color: var(--on-surface); padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-backup:hover { background: rgba(158, 202, 255, 0.12); border-color: var(--primary); color: var(--primary); }
 
     .fab { position: fixed; bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 20px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer; z-index: 99; transition: transform 0.2s; }
     .fab:hover { transform: scale(1.05); }
@@ -159,7 +169,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.2.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -176,14 +186,14 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.2.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.3.0</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="sync-status" id="syncStatusIndicator">● Live Sync</span>
         <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
-        <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings">settings</span>
+        <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings & Backup">settings</span>
         <span class="material-symbols-outlined" onclick="logoutGoogle()" style="cursor:pointer; color:#94a3b8;" title="Sign Out">logout</span>
       </div>
     </header>
@@ -288,7 +298,7 @@
           <button class="btn-view-peer" onclick="openSisterVaultModal()">View Breakdown ❯</button>
         </div>
 
-        <!-- Points Vault Breakdown (Miles First Hierarchy) -->
+        <!-- Points Vault Breakdown -->
         <div>
           <div class="section-title">
             <span id="vaultSectionTitle">Bank Points Vault</span>
@@ -301,14 +311,17 @@
         <div>
           <div class="section-title">
             <span>Points Expiry Radar</span>
-            <span style="font-size:0.75rem; color:#94a3b8;" onclick="openSettings()" style="cursor:pointer;">Configure Expiry ⚙️</span>
+            <span style="font-size:0.75rem; color:#94a3b8; cursor:pointer;" onclick="openSettings()">Configure Expiry ⚙️</span>
           </div>
           <div class="radar-card" id="radarContainer"></div>
         </div>
 
-        <!-- Recent Transactions -->
+        <!-- Recent Transactions Stream with Delete/Edit -->
         <div>
-          <div class="section-title">Recent Transactions</div>
+          <div class="section-title">
+            <span>Recent Transactions</span>
+            <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
+          </div>
           <div id="txList"></div>
         </div>
       </div>
@@ -346,13 +359,15 @@
     </div>
   </div>
 
-  <!-- Log Transaction Modal -->
+  <!-- Log / Edit Transaction Modal -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">Log Transaction</h2>
+        <h2 style="font-size:1.15rem;" id="modalFormTitle">Log Transaction</h2>
         <span class="material-symbols-outlined" onclick="closeModal()" style="cursor:pointer;">close</span>
       </div>
+
+      <input type="hidden" id="editTxId" value="">
 
       <div class="form-group">
         <label>Merchant / Description</label>
@@ -361,13 +376,15 @@
 
       <div class="form-group">
         <label>Amount (SGD Equiv)</label>
-        <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01">
+        <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01" oninput="checkLoggerRounding()">
       </div>
 
       <div class="form-group">
         <label>Select Card Slot</label>
-        <select id="cardSelect" class="form-control" onchange="updateCategoryHint()"></select>
+        <select id="cardSelect" class="form-control" onchange="updateCategoryHint(); checkLoggerRounding();"></select>
       </div>
+
+      <div id="modalRoundingAlert"></div>
 
       <div class="form-group">
         <label>Category Verification</label>
@@ -378,7 +395,7 @@
         <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
       </div>
 
-      <button class="btn-submit" onclick="saveTransaction()">Save to Ledger</button>
+      <button class="btn-submit" id="btnSaveLedger" onclick="saveTransaction()">Save to Ledger</button>
     </div>
   </div>
 
@@ -391,53 +408,44 @@
       </div>
       <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your banking apps:</p>
 
-      <div class="form-group">
-        <label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label>
-        <input type="number" id="v_uob_uni" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>Citi ThankYou Points (Citi Rewards)</label>
-        <input type="number" id="v_citi_typ" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>Citi Miles (Citi PremierMiles - Standalone)</label>
-        <input type="number" id="v_citi_miles" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>DBS Points (DBS WWMC, Altitude, Vantage)</label>
-        <input type="number" id="v_dbs_pts" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>DBS yuu Points</label>
-        <input type="number" id="v_yuu_pts" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>OCBC$ (OCBC Rewards / Titanium)</label>
-        <input type="number" id="v_ocbc_pts" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>HSBC Reward Points (Revolution)</label>
-        <input type="number" id="v_hsbc_pts" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>Maybank TREATS Points (World MC, Horizon VS)</label>
-        <input type="number" id="v_mb_treats" class="form-control">
-      </div>
-      <div class="form-group">
-        <label>Direct KrisFlyer Miles (KrisFlyer UOB & Airline Account)</label>
-        <input type="number" id="v_kf_miles" class="form-control">
-      </div>
+      <div class="form-group"><label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label><input type="number" id="v_uob_uni" class="form-control"></div>
+      <div class="form-group"><label>Citi ThankYou Points (Citi Rewards)</label><input type="number" id="v_citi_typ" class="form-control"></div>
+      <div class="form-group"><label>Citi Miles (Citi PremierMiles - Standalone)</label><input type="number" id="v_citi_miles" class="form-control"></div>
+      <div class="form-group"><label>DBS Points (DBS WWMC, Altitude, Vantage)</label><input type="number" id="v_dbs_pts" class="form-control"></div>
+      <div class="form-group"><label>DBS yuu Points</label><input type="number" id="v_yuu_pts" class="form-control"></div>
+      <div class="form-group"><label>OCBC$ (OCBC Rewards / Titanium)</label><input type="number" id="v_ocbc_pts" class="form-control"></div>
+      <div class="form-group"><label>HSBC Reward Points (Revolution)</label><input type="number" id="v_hsbc_pts" class="form-control"></div>
+      <div class="form-group"><label>Maybank TREATS Points (World MC, Horizon VS)</label><input type="number" id="v_mb_treats" class="form-control"></div>
+      <div class="form-group"><label>Direct KrisFlyer Miles (KrisFlyer UOB & Airline Account)</label><input type="number" id="v_kf_miles" class="form-control"></div>
 
       <button class="btn-submit" onclick="saveVaultBalances()">Save to Vault</button>
     </div>
   </div>
 
-  <!-- Settings Modal (With Card Ownership Checklist) -->
+  <!-- Settings & Data Backup Modal -->
   <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="font-size:1.15rem;">Settings & Card Wallet</h2>
         <span class="material-symbols-outlined" onclick="closeSettings()" style="cursor:pointer;">close</span>
+      </div>
+
+      <!-- Offline Data Backup Section -->
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
+          Data Backup & Portability
+        </label>
+        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
+          Export your complete ledger and bank vault snapshot to your local device.
+        </p>
+        <div class="backup-btn-row">
+          <button class="btn-backup" onclick="exportDataJSON()">
+            <span class="material-symbols-outlined" style="font-size:18px;">download</span> JSON Backup
+          </button>
+          <button class="btn-backup" onclick="exportTxnsCSV()">
+            <span class="material-symbols-outlined" style="font-size:18px;">table_view</span> Ledger CSV
+          </button>
+        </div>
       </div>
 
       <!-- Card Ownership Checklist -->
@@ -500,20 +508,15 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // -------------------------------------------------------------
-    // APPLICATION BUILD VERSION
-    // -------------------------------------------------------------
-    const APP_VERSION = "v1.2.0";
+    const APP_VERSION = "v1.3.0";
 
-    // Update version badges immediately in DOM
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
     if (authVer) authVer.innerText = APP_VERSION;
     if (headerVer) headerVer.innerText = APP_VERSION;
 
-    // Explicit Mapping for Household vs Sister
     const PRIMARY_EMAILS = [
       "zjunyuan@gmail.com",
       "eunice.er.yc@gmail.com"
@@ -970,7 +973,6 @@
               if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
             });
           }
-          // Filter active cards by enabled checklist
           cards = ALL_MASTER_CARDS.filter(c => enabledCardIds.includes(c.id));
           renderCards();
           renderExpiryRadar();
@@ -988,8 +990,8 @@
       
       onSnapshot(txQuery, (querySnapshot) => {
         transactions = [];
-        querySnapshot.forEach((doc) => {
-          transactions.push(doc.data());
+        querySnapshot.forEach((d) => {
+          transactions.push({ ...d.data(), firestoreId: d.id });
         });
         renderCards();
         renderTransactions();
@@ -1105,6 +1107,39 @@
       return null;
     }
 
+    // Dynamic S$5 Rounding Warning Checker for Logger Modal
+    window.checkLoggerRounding = function() {
+      const alertArea = document.getElementById('modalRoundingAlert');
+      const amt = parseFloat(document.getElementById('amtInput').value) || 0;
+      const cardId = document.getElementById('cardSelect').value;
+      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+
+      if (!alertArea) return;
+      if (!card || (card.engine !== 'uob-5' && card.engine !== 'ocbc-5') || amt <= 0) {
+        alertArea.innerHTML = '';
+        return;
+      }
+
+      const remainder = (amt % 5);
+      if (remainder > 0.01) {
+        const rewardedAmt = amt - remainder;
+        const blocks = Math.floor(amt / 5);
+        const ptsPerBlock = card.bonusMpd * 1.25;
+        const earnedRaw = blocks * ptsPerBlock;
+        const earnedMiles = earnedRaw * (myVault[card.vaultKey]?.ratio || 1);
+        const effectiveMpd = (earnedMiles / amt).toFixed(2);
+
+        alertArea.innerHTML = `
+          <div class="uob-rounding-notice">
+            ⚠️ <b>S$5 Rounding Loss:</b> Only <b>$${rewardedAmt.toFixed(2)}</b> qualifies for rewards. 
+            Remainder <b>$${remainder.toFixed(2)}</b> earns 0 points (Effective: <b>${effectiveMpd} mpd</b> vs nominal ${card.bonusMpd} mpd).
+          </div>
+        `;
+      } else {
+        alertArea.innerHTML = '';
+      }
+    };
+
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const amt = parseFloat(document.getElementById('recAmount').value) || 100;
@@ -1124,8 +1159,6 @@
       }
 
       const candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
-
-      // Filter candidates strictly to cards you actively own
       const myOwnedCandidates = candidateList.filter(c => enabledCardIds.includes(c.id));
 
       if (myOwnedCandidates.length === 0) {
@@ -1152,6 +1185,23 @@
           effectiveMpd = card.baseMpd;
         }
 
+        let calculatedEarnedMiles = 0;
+        let roundingWarning = '';
+
+        if (card.engine === 'uob-5' || card.engine === 'ocbc-5') {
+          const remainder = amt % 5;
+          const blocks = Math.floor(amt / 5);
+          const ptsPerBlock = effectiveMpd * 1.25;
+          const rawPts = blocks * ptsPerBlock;
+          calculatedEarnedMiles = rawPts * (myVault[card.vaultKey]?.ratio || 1);
+          const trueMpd = (calculatedEarnedMiles / amt).toFixed(2);
+          if (remainder > 0.01) {
+            roundingWarning = `S$5 rounding drop: S$${remainder.toFixed(2)} gets 0 pts (Real: ${trueMpd} mpd)`;
+          }
+        } else {
+          calculatedEarnedMiles = Math.round(amt * effectiveMpd);
+        }
+
         let score = effectiveMpd * 100;
         if (!fitsUnderCap && !isUncapped) score -= 500;
 
@@ -1166,6 +1216,8 @@
         return {
           card,
           effectiveMpd,
+          calculatedEarnedMiles,
+          roundingWarning,
           remainingCap,
           daysLeft,
           fitsUnderCap,
@@ -1178,7 +1230,6 @@
 
       const best = scored[0];
       const runnerUp = scored[1];
-      const estMiles = Math.round(amt * best.effectiveMpd);
 
       resultArea.innerHTML = `
         <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
@@ -1187,13 +1238,14 @@
         </div>
         <div class="rec-winner-title" style="margin-top:4px;">
           <span>⭐ <b>${best.card.name}</b></span>
-          <span style="color:var(--accent); font-weight:700;">${best.effectiveMpd} mpd (+${estMiles} mi)</span>
+          <span style="color:var(--accent); font-weight:700;">${best.effectiveMpd} mpd (+${Math.round(best.calculatedEarnedMiles)} mi)</span>
         </div>
         <div class="rec-winner-meta">
           ${best.card.monthlyCap >= 999999 ? 'Uncapped capacity' : `Space Left: <b>$${best.remainingCap.toFixed(2)}</b> / $${best.card.monthlyCap}`} • ${best.cycleNotice}
         </div>
+        ${best.roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${best.roundingWarning}</div>` : ''}
         ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.effectiveMpd} mpd)</div>` : ''}
-        ${isOverseasMode ? `<div class="dcc-warning">⚠️ <b>DCC Trap:</b> Always select local currency (e.g. JPY, EUR, USD) at the card machine. Never select SGD!</div>` : ''}
+        ${isOverseasMode ? `<div class="dcc-warning">⚠️ <b>DCC Trap:</b> Always select local currency (e.g. JPY, EUR, USD) at the card terminal. Never choose SGD!</div>` : ''}
         <button class="btn-apply-rec" onclick="applyRecommendation('${best.card.id}', ${amt}, '${isOverseasMode ? '[FCY] ' : ''}${mccData.name}')">Log $${amt.toFixed(2)} with This Card</button>
       `;
     };
@@ -1242,7 +1294,7 @@
                 UOB Auto-Deduction Alert: ${card.name}
               </div>
               <div class="fee-alert-desc">
-                Renewal in <b>${diffDays} days</b> (${nextRenewal.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}). UOB will automatically wipe <b>${card.pts.toLocaleString()} UNI$ (${card.miles} miles)</b> to pay the ${card.fee} fee!
+                Renewal in <b>${diffDays} days</b> (${nextRenewal.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}). UOB will automatically deduct <b>${card.pts.toLocaleString()} UNI$ (${card.miles} miles)</b> for the ${card.fee} fee!
               </div>
             </div>
           `;
@@ -1344,7 +1396,7 @@
           const gap = nextTier.totalMiles - personalTotalMiles;
           progEl.innerHTML = `Need <b>${gap.toLocaleString()}</b> more miles to reach <b>${nextTier.name}</b> (${nextTier.totalMiles.toLocaleString()} mi)`;
         } else {
-          progEl.innerHTML = `🌟 Outstanding! You have reached maximum coverage: USA Long-Haul Return for 4 in Business Class!`;
+          progEl.innerHTML = `🌟 Outstanding! Maximum tier reached: USA Long-Haul Return for 4 in Business Class!`;
         }
       }
     };
@@ -1539,29 +1591,86 @@
       document.getElementById('cardHint').innerText = card ? `Rule: ${card.hint}` : '';
     };
 
+    // Render Recent Transactions Stream with Delete & Edit inline buttons
     window.renderTransactions = function() {
       const list = document.getElementById('txList');
+      const badge = document.getElementById('txCountBadge');
       if (!list) return;
       list.innerHTML = '';
+      if (badge) badge.innerText = `${transactions.length} recorded`;
+
+      if (transactions.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No transactions logged yet.</div>`;
+        return;
+      }
 
       transactions.slice().reverse().forEach(tx => {
         const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
         list.innerHTML += `
           <div class="tx-item">
-            <div>
-              <div class="tx-desc">${tx.desc}</div>
+            <div style="flex:1; min-width:0; padding-right:8px;">
+              <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.desc}</div>
               <div class="tx-meta">${card.name} • ${tx.date}</div>
             </div>
             <div>
               <div class="tx-miles">+${tx.miles} mi</div>
               <div class="tx-amt">$${tx.amt.toFixed(2)}</div>
             </div>
+            <div class="tx-actions">
+              <button class="btn-tx-action" onclick="openEditModal('${tx.id}')" title="Edit entry">
+                <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+              </button>
+              <button class="btn-tx-action btn-tx-delete" onclick="deleteTransaction('${tx.id}')" title="Delete entry">
+                <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+              </button>
+            </div>
           </div>
         `;
       });
     };
 
+    // Edit Transaction Pre-fill
+    window.openEditModal = function(txId) {
+      const tx = transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      document.getElementById('editTxId').value = tx.id;
+      document.getElementById('descInput').value = tx.desc;
+      document.getElementById('amtInput').value = tx.amt;
+      document.getElementById('cardSelect').value = tx.cardId;
+      document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
+
+      document.getElementById('modalFormTitle').innerText = "Edit Transaction";
+      document.getElementById('btnSaveLedger').innerText = "Update Transaction";
+
+      window.updateCategoryHint();
+      window.checkLoggerRounding();
+      document.getElementById('modalOverlay').classList.add('open');
+    };
+
+    // Delete Transaction with Vault Points Recovery
+    window.deleteTransaction = async function(txId) {
+      const tx = transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      if (!confirm(`Delete "${tx.desc}" ($${tx.amt.toFixed(2)}) and deduct +${tx.miles} miles from your vault?`)) {
+        return;
+      }
+
+      const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
+      if (card && myVault[card.vaultKey]) {
+        const rawPtsToDeduct = tx.earnedRawPoints || Math.round(tx.miles / (myVault[card.vaultKey]?.ratio || 1));
+        myVault[card.vaultKey].points = Math.max(0, (myVault[card.vaultKey].points || 0) - rawPtsToDeduct);
+        await setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
+      }
+
+      const docId = tx.firestoreId || tx.id;
+      await deleteDoc(doc(db, "milestrack_txns", docId));
+    };
+
+    // Save or Update Transaction
     window.saveTransaction = async function() {
+      const editId = document.getElementById('editTxId').value;
       const desc = document.getElementById('descInput').value.trim() || 'General Expense';
       const amt = parseFloat(document.getElementById('amtInput').value);
       const cardId = document.getElementById('cardSelect').value;
@@ -1569,6 +1678,19 @@
 
       if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
       const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+
+      // If updating, reverse old transaction points from vault first
+      if (editId) {
+        const oldTx = transactions.find(t => t.id === editId);
+        if (oldTx) {
+          const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
+          if (oldCard && myVault[oldCard.vaultKey]) {
+            const oldPts = oldTx.earnedRawPoints || Math.round(oldTx.miles / (myVault[oldCard.vaultKey]?.ratio || 1));
+            myVault[oldCard.vaultKey].points = Math.max(0, (myVault[oldCard.vaultKey].points || 0) - oldPts);
+          }
+        }
+      }
+
       let earnedMiles = 0;
       let earnedRawPoints = 0;
 
@@ -1597,22 +1719,77 @@
         }
       }
 
+      const txRecordId = editId || String(Date.now());
       const txRecord = {
-        id: String(Date.now()),
+        id: txRecordId,
         owner: myVaultKey,
-        timestamp: Date.now(),
+        timestamp: editId ? (transactions.find(t => t.id === editId)?.timestamp || Date.now()) : Date.now(),
         desc,
         amt,
         cardId,
+        bonusCategory: isBonus ? 'bonus' : 'base',
         miles: earnedMiles,
+        earnedRawPoints,
         date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
       };
 
-      await setDoc(doc(db, "milestrack_txns", txRecord.id), txRecord);
+      await setDoc(doc(db, "milestrack_txns", txRecordId), txRecord);
 
       closeModal();
+      document.getElementById('editTxId').value = '';
       document.getElementById('descInput').value = '';
       document.getElementById('amtInput').value = '';
+      document.getElementById('modalFormTitle').innerText = "Log Transaction";
+      document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+    };
+
+    // Backup & Export Utility Handlers
+    window.exportDataJSON = function() {
+      const backupPayload = {
+        app: "MilesTrack SG",
+        version: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+        vaultKey: myVaultKey,
+        vault: myVault,
+        transactions,
+        settings: {
+          citiApprovalDate,
+          uobRenewals,
+          enabledCards: enabledCardIds
+        }
+      };
+
+      const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `milestrack_backup_${myVaultKey}_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    window.exportTxnsCSV = function() {
+      if (transactions.length === 0) return alert("No transactions available to export.");
+      
+      const headers = ["ID", "Date", "Description", "Card ID", "Amount (SGD)", "Earned Miles", "Category"];
+      const rows = transactions.map(t => [
+        t.id,
+        t.date,
+        `"${(t.desc || '').replace(/"/g, '""')}"`,
+        t.cardId,
+        t.amt.toFixed(2),
+        t.miles,
+        t.bonusCategory || 'bonus'
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `milestrack_ledger_${myVaultKey}_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     };
 
     window.openVaultModal = function() {
@@ -1652,7 +1829,6 @@
       document.getElementById('vaultOverlay').classList.remove('open');
     };
 
-    // Render the Card Checklist in Settings
     function renderCardChecklist() {
       const container = document.getElementById('cardChecklistContainer');
       if (!container) return;
@@ -1701,7 +1877,6 @@
       uobRenewals.ppv = document.getElementById('uobPpvRenewalInput').value;
       uobRenewals.prvi = document.getElementById('uobPrviRenewalInput').value;
 
-      // Collect checked cards
       const selected = [];
       ALL_MASTER_CARDS.forEach(card => {
         const chk = document.getElementById(`chk_${card.id}`);
@@ -1722,7 +1897,16 @@
       document.getElementById('settingsOverlay').classList.remove('open');
     };
 
-    window.openModal = () => document.getElementById('modalOverlay').classList.add('open');
+    window.openModal = () => {
+      document.getElementById('editTxId').value = '';
+      document.getElementById('descInput').value = '';
+      document.getElementById('amtInput').value = '';
+      document.getElementById('modalFormTitle').innerText = "Log Transaction";
+      document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+      window.checkLoggerRounding();
+      document.getElementById('modalOverlay').classList.add('open');
+    };
+
     window.closeModal = (e) => {
       if (!e || e.target.id === 'modalOverlay' || e.target.tagName === 'SPAN') {
         document.getElementById('modalOverlay').classList.remove('open');
