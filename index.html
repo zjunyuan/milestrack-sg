@@ -32,22 +32,31 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--bg); color: var(--on-surface); min-height: 100vh; display: flex; justify-content: center; padding-bottom: 90px; }
+    body { background-color: var(--bg); color: var(--on-surface); min-height: 100vh; display: flex; justify-content: center; padding-bottom: 84px; }
     
-    .app-container { width: 100%; max-width: 1180px; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
-    header { padding: 12px 4px; display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .app-container { width: 100%; max-width: 1180px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+    header { padding: 6px 4px 10px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
     .version-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(158, 202, 255, 0.12); color: var(--primary); border: 1px solid rgba(158, 202, 255, 0.25); vertical-align: middle; }
     .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
-    .dashboard-grid { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+    /* Bottom Navigation Bar for Mobile */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #18191d; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-around; align-items: center; z-index: 90; backdrop-filter: blur(8px); }
+    .nav-tab { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; color: #94a3b8; font-size: 0.74rem; font-weight: 600; cursor: pointer; transition: color 0.2s; }
+    .nav-tab .material-symbols-outlined { font-size: 22px; }
+    .nav-tab.active { color: var(--primary); }
 
+    /* Tab Page Containers */
+    .tab-content { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+
+    /* Desktop switches back to side-by-side command center */
     @media (min-width: 900px) {
-      body { padding-bottom: 40px; }
-      .dashboard-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 24px; align-items: start; }
-      .col-left, .col-right { display: flex; flex-direction: column; gap: 16px; }
+      body { padding-bottom: 30px; }
+      .bottom-nav { display: none !important; }
+      .tab-content { display: flex !important; }
+      .desktop-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 24px; align-items: start; width: 100%; }
       .card-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .vault-grid { grid-template-columns: repeat(3, 1fr) !important; }
       .modal-sheet { border-radius: 24px !important; margin: auto !important; max-height: 80vh !important; }
@@ -149,8 +158,11 @@
     .btn-backup { background: var(--surface-variant); border: 1px solid var(--outline); color: var(--on-surface); padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-backup:hover { background: rgba(158, 202, 255, 0.12); border-color: var(--primary); color: var(--primary); }
 
-    .fab { position: fixed; bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 20px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer; z-index: 99; transition: transform 0.2s; }
+    .fab { position: fixed; bottom: 76px; right: 20px; width: 56px; height: 56px; border-radius: 18px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer; z-index: 99; transition: transform 0.2s; }
     .fab:hover { transform: scale(1.05); }
+    @media (min-width: 900px) {
+      .fab { bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 20px; }
+    }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); display: none; align-items: flex-end; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
     .modal-overlay.open { display: flex; }
@@ -170,7 +182,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.2</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.4.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -187,7 +199,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.3.2</span>
+          <span class="version-tag" id="headerVersionTag">v1.4.0</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -199,22 +211,23 @@
       </div>
     </header>
 
-    <!-- Overseas / FCY Mode Toggle -->
-    <div class="overseas-toggle-bar" id="overseasBar">
-      <div class="toggle-label">
-        <span class="material-symbols-outlined" id="overseasIcon" style="color:#94a3b8;">travel</span>
-        <span id="overseasText">Mode: Singapore (Local SGD)</span>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="overseasSwitch" onchange="toggleOverseasMode()">
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="dashboard-grid">
+    <!-- WRAPPER: Mobile Tabs switch; Desktop shows side-by-side -->
+    <div class="desktop-grid">
       
-      <!-- LEFT COLUMN -->
-      <div class="col-left">
+      <!-- TAB 1: CARDS & LOGGER -->
+      <div class="tab-content" id="tabContentCards">
+        <!-- Overseas / FCY Mode Toggle -->
+        <div class="overseas-toggle-bar" id="overseasBar">
+          <div class="toggle-label">
+            <span class="material-symbols-outlined" id="overseasIcon" style="color:#94a3b8;">travel</span>
+            <span id="overseasText">Mode: Singapore (Local SGD)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="overseasSwitch" onchange="toggleOverseasMode()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
         <!-- Recommender Widget -->
         <div class="recommender-card" id="recommenderCard">
           <div class="rec-header">
@@ -265,10 +278,19 @@
           </div>
           <div class="card-list" id="cardsContainer"></div>
         </div>
+
+        <!-- Recent Transactions Stream with Delete/Edit -->
+        <div>
+          <div class="section-title">
+            <span>Recent Transactions</span>
+            <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
+          </div>
+          <div id="txList"></div>
+        </div>
       </div>
 
-      <!-- RIGHT COLUMN -->
-      <div class="col-right">
+      <!-- TAB 2: MILES & BANK VAULT DETAILS -->
+      <div class="tab-content" id="tabContentVault" style="display:none;">
         <!-- Separate Personal War Chest -->
         <div class="summary-card">
           <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
@@ -316,19 +338,22 @@
           </div>
           <div class="radar-card" id="radarContainer"></div>
         </div>
-
-        <!-- Recent Transactions Stream with Delete/Edit -->
-        <div>
-          <div class="section-title">
-            <span>Recent Transactions</span>
-            <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
-          </div>
-          <div id="txList"></div>
-        </div>
       </div>
 
     </div>
   </div>
+
+  <!-- Bottom Navigation Bar for Mobile -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-tab active" id="btnTabCards" onclick="switchTab('cards')">
+      <span class="material-symbols-outlined">credit_card</span>
+      <span>Cards & Caps</span>
+    </button>
+    <button class="nav-tab" id="btnTabVault" onclick="switchTab('vault')">
+      <span class="material-symbols-outlined">account_balance_wallet</span>
+      <span>Miles & Vault</span>
+    </button>
+  </nav>
 
   <button class="fab" id="fabButton" onclick="openModal()" style="display:none;" title="Log Transaction">
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
@@ -370,7 +395,7 @@
 
       <input type="hidden" id="editTxId" value="">
 
-      <!-- Card Slot Selection (Moved to top so merchant field adapts) -->
+      <!-- Card Slot Selection -->
       <div class="form-group">
         <label>Select Card Slot</label>
         <select id="cardSelect" class="form-control" onchange="onCardSelectChange()"></select>
@@ -382,7 +407,7 @@
         <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA">
       </div>
 
-      <!-- DBS yuu specific Merchant Dropdown (Shown when yuu is selected) -->
+      <!-- DBS yuu specific Merchant Dropdown -->
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
         <label>Select Eligible yuu Partner (Prevents Spelling Errors)</label>
         <select id="yuuMerchantSelect" class="form-control" onchange="onYuuMerchantChange()">
@@ -536,12 +561,47 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.3.2";
+    const APP_VERSION = "v1.4.0";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
     if (authVer) authVer.innerText = APP_VERSION;
     if (headerVer) headerVer.innerText = APP_VERSION;
+
+    // Mobile Tab Switching Handler
+    window.switchTab = function(tabName) {
+      if (window.innerWidth >= 900) return; // ignore on desktop
+      const cardsTab = document.getElementById('tabContentCards');
+      const vaultTab = document.getElementById('tabContentVault');
+      const btnCards = document.getElementById('btnTabCards');
+      const btnVault = document.getElementById('btnTabVault');
+
+      if (tabName === 'cards') {
+        cardsTab.style.display = 'flex';
+        vaultTab.style.display = 'none';
+        btnCards.classList.add('active');
+        btnVault.classList.remove('active');
+      } else {
+        cardsTab.style.display = 'none';
+        vaultTab.style.display = 'flex';
+        btnCards.classList.remove('active');
+        btnVault.classList.add('active');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('resize', () => {
+      const cardsTab = document.getElementById('tabContentCards');
+      const vaultTab = document.getElementById('tabContentVault');
+      if (window.innerWidth >= 900) {
+        cardsTab.style.display = 'flex';
+        vaultTab.style.display = 'flex';
+      } else {
+        const isCardsActive = document.getElementById('btnTabCards').classList.contains('active');
+        cardsTab.style.display = isCardsActive ? 'flex' : 'none';
+        vaultTab.style.display = isCardsActive ? 'none' : 'flex';
+      }
+    });
 
     const PRIMARY_EMAILS = [
       "zjunyuan@gmail.com",
