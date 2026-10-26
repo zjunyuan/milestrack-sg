@@ -108,10 +108,9 @@
     .dcc-warning { font-size: 0.75rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; }
     .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); line-height: 1.35; }
 
-    /* Cascade Multi-Card Split Card */
-    .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
-    .cascade-header { font-size: 0.76rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
-    .cascade-step { font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 8px; }
+    .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .cascade-header { font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+    .cascade-step { font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px; }
 
     .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
@@ -151,7 +150,6 @@
     .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
     .cycle-pill.statement-pill { background: rgba(56, 189, 248, 0.12); color: var(--fcy-cyan); border: 1px solid rgba(56, 189, 248, 0.28); }
 
-    /* Dual-Tier Progress Bar for Minimum Spend defense */
     .progress-bar-container { position: relative; margin: 2px 0; }
     .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; }
     .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
@@ -201,7 +199,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.5.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.5.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -218,7 +216,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.5.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.5.1</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -230,7 +228,6 @@
       </div>
     </header>
 
-    <!-- WRAPPER: Mobile Tabs switch; Desktop shows side-by-side -->
     <div class="desktop-grid">
       
       <!-- TAB 1: CARDS & LOGGER -->
@@ -310,7 +307,6 @@
 
       <!-- TAB 2: MILES & BANK VAULT DETAILS -->
       <div class="tab-content" id="tabContentVault" style="display:none;">
-        <!-- Separate Personal War Chest -->
         <div class="summary-card">
           <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
           <div class="total-miles" id="myTotalVaultMiles">0 mi</div>
@@ -330,7 +326,6 @@
           </div>
         </div>
 
-        <!-- Sister's Independent Balance Peek Card -->
         <div class="sister-card">
           <div class="sister-info">
             <span class="sister-title" id="peerCardTitle"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
@@ -340,7 +335,6 @@
           <button class="btn-view-peer" onclick="openSisterVaultModal()">View Breakdown ❯</button>
         </div>
 
-        <!-- Points Vault Breakdown -->
         <div>
           <div class="section-title">
             <span id="vaultSectionTitle">Bank Points Vault</span>
@@ -349,7 +343,6 @@
           <div class="vault-grid" id="vaultContainer"></div>
         </div>
 
-        <!-- Expiry Radar -->
         <div>
           <div class="section-title">
             <span>Points Expiry Radar</span>
@@ -580,7 +573,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.5.0";
+    const APP_VERSION = "v1.5.1";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1279,7 +1272,6 @@
       }
     };
 
-    // Calculate miles earned accounting for bank engine
     function calcEarnedMiles(card, amount, rate) {
       if (card.engine === 'yuu-10') {
         return Math.round(amount * rate);
@@ -1292,7 +1284,7 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Cap Overflow Cascading Engine
+    // Smart Cap Overflow Recursive N-Card Cascading Engine
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const amt = parseFloat(document.getElementById('recAmount').value) || 100;
@@ -1324,7 +1316,6 @@
         return;
       }
 
-      // Rank cards by their base bonus rate & remaining cap
       const scoredCandidates = myOwnedCandidates.map(cand => {
         const card = cards.find(c => c.id === cand.id);
         if (!card) return null;
@@ -1343,53 +1334,94 @@
       }).filter(Boolean).sort((a, b) => b.rate - a.rate);
 
       const primary = scoredCandidates[0];
+      const requiresSplit = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
 
-      // Check if purchase exceeds primary card's remaining cap
-      const isOverflow = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
+      // RECURSIVE N-CARD WATERFALL ALLOCATION
+      if (requiresSplit) {
+        let unallocatedAmt = amt;
+        const allocationSteps = [];
 
-      if (isOverflow && primary.remainingCap > 0) {
-        // CASCADING SPLIT RECOMMENDATION
-        const portion1 = primary.remainingCap;
-        const portion2 = amt - portion1;
-        const secondary = scoredCandidates.slice(1).find(c => c.remainingCap > 0) || scoredCandidates[1];
+        for (const candidate of scoredCandidates) {
+          if (unallocatedAmt <= 0) break;
+          const takeAmt = candidate.isUncapped ? unallocatedAmt : Math.min(candidate.remainingCap, unallocatedAmt);
+          if (takeAmt <= 0) continue;
 
-        const miles1 = calcEarnedMiles(primary.card, portion1, primary.rate);
-        const miles2Rate = (secondary.isUncapped || secondary.remainingCap >= portion2) ? secondary.rate : secondary.card.baseMpd;
-        const miles2 = calcEarnedMiles(secondary.card, portion2, miles2Rate);
-        const totalCombinedMiles = Math.round(miles1 + miles2);
+          const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, candidate.rate);
+          allocationSteps.push({
+            card: candidate.card,
+            amount: takeAmt,
+            rate: candidate.rate,
+            miles: earnedMiles,
+            isBase: false
+          });
 
-        resultArea.innerHTML = `
-          <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
-            <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b><br>
-            ${mccData.notes}
-          </div>
+          unallocatedAmt -= takeAmt;
+        }
 
-          <!-- Cascading Overflow Alert & Breakdown -->
-          <div class="cascade-split-card">
-            <div class="cascade-header">
-              <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-              Smart Cap Split: Earn ${totalCombinedMiles.toLocaleString()} miles
+        // If tail dollars still remain, assign them to the highest base-rate uncapped card
+        if (unallocatedAmt > 0) {
+          const fallback = scoredCandidates.find(c => c.isUncapped) || scoredCandidates[scoredCandidates.length - 1];
+          const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallback.card.baseMpd);
+          allocationSteps.push({
+            card: fallback.card,
+            amount: unallocatedAmt,
+            rate: fallback.card.baseMpd,
+            miles: earnedMiles,
+            isBase: true
+          });
+        }
+
+        // If all dollars had to be taken by only 1 card (e.g. all caps were 0)
+        if (allocationSteps.length > 1) {
+          const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
+
+          let stepsHtml = '';
+          let buttonsHtml = '';
+          const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
+
+          allocationSteps.forEach((step, idx) => {
+            const icon = numberEmojis[idx] || `${idx + 1}️⃣`;
+            stepsHtml += `
+              <div class="cascade-step">
+                <div>
+                  ${icon} <b>${step.card.name}</b>: Charge <b>$${step.amount.toFixed(2)}</b>
+                  <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? 'Base Rate (Cap Overflow)' : `${step.rate} mpd bonus tier`}</div>
+                </div>
+                <span style="color:var(--accent); font-weight:700;">+${Math.round(step.miles)} mi</span>
+              </div>
+            `;
+
+            buttonsHtml += `
+              <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" onclick="applyRecommendation('${step.card.id}', ${step.amount}, '${mccData.name} (Part ${idx + 1})')">
+                Log Part ${idx + 1} ($${step.amount.toFixed(2)})
+              </button>
+            `;
+          });
+
+          resultArea.innerHTML = `
+            <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
+              <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b><br>
+              ${mccData.notes}
             </div>
-            <div class="cascade-step">
-              <span>1️⃣ <b>${primary.card.name}</b>: Charge <b>$${portion1.toFixed(2)}</b> (fills cap)</span>
-              <span style="color:var(--accent); font-weight:700;">+${Math.round(miles1)} mi</span>
-            </div>
-            <div class="cascade-step">
-              <span>2️⃣ <b>${secondary.card.name}</b>: Charge <b>$${portion2.toFixed(2)}</b></span>
-              <span style="color:var(--accent); font-weight:700;">+${Math.round(miles2)} mi (${miles2Rate} mpd)</span>
-            </div>
-          </div>
 
-          <div style="font-size:0.75rem; color:#94a3b8;">
-            Charging the full $${amt.toFixed(2)} solely to ${primary.card.name} would waste $${portion2.toFixed(2)} at base rate (+${Math.round(miles1 + (portion2 * primary.card.baseMpd))} mi). Split to protect your earn rate!
-          </div>
+            <div class="cascade-split-card">
+              <div class="cascade-header">
+                <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
+                Smart Waterfall Split: Earn ${Math.round(totalCombinedMiles).toLocaleString()} miles across ${allocationSteps.length} cards
+              </div>
+              ${stepsHtml}
+            </div>
 
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn-apply-rec" onclick="applyRecommendation('${primary.card.id}', ${portion1}, '${mccData.name} (Part 1)')">Log Part 1 ($${portion1.toFixed(2)})</button>
-            <button class="btn-apply-rec" style="background:var(--surface-variant); color:#fff; border:1px solid var(--outline);" onclick="applyRecommendation('${secondary.card.id}', ${portion2}, '${mccData.name} (Part 2)')">Log Part 2 ($${portion2.toFixed(2)})</button>
-          </div>
-        `;
-        return;
+            <div style="font-size:0.75rem; color:#94a3b8;">
+              Splitting this transaction ensures you do not waste large purchases at poor base rates once caps are exhausted.
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${buttonsHtml}
+            </div>
+          `;
+          return;
+        }
       }
 
       // Single card recommendation
@@ -1691,7 +1723,6 @@
       }
     };
 
-    // Render Cards with UOB Visa Signature Defense Meter
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
@@ -1714,10 +1745,9 @@
         let statusNotice = '';
         let markerHtml = '';
 
-        // UOB Visa Signature S$1,000 Minimum Spend Defense Meter
         if (card.id.startsWith('uob-vs')) {
           const minDeficit = Math.max(0, 1000 - currentSpend);
-          const minSpendPct = (1000 / card.monthlyCap) * 100; // 83.33% marker position
+          const minSpendPct = (1000 / card.monthlyCap) * 100;
           markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;" title="S$1,000 Minimum Spend Baseline"></div>`;
 
           if (currentSpend < 1000) {
@@ -1795,7 +1825,6 @@
       document.getElementById('cardHint').innerText = card ? `Rule: ${card.hint}` : '';
     };
 
-    // Render Recent Transactions Stream
     window.renderTransactions = function() {
       const list = document.getElementById('txList');
       const badge = document.getElementById('txCountBadge');
@@ -1833,7 +1862,6 @@
       });
     };
 
-    // Edit Transaction Pre-fill
     window.openEditModal = function(txId) {
       const tx = transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -1860,7 +1888,6 @@
       document.getElementById('modalOverlay').classList.add('open');
     };
 
-    // Delete Transaction with Vault Points Recovery
     window.deleteTransaction = async function(txId) {
       const tx = transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -1885,7 +1912,6 @@
       }
     };
 
-    // Save or Update Transaction
     window.saveTransaction = async function() {
       try {
         const editId = document.getElementById('editTxId').value;
@@ -1973,7 +1999,6 @@
       }
     };
 
-    // Backup & Export Utility Handlers
     window.exportDataJSON = function() {
       const backupPayload = {
         app: "MilesTrack SG",
