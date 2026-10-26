@@ -131,7 +131,6 @@
     .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
     .card-stats { display: flex; justify-content: space-between; font-size: 0.78rem; color: #94a3b8; }
 
-    /* Transaction Item with Inline Actions */
     .tx-item { background-color: var(--surface); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .tx-desc { font-weight: 500; font-size: 0.9rem; }
     .tx-meta { font-size: 0.75rem; color: #94a3b8; }
@@ -142,7 +141,6 @@
     .btn-tx-action:hover { color: #fff; background: var(--surface-variant); }
     .btn-tx-delete:hover { color: var(--danger); }
 
-    /* Card Checkbox Grid inside Settings */
     .checklist-grid { display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; margin-top: 4px; }
     .checklist-item { display: flex; align-items: center; gap: 10px; background: var(--surface-variant); padding: 8px 12px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; }
     .checklist-item input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
@@ -161,6 +159,9 @@
     .form-group label { font-size: 0.8rem; color: #94a3b8; }
     .form-control { background: var(--surface-variant); border: 1px solid var(--outline); color: white; padding: 12px; border-radius: 12px; font-size: 0.95rem; }
     .btn-submit { background: var(--primary); color: var(--on-primary); border: none; padding: 14px; font-weight: 600; border-radius: 14px; cursor: pointer; font-size: 1rem; margin-top: 6px; }
+
+    .yuu-partner-alert { font-size: 0.74rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); color: #cbd5e1; padding: 8px 12px; border-radius: 10px; line-height: 1.35; margin-top: 2px; }
+    .yuu-partner-alert a { color: var(--gold); font-weight: 700; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -169,7 +170,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.3.2</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -186,7 +187,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.3.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.3.2</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -369,19 +370,44 @@
 
       <input type="hidden" id="editTxId" value="">
 
+      <!-- Card Slot Selection (Moved to top so merchant field adapts) -->
       <div class="form-group">
+        <label>Select Card Slot</label>
+        <select id="cardSelect" class="form-control" onchange="onCardSelectChange()"></select>
+      </div>
+
+      <!-- Merchant / Description Input Area (Dynamic) -->
+      <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
         <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA">
+      </div>
+
+      <!-- DBS yuu specific Merchant Dropdown (Shown when yuu is selected) -->
+      <div class="form-group" id="yuuMerchantGroup" style="display:none;">
+        <label>Select Eligible yuu Partner (Prevents Spelling Errors)</label>
+        <select id="yuuMerchantSelect" class="form-control" onchange="onYuuMerchantChange()">
+          <option value="Cold Storage">Cold Storage (CS Fresh, Jasons Deli)</option>
+          <option value="Giant">Giant (Hypermarket, Express)</option>
+          <option value="Guardian">Guardian (Health & Beauty)</option>
+          <option value="7-Eleven">7-Eleven (Exclude Changi Airport)</option>
+          <option value="foodpanda">foodpanda (Delivery, pandamart - Excl. PayPal)</option>
+          <option value="SimplyGo">SimplyGo (MRT / Bus Direct Tap)</option>
+          <option value="Gojek">Gojek (Excl. PayPal checkout)</option>
+          <option value="CHAGEE">CHAGEE (Official Mobile App Orders Only)</option>
+          <option value="Singtel">Singtel (Shops & Exclusive Retailers)</option>
+          <option value="Charge+">Charge+ (Visa only - EV Charging)</option>
+          <option value="Anywheel">Anywheel (Bike Sharing)</option>
+          <option value="Other / Non-Partner">Other / Excluded Merchant (Base Rate Only)</option>
+        </select>
+        <div class="yuu-partner-alert">
+          ℹ️ <b>DBS Exclusions:</b> <i>Cold Storage On The Go</i> is strictly excluded. Changi Airport 7-11/Guardian and foodpanda dine-in/PayPal top-ups earn base only. 
+          <br><a href="https://www.dbs.com.sg/personal/cards/credit-cards/dbs-yuu-cards" target="_blank" rel="noopener">Official DBS yuu Participating Merchant Directory ↗</a>
+        </div>
       </div>
 
       <div class="form-group">
         <label>Amount (SGD Equiv)</label>
         <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01" oninput="checkLoggerRounding()">
-      </div>
-
-      <div class="form-group">
-        <label>Select Card Slot</label>
-        <select id="cardSelect" class="form-control" onchange="updateCategoryHint(); checkLoggerRounding();"></select>
       </div>
 
       <div id="modalRoundingAlert"></div>
@@ -510,7 +536,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.3.1";
+    const APP_VERSION = "v1.3.2";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -560,11 +586,15 @@
     const YUU_PARTNER_BRANDS = [
       "cold storage", "cs fresh", "jasons", "giant", 
       "guardian", "7-eleven", "7-11", "foodpanda", 
-      "gojek", "simplygo", "chagee"
+      "gojek", "simplygo", "chagee", "singtel", "charge+", "anywheel"
     ];
 
     function detectYuuMerchant(desc = "") {
       const clean = (desc || "").toLowerCase();
+      // Cold Storage On The Go exclusion
+      if (clean.includes("on the go") || clean.includes("onthego")) {
+        return null;
+      }
       for (const brand of YUU_PARTNER_BRANDS) {
         if (clean.includes(brand)) {
           if (brand.includes("cold") || brand.includes("cs fresh") || brand.includes("jasons")) return "Cold Storage";
@@ -575,6 +605,9 @@
           if (brand.includes("gojek")) return "Gojek";
           if (brand.includes("simplygo")) return "SimplyGo";
           if (brand.includes("chagee")) return "CHAGEE";
+          if (brand.includes("singtel")) return "Singtel";
+          if (brand.includes("charge+")) return "Charge+";
+          if (brand.includes("anywheel")) return "Anywheel";
         }
       }
       return null;
@@ -824,7 +857,7 @@
     };
 
     const ALL_MASTER_CARDS = [
-      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, foodpanda, Gojek, SimplyGo. Req: S$800 min spend + 4 distinct merchants.' },
+      { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.' },
       { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
       { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
       { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
@@ -980,7 +1013,7 @@
         }
       });
 
-      // 4. My Active Ledger Transactions (avoid composite index requirement by sorting in memory)
+      // 4. My Active Ledger Transactions
       const txQuery = query(
         collection(db, "milestrack_txns"), 
         where("owner", "==", myVaultKey),
@@ -1109,7 +1142,6 @@
       return null;
     }
 
-    // Dynamic S$5 Rounding Warning Checker for Logger Modal
     window.checkLoggerRounding = function() {
       const alertArea = document.getElementById('modalRoundingAlert');
       const amt = parseFloat(document.getElementById('amtInput').value) || 0;
@@ -1139,6 +1171,34 @@
         `;
       } else {
         alertArea.innerHTML = '';
+      }
+    };
+
+    window.onCardSelectChange = function() {
+      const cardId = document.getElementById('cardSelect').value;
+      const normalGroup = document.getElementById('merchantInputGroup');
+      const yuuGroup = document.getElementById('yuuMerchantGroup');
+
+      if (cardId === 'dbs-yuu') {
+        normalGroup.style.display = 'none';
+        yuuGroup.style.display = 'flex';
+        onYuuMerchantChange();
+      } else {
+        normalGroup.style.display = 'flex';
+        yuuGroup.style.display = 'none';
+      }
+
+      updateCategoryHint();
+      checkLoggerRounding();
+    };
+
+    window.onYuuMerchantChange = function() {
+      const selected = document.getElementById('yuuMerchantSelect').value;
+      const categorySelect = document.getElementById('bonusCategory');
+      if (selected === 'Other / Non-Partner') {
+        categorySelect.value = 'base';
+      } else {
+        categorySelect.value = 'bonus';
       }
     };
 
@@ -1258,6 +1318,7 @@
       document.getElementById('amtInput').value = amt;
       document.getElementById('descInput').value = desc || '';
       document.getElementById('bonusCategory').value = 'bonus';
+      onCardSelectChange();
       openModal();
     };
 
@@ -1584,7 +1645,8 @@
 
         select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
       });
-      window.updateCategoryHint();
+
+      window.onCardSelectChange();
       window.runRecommendation();
     };
 
@@ -1594,7 +1656,7 @@
       document.getElementById('cardHint').innerText = card ? `Rule: ${card.hint}` : '';
     };
 
-    // Render Recent Transactions Stream with Delete & Edit inline buttons
+    // Render Recent Transactions Stream
     window.renderTransactions = function() {
       const list = document.getElementById('txList');
       const badge = document.getElementById('txCountBadge');
@@ -1638,15 +1700,23 @@
       if (!tx) return;
 
       document.getElementById('editTxId').value = tx.id;
-      document.getElementById('descInput').value = tx.desc;
-      document.getElementById('amtInput').value = tx.amt;
       document.getElementById('cardSelect').value = tx.cardId;
+      window.onCardSelectChange();
+
+      if (tx.cardId === 'dbs-yuu') {
+        const yuuSelect = document.getElementById('yuuMerchantSelect');
+        const exists = Array.from(yuuSelect.options).some(o => o.value === tx.desc);
+        yuuSelect.value = exists ? tx.desc : 'Other / Non-Partner';
+      } else {
+        document.getElementById('descInput').value = tx.desc;
+      }
+
+      document.getElementById('amtInput').value = tx.amt;
       document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
 
       document.getElementById('modalFormTitle').innerText = "Edit Transaction";
       document.getElementById('btnSaveLedger').innerText = "Update Transaction";
 
-      window.updateCategoryHint();
       window.checkLoggerRounding();
       document.getElementById('modalOverlay').classList.add('open');
     };
@@ -1680,10 +1750,16 @@
     window.saveTransaction = async function() {
       try {
         const editId = document.getElementById('editTxId').value;
-        const desc = document.getElementById('descInput').value.trim() || 'General Expense';
-        const amt = parseFloat(document.getElementById('amtInput').value);
         const cardId = document.getElementById('cardSelect').value;
+        const amt = parseFloat(document.getElementById('amtInput').value);
         const isBonus = document.getElementById('bonusCategory').value === 'bonus';
+
+        let desc = '';
+        if (cardId === 'dbs-yuu') {
+          desc = document.getElementById('yuuMerchantSelect').value;
+        } else {
+          desc = document.getElementById('descInput').value.trim() || 'General Expense';
+        }
 
         if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
         const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
@@ -1919,6 +1995,7 @@
       document.getElementById('amtInput').value = '';
       document.getElementById('modalFormTitle').innerText = "Log Transaction";
       document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+      window.onCardSelectChange();
       window.checkLoggerRounding();
       document.getElementById('modalOverlay').classList.add('open');
     };
