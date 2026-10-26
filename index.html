@@ -151,7 +151,34 @@
 
     .card-header { display: flex; justify-content: space-between; align-items: center; }
     .card-header-left { display: flex; align-items: center; gap: 12px; }
-    .card-thumb { width: 44px; height: 28px; border-radius: 5px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0; background: #262930; }
+    
+    /* Native CSS Vector Card Thumbnail */
+    .card-thumb { 
+      width: 44px; 
+      height: 28px; 
+      border-radius: 5px; 
+      flex-shrink: 0; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between; 
+      padding: 3px 4px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5); 
+      border: 1px solid rgba(255,255,255,0.15); 
+      position: relative;
+      overflow: hidden;
+    }
+    .thumb-chip { width: 6px; height: 5px; background: #fbbf24; border-radius: 1.5px; opacity: 0.85; }
+    .thumb-bank { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; align-self: flex-end; line-height: 1; }
+
+    /* Bank Vector Card Schemes */
+    .thumb-uob { background: linear-gradient(135deg, #091a2e 0%, #002d62 100%); color: #60a5fa; }
+    .thumb-dbs { background: linear-gradient(135deg, #2b1114 0%, #8b111d 100%); color: #fca5a5; }
+    .thumb-yuu { background: linear-gradient(135deg, #3b0764 0%, #6d28d9 100%); color: #fef08a; }
+    .thumb-citi { background: linear-gradient(135deg, #022c54 0%, #0369a1 100%); color: #38bdf8; }
+    .thumb-ocbc { background: linear-gradient(135deg, #450a0a 0%, #b91c1c 100%); color: #fecaca; }
+    .thumb-hsbc { background: linear-gradient(135deg, #1f2937 0%, #dc2626 100%); color: #fff; }
+    .thumb-maybank { background: linear-gradient(135deg, #451a03 0%, #b45309 100%); color: #fde68a; }
+
     .card-name { font-weight: 600; font-size: 0.95rem; line-height: 1.25; }
     .card-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: var(--surface-variant); color: var(--primary); }
     .badge-gold { color: var(--gold); border: 1px solid rgba(251, 191, 36, 0.3); }
@@ -204,11 +231,10 @@
 </head>
 <body>
 
-  <!-- Google Auth Screen -->
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.6.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.6.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -225,7 +251,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.6.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.6.1</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -241,7 +267,6 @@
       
       <!-- TAB 1: CARDS & LOGGER -->
       <div class="tab-content" id="tabContentCards">
-        <!-- Overseas / FCY Mode Toggle -->
         <div class="overseas-toggle-bar" id="overseasBar">
           <div class="toggle-label">
             <span class="material-symbols-outlined" id="overseasIcon" style="color:#94a3b8;">travel</span>
@@ -253,7 +278,6 @@
           </label>
         </div>
 
-        <!-- Recommender Widget -->
         <div class="recommender-card" id="recommenderCard">
           <div class="rec-header">
             <span class="rec-title">
@@ -268,7 +292,6 @@
             <input type="number" id="recAmount" class="form-control" placeholder="Amt" value="100" oninput="runRecommendation()">
           </div>
 
-          <!-- Contactless Mode Selector -->
           <div class="rec-pref-row">
             <div class="rec-pref-label">
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">contactless</span>
@@ -304,10 +327,8 @@
           <div class="rec-result" id="recResultArea"></div>
         </div>
 
-        <!-- UOB Annual Fee Defense Radar -->
         <div id="uobFeeAlertContainer"></div>
 
-        <!-- Monthly Card Bonus Caps -->
         <div>
           <div class="section-title">
             <span id="cardBonusTitle">Monthly Bonus Caps</span>
@@ -316,7 +337,6 @@
           <div class="card-list" id="cardsContainer"></div>
         </div>
 
-        <!-- Recent Transactions Stream with Delete/Edit -->
         <div>
           <div class="section-title">
             <span>Recent Transactions</span>
@@ -376,7 +396,6 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar for Mobile -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="nav-tab active" id="btnTabCards" onclick="switchTab('cards')">
       <span class="material-symbols-outlined">credit_card</span>
@@ -392,7 +411,6 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
-  <!-- Sister's Vault Viewer Modal (Read-Only) -->
   <div class="modal-overlay" id="sisterVaultOverlay" onclick="closeSisterVaultModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -404,7 +422,6 @@
     </div>
   </div>
 
-  <!-- Travel Tiers Modal -->
   <div class="modal-overlay" id="travelTiersOverlay" onclick="closeTravelTiersModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -418,7 +435,6 @@
     </div>
   </div>
 
-  <!-- Log / Edit Transaction Modal -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -428,19 +444,16 @@
 
       <input type="hidden" id="editTxId" value="">
 
-      <!-- Card Slot Selection -->
       <div class="form-group">
         <label>Select Card Slot</label>
         <select id="cardSelect" class="form-control" onchange="onCardSelectChange()"></select>
       </div>
 
-      <!-- Merchant / Description Input Area (Dynamic) -->
       <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
         <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA">
       </div>
 
-      <!-- DBS yuu specific Merchant Dropdown -->
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
         <label>Select Eligible yuu Partner (Prevents Spelling Errors)</label>
         <select id="yuuMerchantSelect" class="form-control" onchange="onYuuMerchantChange()">
@@ -483,7 +496,6 @@
     </div>
   </div>
 
-  <!-- Points Vault Edit Modal -->
   <div class="modal-overlay" id="vaultOverlay" onclick="closeVaultModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -506,7 +518,6 @@
     </div>
   </div>
 
-  <!-- Settings & Data Backup Modal -->
   <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -589,7 +600,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.6.0";
+    const APP_VERSION = "v1.6.1";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -952,7 +963,7 @@
       { 
         id: 'dbs-yuu', 
         name: 'DBS yuu Card (10 mpd)', 
-        bank: 'DBS', 
+        bank: 'yuu', 
         vaultKey: 'yuu_pts', 
         monthlyCap: 822.86, 
         minSpend: 800, 
@@ -963,7 +974,7 @@
         badgeClass: 'badge-gold', 
         hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
         isContactlessOnly: false,
-        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/dbs-yuu-card/dbs-yuu-card-320x202.png'
+        themeClass: 'thumb-yuu'
       },
       { 
         id: 'uob-ppv-contactless', 
@@ -979,7 +990,7 @@
         badgeClass: '', 
         hint: 'Apple/Google Pay tap & SimplyGo only.', 
         isContactlessOnly: true,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-preferred-platinum-visa-card/preferred-platinum-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'uob-ppv-online', 
@@ -995,7 +1006,7 @@
         badgeClass: '', 
         hint: 'Shopee, Lazada, FairPrice Online, GrabFood.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-preferred-platinum-visa-card/preferred-platinum-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'uob-vs-contactless', 
@@ -1012,7 +1023,7 @@
         badgeClass: '', 
         hint: 'Must hit S$1,000 min in statement cycle for 4.0 mpd (Contactless/Petrol).', 
         isContactlessOnly: true,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-visa-signature-card/visa-sig-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'uob-vs-fcy', 
@@ -1029,7 +1040,7 @@
         badgeClass: '', 
         hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-visa-signature-card/visa-sig-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'citi-rewards', 
@@ -1046,7 +1057,7 @@
         badgeClass: '', 
         hint: 'Online shopping & in-store fashion. Statement month cycle.', 
         isContactlessOnly: false,
-        img: 'https://www.citibank.com.sg/global_docs/images/cards/rewards-card.png'
+        themeClass: 'thumb-citi'
       },
       { 
         id: 'ocbc-rewards', 
@@ -1062,7 +1073,7 @@
         badgeClass: '', 
         hint: 'Department stores, fashion whitelist & HeyMax vouchers (S$1,110 cap).', 
         isContactlessOnly: false,
-        img: 'https://www.ocbc.com/iwov-resources/sg/ocbc/personal/img/cards/rewards-card/card-face.png'
+        themeClass: 'thumb-ocbc'
       },
       { 
         id: 'dbs-wwmc', 
@@ -1078,7 +1089,7 @@
         badgeClass: '', 
         hint: 'Online spend including SIA, Agoda, Klook, in-app wallets.', 
         isContactlessOnly: false,
-        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/womens-card/womens-world-card.png'
+        themeClass: 'thumb-dbs'
       },
       { 
         id: 'uob-ls-dining', 
@@ -1094,7 +1105,7 @@
         badgeClass: '', 
         hint: 'Restaurants, cafes, bars. Local and overseas.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-ladys-card/ladys-solitaire-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'uob-ls-travel', 
@@ -1110,7 +1121,7 @@
         badgeClass: '', 
         hint: 'Airlines, hotels, OTA bookings. Local and overseas.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-ladys-card/ladys-solitaire-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'hsbc-rev', 
@@ -1126,7 +1137,7 @@
         badgeClass: '', 
         hint: 'Dining & retail. Avoid Fast Food (MCC 5814).', 
         isContactlessOnly: false,
-        img: 'https://www.hsbc.com.sg/content/dam/hsbc/sg/images/credit-cards/revolution-card-320x202.png'
+        themeClass: 'thumb-hsbc'
       },
       { 
         id: 'kf-uob', 
@@ -1142,7 +1153,7 @@
         badgeClass: '', 
         hint: 'Uncapped 2.4 mpd on Dining, Online & Transport (requires S$1,000 SIA spend/yr). 3.0 mpd on SIA/Scoot/Kris+.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/krisflyer-uob-credit-card/krisflyer-uob-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'mb-world-mc', 
@@ -1158,7 +1169,7 @@
         badgeClass: '', 
         hint: '4.0 mpd only at whitelisted dining groups (Paradise, Les Amis). General dining earns 0.4 mpd.', 
         isContactlessOnly: false,
-        img: 'https://www.maybank2u.com.sg/iwov-resources/sg/images/personal/cards/credit-cards/world-mastercard.png'
+        themeClass: 'thumb-maybank'
       },
       { 
         id: 'mb-horizon-vs', 
@@ -1174,7 +1185,7 @@
         badgeClass: '', 
         hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
         isContactlessOnly: false,
-        img: 'https://www.maybank2u.com.sg/iwov-resources/sg/images/personal/cards/credit-cards/horizon-visa-signature.png'
+        themeClass: 'thumb-maybank'
       },
       { 
         id: 'dbs-vantage', 
@@ -1190,7 +1201,7 @@
         badgeClass: '', 
         hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
         isContactlessOnly: false,
-        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/vantage-card/vantage-card-320x202.png'
+        themeClass: 'thumb-dbs'
       },
       { 
         id: 'uob-prvi', 
@@ -1206,7 +1217,7 @@
         badgeClass: '', 
         hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
         isContactlessOnly: false,
-        img: 'https://www.uob.com.sg/assets/images/personal/cards/credit-cards/uob-prvimiles-card/prvimiles-visa-card.png'
+        themeClass: 'thumb-uob'
       },
       { 
         id: 'dbs-altitude', 
@@ -1222,7 +1233,7 @@
         badgeClass: '', 
         hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', 
         isContactlessOnly: false,
-        img: 'https://www.dbs.com.sg/iwov-resources/images/cards/altitude-visa-signature-card/altitude-visa-signature-card.png'
+        themeClass: 'thumb-dbs'
       },
       { 
         id: 'citi-pm', 
@@ -1238,7 +1249,7 @@
         badgeClass: '', 
         hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
         isContactlessOnly: false,
-        img: 'https://www.citibank.com.sg/global_docs/images/cards/premiermiles-card.png'
+        themeClass: 'thumb-citi'
       }
     ];
 
@@ -1657,7 +1668,6 @@
           unallocatedAmt -= takeAmt;
         }
 
-        // Leftover tail assigned to uncapped base card
         if (unallocatedAmt > 0) {
           const fallback = scoredCandidates.find(c => c.isUncapped) || scoredCandidates[scoredCandidates.length - 1];
           const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallback.card.baseMpd);
@@ -1957,72 +1967,7 @@
       }
     };
 
-    window.renderVault = function() {
-      const container = document.getElementById('vaultContainer');
-      if (!container) return;
-      container.innerHTML = '';
-      let myGrandTotalMiles = 0;
-
-      for (const [key, item] of Object.entries(myVault)) {
-        const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
-        myGrandTotalMiles += equivMiles;
-
-        container.innerHTML += `
-          <div class="vault-item">
-            <span class="vault-label">${item.name}</span>
-            <div class="vault-miles-big">
-              ${equivMiles.toLocaleString()} <span class="vault-miles-unit">miles</span>
-            </div>
-            <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
-          </div>
-        `;
-      }
-
-      document.getElementById('myTotalVaultMiles').innerText = `${myGrandTotalMiles.toLocaleString()} mi`;
-      renderExpiryRadar();
-      checkUobFeeDefense();
-      updateTravelGoal(myGrandTotalMiles);
-    };
-
-    window.renderSisterVaultModal = function() {
-      const container = document.getElementById('sisterVaultContainer');
-      let peerGrandTotal = 0;
-
-      if (container) container.innerHTML = '';
-
-      for (const [key, item] of Object.entries(peerVault)) {
-        const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
-        peerGrandTotal += equivMiles;
-
-        if (container) {
-          container.innerHTML += `
-            <div class="vault-item" style="border-color: rgba(192, 132, 252, 0.2);">
-              <span class="vault-label" style="color:var(--purple);">${item.name}</span>
-              <div class="vault-miles-big">
-                ${equivMiles.toLocaleString()} <span class="vault-miles-unit" style="color:var(--purple);">miles</span>
-              </div>
-              <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
-            </div>
-          `;
-        }
-      }
-
-      const disp = document.getElementById('sisterMilesDisplay');
-      if (disp) disp.innerText = `${peerGrandTotal.toLocaleString()} miles`;
-    };
-
-    window.openSisterVaultModal = function() {
-      renderSisterVaultModal();
-      document.getElementById('sisterVaultOverlay').classList.add('open');
-    };
-
-    window.closeSisterVaultModal = (e) => {
-      if (!e || e.target.id === 'sisterVaultOverlay' || e.target.tagName === 'SPAN') {
-        document.getElementById('sisterVaultOverlay').classList.remove('open');
-      }
-    };
-
-    // Render Cards with Thumbnails & UOB Visa Signature Defense Meter
+    // Render Cards with Native Vector Card Chips
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
@@ -2090,19 +2035,14 @@
           statusNotice = `<span style="color:var(--danger);font-size:0.75rem;">Cap reached (now base rate)</span>`;
         }
 
-        const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="28" viewBox="0 0 44 28"><rect width="44" height="28" rx="4" fill="%23262930"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="sans-serif" font-size="9" font-weight="bold">${card.bank}</text></svg>`;
-
         container.innerHTML += `
           <div class="credit-card ${isStatement ? 'statement-cycle' : ''}">
             <div class="card-header">
               <div class="card-header-left">
-                <img 
-                  class="card-thumb" 
-                  src="${card.img || ''}" 
-                  alt="${card.name}" 
-                  loading="lazy" 
-                  onerror="this.onerror=null; this.src='${fallbackSvg}';"
-                />
+                <div class="card-thumb ${card.themeClass || 'thumb-uob'}">
+                  <div class="thumb-chip"></div>
+                  <div class="thumb-bank">${card.bank}</div>
+                </div>
                 <div>
                   <div class="card-name">${card.name}</div>
                   <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
