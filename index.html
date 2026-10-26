@@ -86,7 +86,6 @@
     .switch-sm .slider:before { height: 16px; width: 16px; left: 3px; bottom: 3px; }
     .switch-sm input:checked + .slider:before { transform: translateX(18px); }
 
-    /* Quick Presets Ribbon */
     .presets-section { display: flex; flex-direction: column; gap: 6px; }
     .presets-header { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     .presets-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -ms-overflow-style: none; }
@@ -310,7 +309,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.3</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.4</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -327,7 +326,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.7.3</span>
+          <span class="version-tag" id="headerVersionTag">v1.7.4</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -514,7 +513,7 @@
           <div class="radar-card" id="radarContainer"></div>
         </div>
 
-        <!-- Desktop Category Cap Tracker (Balances Desktop Column 2) -->
+        <!-- Desktop Category Cap Tracker -->
         <div id="desktopCategorySection" style="display:none; flex-direction:column; gap:10px;">
           <div class="section-title" style="margin-top:6px;">
             <span>Category Cap Tracker</span>
@@ -527,7 +526,6 @@
     </div>
   </div>
 
-  <!-- 3-Tab Bottom Navigation Bar for Mobile -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="nav-tab active" id="btnTabCards" onclick="switchTab('cards')">
       <span class="material-symbols-outlined">credit_card</span>
@@ -547,7 +545,6 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
-  <!-- Card Details & Active Cycle Breakdown Modal -->
   <div class="modal-overlay" id="cardDetailOverlay" onclick="closeCardDetailModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -792,7 +789,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.3";
+    const APP_VERSION = "v1.7.4";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -901,8 +898,8 @@
         id: "dining",
         name: "Dining & Food Places",
         icon: "🍽️",
-        cardIds: ["uob-ls-dining", "hsbc-rev", "uob-ppv-contactless", "uob-vs-contactless"],
-        notes: "Restaurants, cafes, caterers. Contactless tap applies in-person."
+        cardIds: ["uob-ls-dining", "hsbc-rev", "uob-ppv-contactless", "uob-ppv-online", "uob-vs-contactless"],
+        notes: "Restaurants, cafes, caterers, fast food. Contactless tap applies in-person; online slots apply in-app."
       },
       {
         id: "groceries",
@@ -1064,10 +1061,11 @@
       },
       "5814": {
         name: "Fast Food & Quick Service (McD, KFC, Starbucks, GrabFood)",
-        notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Use UOB PPV, Solitaire, Maybank World, or KF UOB.",
+        notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Online: UOB PPV Online / Lady's. In-person: PPV Contactless Tap.",
         candidatesLocal: [
-          { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ls-dining", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 2.4 },
           { id: "dbs-vantage", baseRate: 1.5 }
         ],
@@ -1382,7 +1380,7 @@
         engine: 'uob-5', 
         cycleType: 'calendar', 
         badgeClass: '', 
-        hint: 'Shopee, Lazada, FairPrice Online, GrabFood.', 
+        hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food online.', 
         isContactlessOnly: false,
         channelMode: 'online',
         themeClass: 'thumb-uob'
@@ -2126,7 +2124,7 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Waterfall Allocator with Maybank Tiered FCY Logic
+    // Smart Waterfall Allocator with Fixed MCC 5814 Online Route
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -2189,8 +2187,6 @@
 
         let evaluatedRate = cand.baseRate;
 
-        // Maybank World Mastercard Tiered FCY rate evaluation:
-        // S$4,000+ -> 3.2 mpd | S$800+ -> 2.8 mpd | below S$800 -> 0.4 mpd
         if (cand.id === 'mb-world-mc' && isOverseasMode) {
           const totalProjectedSpend = currentSpend + amt;
           if (totalProjectedSpend >= 4000) {
