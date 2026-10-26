@@ -42,16 +42,13 @@
     .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
-    /* Bottom Navigation Bar for Mobile */
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #18191d; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-around; align-items: center; z-index: 90; backdrop-filter: blur(8px); }
     .nav-tab { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; color: #94a3b8; font-size: 0.74rem; font-weight: 600; cursor: pointer; transition: color 0.2s; }
     .nav-tab .material-symbols-outlined { font-size: 22px; }
     .nav-tab.active { color: var(--primary); }
 
-    /* Tab Page Containers */
     .tab-content { display: flex; flex-direction: column; gap: 14px; width: 100%; }
 
-    /* Desktop switches back to side-by-side command center */
     @media (min-width: 900px) {
       body { padding-bottom: 30px; }
       .bottom-nav { display: none !important; }
@@ -99,25 +96,29 @@
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
-    /* Flex-based input row ensuring amount field never overflows */
     .rec-inputs { display: flex; gap: 8px; width: 100%; align-items: center; }
     .rec-inputs input { min-width: 0; }
     #mccInput { flex: 1; }
     #recAmount { width: 85px; flex-shrink: 0; }
 
-    .rec-result { background: var(--surface-variant); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .rec-result { background: var(--surface-variant); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
     .rec-winner-title { font-weight: 700; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
     .rec-winner-meta { font-size: 0.8rem; color: #cbd5e1; line-height: 1.35; }
     .mcc-tag-box { font-size: 0.76rem; color: #94a3b8; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--primary); }
-    .dcc-warning { font-size: 0.75rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; margin-top: 4px; }
-    .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); margin-top: 4px; line-height: 1.35; }
+    .dcc-warning { font-size: 0.75rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; }
+    .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); line-height: 1.35; }
+
+    /* Cascade Multi-Card Split Card */
+    .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .cascade-header { font-size: 0.76rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+    .cascade-step { font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 8px; }
+
     .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
     .fee-alert-card { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
     .fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
     .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
-    /* Vault Grid */
     .vault-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 6px; }
     .vault-item { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
     .vault-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -137,7 +138,6 @@
     .card-list { display: flex; flex-direction: column; gap: 10px; }
     .credit-card { background-color: var(--surface); border-radius: 16px; padding: 14px 16px; border: 1px solid var(--surface-variant); display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s; }
     
-    /* Visual distinction for Statement Month cards */
     .credit-card.statement-cycle {
       background: linear-gradient(145deg, #1d222e 0%, #171920 100%);
       border: 1px solid rgba(56, 189, 248, 0.28);
@@ -151,8 +151,12 @@
     .cycle-pill { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #262930; color: #94a3b8; display: inline-block; margin-top: 2px; }
     .cycle-pill.statement-pill { background: rgba(56, 189, 248, 0.12); color: var(--fcy-cyan); border: 1px solid rgba(56, 189, 248, 0.28); }
 
-    .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; margin: 2px 0; }
+    /* Dual-Tier Progress Bar for Minimum Spend defense */
+    .progress-bar-container { position: relative; margin: 2px 0; }
+    .progress-bar-bg { height: 7px; border-radius: 4px; background: #2a2b32; overflow: hidden; }
     .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .min-spend-marker { position: absolute; top: -3px; width: 2px; height: 13px; background: #cbd5e1; z-index: 2; border-radius: 1px; }
+
     .card-stats { display: flex; justify-content: space-between; font-size: 0.78rem; color: #94a3b8; }
 
     .tx-item { background-color: var(--surface); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -197,7 +201,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.4.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.5.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -214,7 +218,7 @@
         <h1>
           <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
           MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.4.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.5.0</span>
         </h1>
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
@@ -576,14 +580,13 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.4.1";
+    const APP_VERSION = "v1.5.0";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
     if (authVer) authVer.innerText = APP_VERSION;
     if (headerVer) headerVer.innerText = APP_VERSION;
 
-    // Mobile Tab Switching Handler
     window.switchTab = function(tabName) {
       if (window.innerWidth >= 900) return;
       const cardsTab = document.getElementById('tabContentCards');
@@ -934,7 +937,7 @@
       { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', vaultKey: 'yuu_pts', monthlyCap: 822.86, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.' },
       { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa (Mobile Tap)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Apple/Google Pay tap & SimplyGo.' },
       { id: 'uob-ppv-online', name: 'UOB Preferred Visa (Online)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', badgeClass: '', hint: 'Shopee, Lazada, FairPrice Online, GrabFood.' },
-      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 in statement cycle for 4.0 mpd.' },
+      { id: 'uob-vs-contactless', name: 'UOB Visa Signature (Contactless / Petrol)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: 'Must hit S$1,000 min in statement cycle for 4.0 mpd.' },
       { id: 'uob-vs-fcy', name: 'UOB Visa Signature (FCY Overseas)', bank: 'UOB', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, badgeClass: '', hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.' },
       { id: 'citi-rewards', name: 'Citi Rewards', bank: 'Citi', vaultKey: 'citi_typ', monthlyCap: 1000, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'citi-1', cycleType: 'statement', cutoffDay: 15, badgeClass: '', hint: 'Online shopping & in-store fashion. Statement month cycle.' },
       { id: 'ocbc-rewards', name: 'OCBC Rewards / Titanium', bank: 'OCBC', vaultKey: 'ocbc_pts', monthlyCap: 1110, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'ocbc-5', cycleType: 'calendar', badgeClass: '', hint: 'Department stores, fashion whitelist & HeyMax vouchers (S$1,110 cap).' },
@@ -1276,6 +1279,20 @@
       }
     };
 
+    // Calculate miles earned accounting for bank engine
+    function calcEarnedMiles(card, amount, rate) {
+      if (card.engine === 'yuu-10') {
+        return Math.round(amount * rate);
+      }
+      if (card.engine === 'uob-5' || card.engine === 'ocbc-5') {
+        const blocks = Math.floor(amount / 5);
+        const pts = blocks * (rate * 1.25);
+        return pts * (myVault[card.vaultKey]?.ratio || 1);
+      }
+      return Math.round(Math.floor(amount) * rate);
+    }
+
+    // Smart Cap Overflow Cascading Engine
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const amt = parseFloat(document.getElementById('recAmount').value) || 100;
@@ -1307,83 +1324,109 @@
         return;
       }
 
-      const scored = myOwnedCandidates.map(candidate => {
-        const card = cards.find(c => c.id === candidate.id);
+      // Rank cards by their base bonus rate & remaining cap
+      const scoredCandidates = myOwnedCandidates.map(cand => {
+        const card = cards.find(c => c.id === cand.id);
         if (!card) return null;
-
         const currentSpend = Number(card.currentSpend) || 0;
-        const daysLeft = getDaysUntilCycleEnd(card);
         const isUncapped = card.monthlyCap >= 999999;
         const remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - currentSpend);
-        const fitsUnderCap = remainingCap >= amt;
-
-        let effectiveMpd = candidate.baseRate;
-        if (!isUncapped && remainingCap <= 0) {
-          effectiveMpd = card.baseMpd;
-        }
-
-        let calculatedEarnedMiles = 0;
-        let roundingWarning = '';
-
-        if (card.engine === 'uob-5' || card.engine === 'ocbc-5') {
-          const remainder = amt % 5;
-          const blocks = Math.floor(amt / 5);
-          const ptsPerBlock = effectiveMpd * 1.25;
-          const rawPts = blocks * ptsPerBlock;
-          calculatedEarnedMiles = rawPts * (myVault[card.vaultKey]?.ratio || 1);
-          const trueMpd = (calculatedEarnedMiles / amt).toFixed(2);
-          if (remainder > 0.01) {
-            roundingWarning = `S$5 rounding drop: S$${remainder.toFixed(2)} gets 0 pts (Real: ${trueMpd} mpd)`;
-          }
-        } else {
-          calculatedEarnedMiles = Math.round(amt * effectiveMpd);
-        }
-
-        let score = effectiveMpd * 100;
-        if (!fitsUnderCap && !isUncapped) score -= 500;
-
-        if (card.minSpend > 0 && currentSpend < card.minSpend) {
-          score += (daysLeft <= 10 ? 80 : 30);
-        }
-
-        if (fitsUnderCap && !isUncapped) {
-          score += Math.max(0, (30 - daysLeft));
-        }
+        const daysLeft = getDaysUntilCycleEnd(card);
 
         return {
           card,
-          effectiveMpd,
-          calculatedEarnedMiles,
-          roundingWarning,
+          rate: cand.baseRate,
           remainingCap,
-          daysLeft,
-          fitsUnderCap,
-          score,
-          cycleNotice: card.cycleType === 'statement' 
-            ? `Resets in ${daysLeft}d (${card.cutoffDay}th)` 
-            : `Resets in ${daysLeft}d (Month-End)`
+          isUncapped,
+          daysLeft
         };
-      }).filter(Boolean).sort((a, b) => b.score - a.score);
+      }).filter(Boolean).sort((a, b) => b.rate - a.rate);
 
-      const best = scored[0];
-      const runnerUp = scored[1];
+      const primary = scoredCandidates[0];
+
+      // Check if purchase exceeds primary card's remaining cap
+      const isOverflow = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
+
+      if (isOverflow && primary.remainingCap > 0) {
+        // CASCADING SPLIT RECOMMENDATION
+        const portion1 = primary.remainingCap;
+        const portion2 = amt - portion1;
+        const secondary = scoredCandidates.slice(1).find(c => c.remainingCap > 0) || scoredCandidates[1];
+
+        const miles1 = calcEarnedMiles(primary.card, portion1, primary.rate);
+        const miles2Rate = (secondary.isUncapped || secondary.remainingCap >= portion2) ? secondary.rate : secondary.card.baseMpd;
+        const miles2 = calcEarnedMiles(secondary.card, portion2, miles2Rate);
+        const totalCombinedMiles = Math.round(miles1 + miles2);
+
+        resultArea.innerHTML = `
+          <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
+            <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b><br>
+            ${mccData.notes}
+          </div>
+
+          <!-- Cascading Overflow Alert & Breakdown -->
+          <div class="cascade-split-card">
+            <div class="cascade-header">
+              <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
+              Smart Cap Split: Earn ${totalCombinedMiles.toLocaleString()} miles
+            </div>
+            <div class="cascade-step">
+              <span>1️⃣ <b>${primary.card.name}</b>: Charge <b>$${portion1.toFixed(2)}</b> (fills cap)</span>
+              <span style="color:var(--accent); font-weight:700;">+${Math.round(miles1)} mi</span>
+            </div>
+            <div class="cascade-step">
+              <span>2️⃣ <b>${secondary.card.name}</b>: Charge <b>$${portion2.toFixed(2)}</b></span>
+              <span style="color:var(--accent); font-weight:700;">+${Math.round(miles2)} mi (${miles2Rate} mpd)</span>
+            </div>
+          </div>
+
+          <div style="font-size:0.75rem; color:#94a3b8;">
+            Charging the full $${amt.toFixed(2)} solely to ${primary.card.name} would waste $${portion2.toFixed(2)} at base rate (+${Math.round(miles1 + (portion2 * primary.card.baseMpd))} mi). Split to protect your earn rate!
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-apply-rec" onclick="applyRecommendation('${primary.card.id}', ${portion1}, '${mccData.name} (Part 1)')">Log Part 1 ($${portion1.toFixed(2)})</button>
+            <button class="btn-apply-rec" style="background:var(--surface-variant); color:#fff; border:1px solid var(--outline);" onclick="applyRecommendation('${secondary.card.id}', ${portion2}, '${mccData.name} (Part 2)')">Log Part 2 ($${portion2.toFixed(2)})</button>
+          </div>
+        `;
+        return;
+      }
+
+      // Single card recommendation
+      const singleCard = primary;
+      let effectiveMpd = singleCard.rate;
+      if (!singleCard.isUncapped && singleCard.remainingCap <= 0) {
+        effectiveMpd = singleCard.card.baseMpd;
+      }
+
+      const calculatedMiles = calcEarnedMiles(singleCard.card, amt, effectiveMpd);
+      let roundingWarning = '';
+      if (singleCard.card.engine === 'uob-5' || singleCard.card.engine === 'ocbc-5') {
+        const remainder = amt % 5;
+        if (remainder > 0.01) {
+          const trueMpd = (calculatedMiles / amt).toFixed(2);
+          roundingWarning = `S$5 rounding drop: S$${remainder.toFixed(2)} gets 0 pts (Real: ${trueMpd} mpd)`;
+        }
+      }
+
+      const runnerUp = scoredCandidates[1];
 
       resultArea.innerHTML = `
         <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
           <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b><br>
           ${mccData.notes}
         </div>
-        <div class="rec-winner-title" style="margin-top:4px;">
-          <span>⭐ <b>${best.card.name}</b></span>
-          <span style="color:var(--accent); font-weight:700;">${best.effectiveMpd} mpd (+${Math.round(best.calculatedEarnedMiles)} mi)</span>
+        <div class="rec-winner-title">
+          <span>⭐ <b>${singleCard.card.name}</b></span>
+          <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${Math.round(calculatedMiles)} mi)</span>
         </div>
         <div class="rec-winner-meta">
-          ${best.card.monthlyCap >= 999999 ? 'Uncapped capacity' : `Space Left: <b>$${best.remainingCap.toFixed(2)}</b> / $${best.card.monthlyCap}`} • ${best.cycleNotice}
+          ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${singleCard.remainingCap.toFixed(2)}</b> / $${singleCard.card.monthlyCap}`} • Resets in ${singleCard.daysLeft}d
         </div>
-        ${best.roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${best.roundingWarning}</div>` : ''}
-        ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.effectiveMpd} mpd)</div>` : ''}
+        ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
+        ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : ''}
         ${isOverseasMode ? `<div class="dcc-warning">⚠️ <b>DCC Trap:</b> Always select local currency (e.g. JPY, EUR, USD) at the card terminal. Never choose SGD!</div>` : ''}
-        <button class="btn-apply-rec" onclick="applyRecommendation('${best.card.id}', ${amt}, '${isOverseasMode ? '[FCY] ' : ''}${mccData.name}')">Log $${amt.toFixed(2)} with This Card</button>
+        <button class="btn-apply-rec" onclick="applyRecommendation('${singleCard.card.id}', ${amt}, '${isOverseasMode ? '[FCY] ' : ''}${mccData.name}')">Log $${amt.toFixed(2)} with This Card</button>
       `;
     };
 
@@ -1648,6 +1691,7 @@
       }
     };
 
+    // Render Cards with UOB Visa Signature Defense Meter
     window.renderCards = function() {
       const container = document.getElementById('cardsContainer');
       const select = document.getElementById('cardSelect');
@@ -1663,11 +1707,28 @@
 
         const isUncapped = card.monthlyCap >= 999999;
         const isStatement = card.cycleType === 'statement';
+        const daysLeft = getDaysUntilCycleEnd(card);
+
         let pct = isUncapped ? 100 : Math.min(100, (currentSpend / card.monthlyCap) * 100).toFixed(0);
         let barColor = 'var(--primary)';
         let statusNotice = '';
+        let markerHtml = '';
 
-        if (card.id === 'dbs-yuu') {
+        // UOB Visa Signature S$1,000 Minimum Spend Defense Meter
+        if (card.id.startsWith('uob-vs')) {
+          const minDeficit = Math.max(0, 1000 - currentSpend);
+          const minSpendPct = (1000 / card.monthlyCap) * 100; // 83.33% marker position
+          markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;" title="S$1,000 Minimum Spend Baseline"></div>`;
+
+          if (currentSpend < 1000) {
+            barColor = 'var(--warning)';
+            statusNotice = `<span style="color:var(--warning); font-weight:700;">⚠️ $${minDeficit.toFixed(0)} to unlock 4 mpd (${daysLeft}d left)</span>`;
+          } else {
+            barColor = 'var(--accent)';
+            const capRemaining = Math.max(0, card.monthlyCap - currentSpend);
+            statusNotice = `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met! $${capRemaining.toFixed(0)} cap left</span>`;
+          }
+        } else if (card.id === 'dbs-yuu') {
           const yuuProgress = getYuuMerchantProgress(card);
           const merchantCount = yuuProgress.count;
           const merchantsRemaining = Math.max(0, 4 - merchantCount);
@@ -1681,7 +1742,7 @@
 
           if (currentSpend < 800) {
             barColor = 'var(--warning)';
-            statusNotice = `<span style="color:var(--warning);">$${(800 - currentSpend).toFixed(0)} min spend left</span> • ${merchantPill}`;
+            statusNotice = `<span style="color:var(--warning);">$${(800 - currentSpend).toFixed(0)} min left</span> • ${merchantPill}`;
           } else {
             barColor = merchantCount >= 4 ? 'var(--accent)' : 'var(--warning)';
             statusNotice = `<span style="color:var(--accent);">Spend met!</span> • ${merchantPill}`;
@@ -1692,7 +1753,7 @@
             statusNotice = `<span style="color:var(--warning);font-size:0.75rem;">Need $${(card.minSpend - currentSpend).toFixed(0)} to unlock</span>`;
           } else {
             barColor = 'var(--accent)';
-            statusNotice = `<span style="color:var(--accent);font-size:0.75rem;">Unlocked! $${Math.max(0, card.monthlyCap - currentSpend).toFixed(0)} cap left</span>`;
+            statusNotice = `<span style="color:var(--accent);font-size:0.75rem;">Unlocked! $${Math.max(0, card.monthlyCap - currentSpend).toFixed(0)} left</span>`;
           }
         } else if (!isUncapped && currentSpend >= card.monthlyCap) {
           barColor = 'var(--danger)';
@@ -1708,8 +1769,11 @@
               </div>
               <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
             </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${pct}%; background: ${barColor};"></div>
+            <div class="progress-bar-container">
+              ${markerHtml}
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${pct}%; background: ${barColor};"></div>
+              </div>
             </div>
             <div class="card-stats">
               <span>$${currentSpend.toFixed(2)} spent</span>
@@ -1842,7 +1906,6 @@
 
         const cardCurrentSpend = Number(card.currentSpend) || 0;
 
-        // If updating, reverse old transaction points from vault first
         if (editId) {
           const oldTx = transactions.find(t => t.id === editId);
           if (oldTx) {
