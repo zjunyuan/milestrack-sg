@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.8.5';
+const CACHE_NAME = 'milestrack-cache-v1.8.6';
 
 const CORE_ASSETS = [
   './',
@@ -30,7 +30,6 @@ const CARD_ASSETS = [
   './assets/cards/citi-pm.png'
 ];
 
-// Install: Pre-cache core shell, then gracefully fetch card images
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -46,7 +45,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: Purge older cache versions immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -62,18 +60,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Listen for SKIP_WAITING signal from update toast
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// Fetch: Network-first for Firebase APIs, Cache-first for local static assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip caching for Firebase Auth, Firestore queries, and non-GET requests
   if (
     event.request.method !== 'GET' ||
     url.hostname.includes('firestore.googleapis.com') ||
@@ -90,7 +85,6 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        // Cache external static resources (like Google Fonts) dynamically
         if (
           networkResponse.status === 200 &&
           (url.hostname.includes('gstatic.com') || url.hostname.includes('fonts.googleapis.com'))
