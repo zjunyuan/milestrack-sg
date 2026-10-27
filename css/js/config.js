@@ -1,0 +1,821 @@
+export const APP_VERSION = "v1.8.3";
+
+export const PRIMARY_EMAILS = [
+  "zjunyuan@gmail.com",
+  "eunice.er.yc@gmail.com"
+];
+
+export const SISTER_EMAILS = [
+  "minsyyy@gmail.com"
+];
+
+export const firebaseConfig = {
+  apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
+  authDomain: "milestracker-sg.firebaseapp.com",
+  projectId: "milestracker-sg",
+  storageBucket: "milestracker-sg.firebasestorage.app",
+  messagingSenderId: "323564797306",
+  appId: "1:323564797306:web:f0e41ab676ae207d62aac3"
+};
+
+export const DEFAULT_PRESETS = [
+  { id: 'p_fp', label: 'foodpanda', icon: '🐼', cardId: 'dbs-yuu', desc: 'foodpanda' },
+  { id: 'p_cs', label: 'Cold Storage', icon: '🛒', cardId: 'dbs-yuu', desc: 'Cold Storage' },
+  { id: 'p_fairprice_app', label: 'FairPrice App', icon: '🍎', cardId: 'uob-ppv-online', desc: 'NTUC FairPrice (App)' },
+  { id: 'p_mcd_online', label: "McDonald's (Online)", icon: '🍔', cardId: 'uob-ls-dining', desc: "McDonald's" },
+  { id: 'p_shell', label: "Shell (14% off)", icon: '⛽', cardId: 'uob-ppv-contactless', desc: "Shell Service Station (14% off)" },
+  { id: 'p_dine', label: 'Restaurant', icon: '🍽️', cardId: 'uob-ls-dining', desc: 'Restaurant Dining' }
+];
+
+export const CATEGORY_POOLS = [
+  {
+    id: "dining",
+    name: "Dining & Food Places",
+    icon: "🍽️",
+    cardIds: ["uob-ls-dining", "hsbc-rev", "uob-ppv-contactless", "uob-ppv-online", "uob-vs-contactless"],
+    notes: "Restaurants, cafes, caterers, fast food. Contactless tap applies in-person; online slots apply in-app."
+  },
+  {
+    id: "groceries",
+    name: "Supermarkets & Groceries",
+    icon: "🛒",
+    cardIds: ["dbs-yuu", "uob-ppv-contactless", "uob-ppv-online", "hsbc-rev"],
+    notes: "yuu stores (Cold Storage/Giant), FairPrice App & general supermarkets."
+  },
+  {
+    id: "shopping",
+    name: "Online Shopping & Fashion",
+    icon: "🛍️",
+    cardIds: ["ocbc-rewards", "dbs-wwmc", "citi-rewards", "uob-ppv-online"],
+    notes: "OCBC 6 mpd promo, Shopee, Lazada, Taobao, Uniqlo, fashion whitelists."
+  },
+  {
+    id: "travel",
+    name: "Travel, Flights & Hotels",
+    icon: "✈️",
+    cardIds: ["dbs-wwmc", "uob-ls-travel"],
+    notes: "SIA, Scoot, Agoda, Klook, OTA hotels. Citi & HSBC strictly excluded."
+  },
+  {
+    id: "transport",
+    name: "Transport & SimplyGo",
+    icon: "🚇",
+    cardIds: ["dbs-yuu", "uob-ppv-contactless", "dbs-wwmc"],
+    notes: "SimplyGo bus/train, Grab, Gojek ride hailing."
+  },
+  {
+    id: "petrol",
+    name: "Petrol / Fuel (Shell)",
+    icon: "⛽",
+    cardIds: ["uob-ppv-contactless", "uob-vs-contactless"],
+    notes: "Shell: UOB PPV (Mobile Tap, 14% off, S$600 cap) or UOB VS (14% off, min S$1k). Maybank World MC earns 4 mpd uncapped."
+  }
+];
+
+export const KRISFLYER_4PAX_TIERS = [
+  { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
+  { name: "Bangkok / Phuket / Vietnam (Zone 3)", oneWay: 25000, totalMiles: 200000 },
+  { name: "Hong Kong / Taipei (Zone 4)", oneWay: 36500, totalMiles: 292000 },
+  { name: "Perth / Darwin (Zone 8)", oneWay: 42500, totalMiles: 340000 },
+  { name: "Tokyo / Osaka / Seoul (Zone 7)", oneWay: 54500, totalMiles: 436000 },
+  { name: "Sydney / Melbourne / Auckland (Zone 9)", oneWay: 72000, totalMiles: 576000 },
+  { name: "London / Paris / Zurich (Zone 11)", oneWay: 108500, totalMiles: 868000 },
+  { name: "USA West / East Coast (Zone 12/13)", oneWay: 112500, totalMiles: 900000 }
+];
+
+export const YUU_PARTNER_BRANDS = [
+  "cold storage", "cs fresh", "jasons", "giant", 
+  "guardian", "7-eleven", "7-11", "foodpanda", 
+  "gojek", "simplygo", "chagee", "singtel", "charge+", "anywheel"
+];
+
+export const DEFAULT_VAULT = {
+  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
+  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval' },
+  citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)' },
+  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires' },
+  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
+  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned' },
+  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
+  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
+  kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
+};
+
+export const ALL_MASTER_CARDS = [
+  { 
+    id: 'dbs-yuu', 
+    name: 'DBS yuu Card (10 mpd)', 
+    bank: 'yuu', 
+    image: 'assets/cards/dbs-yuu.png',
+    vaultKey: 'yuu_pts', 
+    monthlyCap: 822.86, 
+    minSpend: 800, 
+    bonusMpd: 10.0, 
+    baseMpd: 0.14, 
+    engine: 'yuu-10', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: 'badge-gold', 
+    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-yuu'
+  },
+  { 
+    id: 'uob-ppv-contactless', 
+    name: 'UOB Preferred Visa (Mobile Tap)', 
+    bank: 'UOB', 
+    image: 'assets/cards/uob-ppv.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 600, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'calendar', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: 'Apple/Google Pay tap & SimplyGo only. Disqualified on in-app Kris+.', 
+    isContactlessOnly: true,
+    channelMode: 'inperson',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'uob-ppv-online', 
+    name: 'UOB Preferred Visa (Online)', 
+    bank: 'UOB', 
+    image: 'assets/cards/uob-ppv.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 600, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food & whitelisted Kris+ dining/retail.', 
+    isContactlessOnly: false,
+    channelMode: 'online',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'uob-vs-contactless', 
+    name: 'UOB Visa Signature (Contactless / Petrol)', 
+    bank: 'UOB', 
+    image: 'assets/cards/uob-vs.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 1200, 
+    minSpend: 1000, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'statement', 
+    cutoffDay: 18, 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: 'Physical NFC terminal tap required (min S$1k/cycle). 14% instant off at Shell.', 
+    isContactlessOnly: true,
+    channelMode: 'inperson',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'uob-vs-fcy', 
+    name: 'UOB Visa Signature (FCY Overseas)', 
+    bank: 'UOB', 
+    image: 'assets/cards/uob-vs.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 1200, 
+    minSpend: 1000, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'statement', 
+    cutoffDay: 18, 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'citi-rewards', 
+    name: 'Citi Rewards', 
+    bank: 'Citi', 
+    image: 'assets/cards/citi-rewards.png',
+    vaultKey: 'citi_typ', 
+    monthlyCap: 1000, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'citi-1', 
+    cycleType: 'statement', 
+    cutoffDay: 15, 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: 'Online shopping & in-store fashion. ⚠️ Excludes in-app mobile wallets (Kris+)!', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-citi'
+  },
+  { 
+    id: 'ocbc-rewards', 
+    name: 'OCBC Rewards / Titanium', 
+    bank: 'OCBC', 
+    image: 'assets/cards/ocbc-rewards.png',
+    vaultKey: 'ocbc_pts', 
+    monthlyCap: 1110, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'ocbc-5', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Department stores, fashion whitelist, Watsons, Shopee, Lazada & HeyMax Shell vouchers (S$1,110 cap).', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-ocbc'
+  },
+  { 
+    id: 'dbs-wwmc', 
+    name: "DBS Woman's World Card", 
+    bank: 'DBS', 
+    image: 'assets/cards/dbs-wwmc.png',
+    vaultKey: 'dbs_pts', 
+    monthlyCap: 1000, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'dbs-5', 
+    cycleType: 'calendar', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: 'Online blacklist winner: 4.0 mpd on all online spend & all Kris+ merchants.', 
+    isContactlessOnly: false,
+    channelMode: 'online',
+    themeClass: 'thumb-dbs'
+  },
+  { 
+    id: 'uob-ls-dining', 
+    name: "UOB Lady's Solitaire (Dining)", 
+    bank: 'UOB', 
+    image: 'assets/cards/uobladysolitaire.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 750, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Restaurants, cafes, bars. Works on Kris+ for dining merchants.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'uob-ls-travel', 
+    name: "UOB Lady's Solitaire (Travel)", 
+    bank: 'UOB', 
+    image: 'assets/cards/uobladysolitaire.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 750, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'uob-5', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Airlines, hotels, OTA bookings. Local and overseas.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'hsbc-rev', 
+    name: 'HSBC Revolution', 
+    bank: 'HSBC', 
+    image: 'assets/cards/hsbc-rev.png',
+    vaultKey: 'hsbc_pts', 
+    monthlyCap: 1000, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'citi-1', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Dining & retail whitelist. Works on Kris+ (excl. 5814).', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-hsbc'
+  },
+  { 
+    id: 'kf-uob', 
+    name: 'KrisFlyer UOB Credit Card', 
+    bank: 'UOB', 
+    image: 'assets/cards/kf-uob.png',
+    vaultKey: 'kf_direct', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 2.4, 
+    baseMpd: 1.2, 
+    engine: 'uob-5', 
+    cycleType: 'uncapped', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: 'Uncapped 3.0 mpd on all Kris+ merchants directly! 2.4 mpd on Dining/Transport.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'mb-world-mc', 
+    name: 'Maybank World Mastercard', 
+    bank: 'Maybank', 
+    image: 'assets/cards/maybank-world.png',
+    vaultKey: 'mb_treats', 
+    monthlyCap: 999999, 
+    minSpend: 800, 
+    bonusMpd: 3.2, 
+    baseMpd: 0.4, 
+    engine: 'citi-1', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: '4.0 mpd on offline Shell Petrol! FCY: 3.2 mpd (min S$4k/mo), 2.8 mpd (min S$800/mo), uncapped.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-maybank'
+  },
+  { 
+    id: 'mb-horizon-vs', 
+    name: 'Maybank Horizon Visa Signature', 
+    bank: 'Maybank', 
+    image: 'assets/cards/maybank-horizon.png',
+    vaultKey: 'mb_treats', 
+    monthlyCap: 10000, 
+    minSpend: 800, 
+    bonusMpd: 2.8, 
+    baseMpd: 0.24, 
+    engine: 'citi-1', 
+    cycleType: 'calendar', 
+    strategyType: 'whitelist',
+    badgeClass: '', 
+    hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-maybank'
+  },
+  { 
+    id: 'dbs-vantage', 
+    name: 'DBS Vantage Card', 
+    bank: 'DBS', 
+    image: 'assets/cards/dbs-vantage.png',
+    vaultKey: 'dbs_pts', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 1.5, 
+    baseMpd: 1.5, 
+    engine: 'dbs-5', 
+    cycleType: 'uncapped', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-dbs'
+  },
+  { 
+    id: 'uob-prvi', 
+    name: 'UOB PRVI Miles', 
+    bank: 'UOB', 
+    image: 'assets/cards/uob-prvi.png',
+    vaultKey: 'uob_uni', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 1.4, 
+    baseMpd: 1.4, 
+    engine: 'uob-5', 
+    cycleType: 'uncapped', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-uob'
+  },
+  { 
+    id: 'dbs-altitude', 
+    name: 'DBS Altitude Card', 
+    bank: 'DBS', 
+    image: 'assets/cards/dbs-altitude.png',
+    vaultKey: 'dbs_pts', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 1.3, 
+    baseMpd: 1.3, 
+    engine: 'dbs-5', 
+    cycleType: 'uncapped', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-dbs'
+  },
+  { 
+    id: 'citi-pm', 
+    name: 'Citi PremierMiles', 
+    bank: 'Citi', 
+    image: 'assets/cards/citi-pm.png',
+    vaultKey: 'citi_miles', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 1.2, 
+    baseMpd: 1.2, 
+    engine: 'citi-1', 
+    cycleType: 'uncapped', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-citi'
+  }
+];
+
+export const MCC_DATABASE = {
+  "5541": {
+    name: "Petrol Service Stations (Shell, SPC, Esso, Caltex)",
+    notes: "⛽ <b>Shell Exclusive:</b> Pay with UOB PPV (Mobile Tap) or UOB VS for an <b>instant 14% discount</b> (10% Shell GO+ & 4% UOB) + <b>4.0 mpd</b>! Maybank World MC earns 4 mpd uncapped (10% off). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 for 4 mpd on OCBC/Citi Rewards.",
+    candidatesLocal: [
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 },
+      { id: "mb-world-mc", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "mb-world-mc", baseRate: 3.2 },
+      { id: "mb-horizon-vs", baseRate: 2.8 }
+    ]
+  },
+  "5811": {
+    name: "Catering Services",
+    notes: "Neo Garden, Stamford Catering. Covered by UOB Lady's (Dining) & HSBC Rev. ⚠️ EXCLUDED on KrisFlyer UOB.",
+    candidatesLocal: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ]
+  },
+  "5812": {
+    name: "Restaurants & Dining Places",
+    notes: "Sit-down restaurants, cafes. All dining and contactless cards eligible.",
+    candidatesLocal: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ]
+  },
+  "5813": {
+    name: "Bars, Taverns, Lounges & Nightclubs",
+    notes: "Pubs and bars. ⚠️ EXCLUDED on UOB Lady's Dining (requires Entertainment category!). Use HSBC Rev, KF UOB, or Mobile Tap.",
+    candidatesLocal: [
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ]
+  },
+  "5814": {
+    name: "Fast Food & Quick Service (McD, KFC, Starbucks, GrabFood)",
+    notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Online: UOB PPV Online / Lady's. In-person: PPV Contactless Tap.",
+    candidatesLocal: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "uob-ls-dining", baseRate: 4.0 }
+    ]
+  },
+  "5441": {
+    name: "Candy, Nut & Confectionery Stores",
+    notes: "Sweet shops, candy stores. ⚠️ EXCLUDED on UOB Lady's Dining & KF UOB! Use HSBC Rev or Mobile Tap (PPV/VS).",
+    candidatesLocal: [
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ]
+  },
+  "5462": {
+    name: "Bakeries & Cake Shops (Cedele, Chateraise, Bengawan Solo)",
+    notes: "Bread and pastries. ⚠️ EXCLUDED on UOB Lady's Dining & KF UOB! Use HSBC Rev or Mobile Tap (PPV/VS).",
+    candidatesLocal: [
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ]
+  },
+  "5499": {
+    name: "Miscellaneous Food Stores & Specialty Food",
+    notes: "Specialty food marts, GrabFood/FoodPanda. ⚠️ EXCLUDED on HSBC Rev & KF UOB! Covered by UOB Lady's Dining & PPV.",
+    candidatesLocal: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-ls-dining", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ]
+  },
+  "5411": {
+    name: "Grocery Stores & Supermarkets",
+    notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG (requires S$800 spend + 4 merchants). General supermarkets: UOB PPV or HSBC Rev.",
+    candidatesLocal: [
+      { id: "dbs-yuu", baseRate: 10.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "5912": {
+    name: "Pharmacies & Personal Care (Guardian, Watsons, Unity)",
+    notes: "Guardian: DBS yuu (10 mpd). Watsons: OCBC Rewards (6 mpd promo). UOB PPV & HSBC Rev earn 4 mpd. ⚠️ Guardian/Watsons in-app checkout codes as MCC 5499!",
+    candidatesLocal: [
+      { id: "dbs-yuu", baseRate: 10.0 },
+      { id: "ocbc-rewards", baseRate: 6.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 6.0 }
+    ]
+  },
+  "8351": {
+    name: "Child Care & Nursery Services",
+    notes: "Childcare is education-adjacent! Eligible for 4.0 mpd on DBS WWMC (Online) & Mobile Tap (UOB PPV / VS). ⚠️ Excluded on HSBC Rev.",
+    candidatesLocal: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "8011": {
+    name: "Doctors & Outpatient Clinics",
+    notes: "Private clinic consultations. Earns 4.0 mpd on UOB PPV (Mobile Tap), UOB VS Tap, and DBS WWMC (teleconsults). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
+    candidatesLocal: [
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "8021": {
+    name: "Dentists & Orthodontists",
+    notes: "Dental checkups & scaling. Earns 4.0 mpd via Mobile Tap (UOB PPV / UOB VS). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
+    candidatesLocal: [
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "7512": {
+    name: "Car Rental Agencies (Hertz, Avis, Klook Car Rental)",
+    notes: "⚠️ Citi Rewards strictly EXCLUDES car rentals! Covered by DBS WWMC (online) and HSBC Revolution.",
+    candidatesLocal: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-vs-contactless", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ]
+  },
+  "5311": {
+    name: "Department Stores (Takashimaya, Tangs, Isetan)",
+    notes: "Department store shopping. OCBC Rewards & Citi Rewards eligible.",
+    candidatesLocal: [
+      { id: "ocbc-rewards", baseRate: 4.0 },
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 4.0 },
+      { id: "citi-rewards", baseRate: 4.0 }
+    ]
+  },
+  "5651": {
+    name: "Family Clothing & Fashion (Uniqlo, Zara)",
+    notes: "Apparel bonus eligible across Citi, OCBC Rewards, and HSBC.",
+    candidatesLocal: [
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 4.0 }
+    ]
+  },
+  "5621": {
+    name: "Women's Ready-to-Wear Stores",
+    notes: "Fashion apparel bonus eligible across Citi & OCBC Rewards.",
+    candidatesLocal: [
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "ocbc-rewards", baseRate: 4.0 }
+    ]
+  },
+  "4511": {
+    name: "Airlines & Air Carriers (Singapore Airlines, Scoot)",
+    notes: "⚠️ Citi Rewards strictly EXCLUDES airfares! Use DBS WWMC, Solitaire, Maybank Horizon, or PRVI Miles.",
+    candidatesLocal: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 3.0 },
+      { id: "mb-horizon-vs", baseRate: 3.24 }
+    ],
+    candidatesOverseas: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 3.0 },
+      { id: "mb-horizon-vs", baseRate: 3.24 },
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "4722": {
+    name: "Travel Agencies & OTAs (Agoda, Klook, Trip.com, Expedia)",
+    notes: "⚠️ EXCLUDED on Citi Rewards AND HSBC Rev! Use DBS WWMC or Solitaire (Travel).",
+    candidatesLocal: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ],
+    candidatesOverseas: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 },
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ]
+  },
+  "7011": {
+    name: "Hotels, Motels & Resorts",
+    notes: "⚠️ Citi Rewards strictly EXCLUDES hotels! Use DBS WWMC, Solitaire (Travel), or Maybank Horizon.",
+    candidatesLocal: [
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 },
+      { id: "mb-horizon-vs", baseRate: 3.24 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "uob-ls-travel", baseRate: 4.0 }
+    ]
+  },
+  "4111": {
+    name: "Commuter Transport / Transit",
+    notes: "Local SimplyGo earns 10 mpd on yuu (counts toward 4-merchant rule). Overseas transit: use UOB VS (4 mpd) or Maybank Horizon (2.8 mpd).",
+    candidatesLocal: [
+      { id: "dbs-yuu", baseRate: 10.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "4121": {
+    name: "Taxis & Ride-Hailing (Grab, Gojek, Uber)",
+    notes: "Ride hailing and taxis. Gojek counts toward DBS yuu 4-merchant quota.",
+    candidatesLocal: [
+      { id: "dbs-yuu", baseRate: 10.0 },
+      { id: "uob-ppv-contactless", baseRate: 4.0 },
+      { id: "kf-uob", baseRate: 2.4 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 }
+    ]
+  },
+  "5999": {
+    name: "General Retail, Souvenirs & Specialty Stores",
+    notes: "All general retail and souvenir spending.",
+    candidatesLocal: [
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "dbs-wwmc", baseRate: 4.0 },
+      { id: "uob-ppv-online", baseRate: 4.0 },
+      { id: "hsbc-rev", baseRate: 4.0 }
+    ],
+    candidatesOverseas: [
+      { id: "uob-vs-fcy", baseRate: 4.0 }
+    ]
+  },
+  "8062": { 
+    name: "Hospitals & Inpatient Care", 
+    notes: "❌ Excluded from rewards by all major Singapore banks. Only Maybank Horizon (0.16 mpd local / 2.8 mpd FCY) awards points.", 
+    candidatesLocal: [], 
+    candidatesOverseas: [
+      { id: "mb-world-mc", baseRate: 3.2 },
+      { id: "mb-horizon-vs", baseRate: 2.8 }
+    ] 
+  },
+  "8211": { 
+    name: "Schools & Primary / Secondary Education", 
+    notes: "❌ Excluded from rewards across all major credit cards. (Only Maybank 0.16 mpd or CardUp payment facility applies).", 
+    candidatesLocal: [], 
+    candidatesOverseas: [
+      { id: "mb-world-mc", baseRate: 3.2 },
+      { id: "mb-horizon-vs", baseRate: 2.8 }
+    ] 
+  },
+  "8220": { 
+    name: "Colleges & Universities (NUS, NTU, SMU)", 
+    notes: "❌ Excluded from rewards across all major credit cards. NUS now codes under MCC 9399 / 8220.", 
+    candidatesLocal: [], 
+    candidatesOverseas: [
+      { id: "mb-world-mc", baseRate: 3.2 },
+      { id: "mb-horizon-vs", baseRate: 2.8 }
+    ] 
+  },
+  "8398": { 
+    name: "Charities & Social Service Organizations (Donations)", 
+    notes: "❌ Excluded from rewards across all major credit cards.", 
+    candidatesLocal: [], 
+    candidatesOverseas: [] 
+  },
+  "4900": { name: "Utilities", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+  "6300": { name: "Insurance", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+  "9399": { name: "Government / Taxes", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
+  "6540": { name: "Stored Value Card / Wallet Top-Ups", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] }
+};
