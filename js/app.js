@@ -594,7 +594,7 @@ function runRecommendation() {
                 else if (c.id === 'dbs-altitude') rate = 1.3;
                 else if (c.id === 'citi-pm') rate = 1.2;
                 else if (c.id === 'kf-uob') rate = 1.2;
-                else rate = c.baseMpd; // Maybank World MC drops to 0.4 mpd locally
+                else rate = c.baseMpd;
               }
 
               return { card: c, rate, isUncapped: true };
@@ -1573,6 +1573,141 @@ function exportArchiveMonthCSV() {
   URL.revokeObjectURL(url);
 }
 
+// -------------------------------------------------------------
+// MONTHLY STATEMENT RECONCILIATION ENGINE
+// -------------------------------------------------------------
+
+function populateReconcileSelectors() {
+  const cardSelect = document.getElementById('reconcileCardSelect');
+  const cycleSelect = document.getElementById('reconcileCycleSelect');
+  if (!cardSelect || !cycleSelect) return;
+
+  const prevCard = cardSelect.value;
+  cardSelect.innerHTML = '';
+  cards.forEach(c => {
+    cardSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+  cardSelect.value = prevCard || cards[0]?.id || '';
+
+  const now = new Date();
+  const cycles = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
+    cycles.push({ val, label });
+  }
+
+  cycleSelect.innerHTML = '';
+  cycles.forEach(cyc => {
+    cycleSelect.innerHTML += `<option value="${cyc.val}">${cyc.label}</option>`;
+  });
+}
+
+function openReconcileModal() {
+  populateReconcileSelectors();
+  document.getElementById('reconcileStmtInput').value = '';
+  renderReconcileView();
+  document.getElementById('reconcileModalOverlay').classList.add('open');
+}
+
+function closeReconcileModal() {
+  document.getElementById('reconcileModalOverlay').classList.remove('open');
+}
+
+function getReconcileCycleWindow(card, targetYear, targetMonth) {
+  let windowStart, windowEnd, label;
+
+  if (card.cycleType === 'statement') {
+    const cutoff = card.cutoffDay || 15;
+    windowEnd = new Date(targetYear, targetMonth - 1, cutoff - 1, 23, 59, 59, 999);
+    windowStart = new Date(targetYear, targetMonth - 2, cutoff, 0, 0, 0, 0);
+    label = `Statement Window: ${windowStart.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })} – ${windowEnd.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })} (Cutoff ${cutoff}th)`;
+  } else {
+    windowStart = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
+    windowEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+    label = `Calendar Month: 1st – ${windowEnd.getDate()} ${windowEnd.toLocaleDateString('en-SG', { month: 'short' })}`;
+  }
+
+  return { windowStart, windowEnd, label };
+}
+
+function renderReconcileView() {
+  const cardId = document.getElementById('reconcileCardSelect').value;
+  const cycleVal = document.getElementById('reconcileCycleSelect').value;
+  if (!cardId || !cycleVal) return;
+
+  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+  if (!card) return;
+
+  const [selYear, selMonth] = cycleVal.split('-').map(Number);
+  const cycleInfo = getReconcileCycleWindow(card, selYear, selMonth);
+
+  document.getElementById('reconcileCycleWindowNote').innerText = `📅 ${cycleInfo.label}`;
+
+  const activeTxns = transactions.filter(tx => {
+    if (tx.cardId !== card.id || !tx.timestamp) return false;
+    const txDate = new Date(tx.timestamp);
+    return txDate >= cycleInfo.windowStart && txDate <= cycleInfo.windowEnd;
+  });
+
+  const loggedSpend = activeTxns.reduce((sum, t) => sum + (Number(t.amt) || 0), 0);
+  document.getElementById('reconcileAppSpend').innerText = `$${loggedSpend.toFixed(2)}`;
+  document.getElementById('reconcileTxnCount').innerText = `${activeTxns.length} txns logged`;
+
+  updateReconcileDelta(loggedSpend);
+
+  const listEl = document.getElementById('reconcileTxnList');
+  listEl.innerHTML = '';
+
+  if (activeTxns.length === 0) {
+    listEl.innerHTML = `<div class="detail-tx-empty" style="padding:10px;">No charges logged on ${card.name} for this billing window.</div>`;
+  } else {
+    activeTxns.slice().reverse().forEach(tx => {
+      listEl.innerHTML += `
+        <div class="tx-item" style="padding:6px 10px; background:rgba(0,0,0,0.25); font-size:0.75rem;">
+          <div style="flex:1; min-width:0; padding-right:6px;">
+            <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.desc}</div>
+            <div class="tx-meta" style="font-size:0.68rem;">${tx.date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;">$${Number(tx.amt || 0).toFixed(2)}</div>
+            <div style="color:var(--accent); font-size:0.68rem;">+${tx.miles} mi</div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  const vaultObj = myVault[card.vaultKey];
+  document.getElementById('reconcileVaultLabel').innerText = `${vaultObj?.name || 'Points'} Balance`;
+  document.getElementById('reconcileVaultPtsDisplay').innerText = `${Number(vaultObj?.points || 0).toLocaleString()} ${vaultObj?.unit || 'pts'}`;
+}
+
+function updateReconcileDelta(appSpend) {
+  const inputEl = document.getElementById('reconcileStmtInput');
+  const deltaBadge = document.getElementById('reconcileDeltaBadge');
+  const stmtVal = parseFloat(inputEl.value);
+
+  if (isNaN(stmtVal)) {
+    deltaBadge.innerText = 'Enter bill total';
+    deltaBadge.style.color = '#94a3b8';
+    return;
+  }
+
+  const diff = appSpend - stmtVal;
+  if (Math.abs(diff) < 0.05) {
+    deltaBadge.innerText = `✅ Matched ($0.00 difference)`;
+    deltaBadge.style.color = 'var(--accent)';
+  } else if (diff < 0) {
+    deltaBadge.innerText = `⚠️ -$${Math.abs(diff).toFixed(2)} (Missing from app)`;
+    deltaBadge.style.color = 'var(--danger)';
+  } else {
+    deltaBadge.innerText = `⚠️ +$${diff.toFixed(2)} (Over-logged in app)`;
+    deltaBadge.style.color = 'var(--warning)';
+  }
+}
+
 function switchTab(tabName) {
   if (window.innerWidth >= 900) return;
   const cardsTab = document.getElementById('tabContentCards');
@@ -1756,6 +1891,41 @@ document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', open
 document.getElementById('btnCloseArchiveModal')?.addEventListener('click', closeArchiveModal);
 document.getElementById('archiveMonthSelect')?.addEventListener('change', renderArchiveData);
 document.getElementById('btnExportArchiveCSV')?.addEventListener('click', exportArchiveMonthCSV);
+
+// Reconciliation Modal Listeners
+document.getElementById('btnHeaderReconcile')?.addEventListener('click', openReconcileModal);
+document.getElementById('btnCloseReconcileModal')?.addEventListener('click', closeReconcileModal);
+document.getElementById('reconcileCardSelect')?.addEventListener('change', renderReconcileView);
+document.getElementById('reconcileCycleSelect')?.addEventListener('change', renderReconcileView);
+
+document.getElementById('reconcileStmtInput')?.addEventListener('input', () => {
+  const rawSpend = document.getElementById('reconcileAppSpend').innerText.replace('$', '');
+  const appSpend = parseFloat(rawSpend) || 0;
+  updateReconcileDelta(appSpend);
+});
+
+document.getElementById('btnReconcileQuickAdd')?.addEventListener('click', () => {
+  const cardId = document.getElementById('reconcileCardSelect').value;
+  closeReconcileModal();
+  document.getElementById('cardSelect').value = cardId;
+  onCardSelectChange();
+  openModal();
+});
+
+document.getElementById('btnReconcileUpdateVault')?.addEventListener('click', () => {
+  const cardId = document.getElementById('reconcileCardSelect').value;
+  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+  if (!card) return;
+
+  const currentPts = myVault[card.vaultKey]?.points || 0;
+  const newPtsStr = prompt(`Update ${myVault[card.vaultKey]?.name} balance from statement:`, currentPts);
+  if (newPtsStr !== null && !isNaN(parseFloat(newPtsStr))) {
+    myVault[card.vaultKey].points = parseFloat(newPtsStr);
+    setDoc(doc(db, "milestrack_vaults", myVaultKey), myVault);
+    renderReconcileView();
+    renderVault();
+  }
+});
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
