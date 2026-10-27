@@ -29,21 +29,102 @@
       --gold: #fbbf24;
       --fcy-cyan: #38bdf8;
       --purple: #c084fc;
+      --kris-blue: #002b66;
+      --kris-cyan: #00b4d8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--bg); color: var(--on-surface); min-height: 100vh; display: flex; justify-content: center; padding-bottom: 84px; }
+    body { 
+      background-color: var(--bg); 
+      color: var(--on-surface); 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); 
+    }
     
     .app-container { width: 100%; max-width: 1180px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-    header { padding: 6px 4px 10px; display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
+    /* Top Header Refinements */
+    header { 
+      padding: 6px 4px 12px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 8px;
+    }
+    header h1 { 
+      font-size: 1.15rem; 
+      font-weight: 700; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      white-space: nowrap;
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .header-actions .material-symbols-outlined {
+      font-size: 20px;
+      padding: 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .header-actions .material-symbols-outlined:active {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
     .version-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(158, 202, 255, 0.12); color: var(--primary); border: 1px solid rgba(158, 202, 255, 0.25); vertical-align: middle; }
-    .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+    .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; white-space: nowrap; }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #18191d; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-around; align-items: center; z-index: 90; backdrop-filter: blur(8px); }
-    .nav-tab { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; color: #94a3b8; font-size: 0.74rem; font-weight: 600; cursor: pointer; transition: color 0.2s; }
+    /* Bottom Navigation Bar Refinements */
+    .bottom-nav { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px));
+      height: calc(64px + env(safe-area-inset-bottom, 0px)); 
+      background: rgba(24, 25, 29, 0.95); 
+      border-top: 1px solid rgba(255, 255, 255, 0.08); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      z-index: 90; 
+      backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px);
+      box-sizing: border-box;
+    }
+    .nav-tab { 
+      flex: 1; 
+      max-width: 100px;
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 3px; 
+      background: none; 
+      border: none; 
+      color: #94a3b8; 
+      font-size: 0.72rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      transition: color 0.2s, transform 0.1s; 
+      padding: 0 4px;
+    }
+    .nav-tab:active { transform: scale(0.94); }
     .nav-tab .material-symbols-outlined { font-size: 22px; }
     .nav-tab.active { color: var(--primary); }
 
@@ -64,6 +145,10 @@
 
     @media (max-width: 899px) {
       #desktopCategorySection { display: none !important; }
+    }
+
+    @media (max-width: 400px) {
+      .sync-status { padding: 3px 6px; font-size: 0.68rem; }
     }
 
     .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 16px; }
@@ -129,6 +214,7 @@
 
     .recommender-card { background: var(--surface); border: 1px solid rgba(158, 202, 255, 0.25); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
     .recommender-card.fcy-mode { border-color: var(--fcy-cyan); }
+    .recommender-card.kris-mode { border-color: var(--kris-cyan); background: linear-gradient(165deg, rgba(0, 43, 102, 0.25) 0%, #1e1f24 100%); }
     .rec-header { display: flex; align-items: center; justify-content: space-between; }
     .rec-title { font-size: 1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
@@ -166,6 +252,7 @@
     .mcc-tag-box { font-size: 0.76rem; color: #94a3b8; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--primary); }
     .dcc-warning { font-size: 0.75rem; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.25); line-height: 1.35; }
     .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); line-height: 1.35; }
+    .kris-stacked-badge { font-size: 0.75rem; color: var(--kris-cyan); background: rgba(0, 180, 216, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(0, 180, 216, 0.28); line-height: 1.35; }
 
     .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
     .cascade-header { font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
@@ -268,7 +355,25 @@
     .btn-backup { background: var(--surface-variant); border: 1px solid var(--outline); color: var(--on-surface); padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-backup:hover { background: rgba(158, 202, 255, 0.12); border-color: var(--primary); color: var(--primary); }
 
-    .fab { position: fixed; bottom: 76px; right: 20px; width: 56px; height: 56px; border-radius: 18px; background: var(--primary); color: var(--on-primary); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer; z-index: 99; transition: transform 0.2s; }
+    /* FAB Positioning with safe area inset */
+    .fab { 
+      position: fixed; 
+      bottom: calc(76px + env(safe-area-inset-bottom, 0px)); 
+      right: 20px; 
+      width: 56px; 
+      height: 56px; 
+      border-radius: 18px; 
+      background: var(--primary); 
+      color: var(--on-primary); 
+      border: none; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5); 
+      cursor: pointer; 
+      z-index: 99; 
+      transition: transform 0.2s; 
+    }
     .fab:hover { transform: scale(1.05); }
     @media (min-width: 900px) {
       .fab { bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 20px; }
@@ -309,7 +414,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.4</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.6</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -322,19 +427,19 @@
 
   <div class="app-container" id="mainApp" style="display:none;">
     <header>
-      <div>
+      <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
         <h1>
-          <span class="material-symbols-outlined" style="color:var(--primary);">flight_takeoff</span> 
-          MilesTrack SG 
-          <span class="version-tag" id="headerVersionTag">v1.7.4</span>
+          <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
+          <span>MilesTrack SG</span> 
+          <span class="version-tag" id="headerVersionTag">v1.7.6</span>
         </h1>
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;" id="signedInUserDisplay">Signed in: ...</div>
+        <div style="font-size:0.72rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="signedInUserDisplay">Signed in: ...</div>
       </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span class="sync-status" id="syncStatusIndicator">● Live Sync</span>
-        <span class="material-symbols-outlined" onclick="openVaultModal()" style="cursor:pointer; color:#94a3b8;" title="Edit Points Balances">account_balance_wallet</span>
-        <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer; color:#94a3b8;" title="Settings & Backup">settings</span>
-        <span class="material-symbols-outlined" onclick="logoutGoogle()" style="cursor:pointer; color:#94a3b8;" title="Sign Out">logout</span>
+      <div class="header-actions">
+        <span class="sync-status" id="syncStatusIndicator">● Cloud Connected</span>
+        <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
+        <span class="material-symbols-outlined" onclick="openSettings()" title="Settings & Backup">settings</span>
+        <span class="material-symbols-outlined" onclick="logoutGoogle()" title="Sign Out">logout</span>
       </div>
     </header>
 
@@ -370,7 +475,7 @@
             <span style="font-size:0.75rem; color:#94a3b8;" id="recModeBadge">Local SGD</span>
           </div>
 
-          <div class="channel-selector">
+          <div class="channel-selector" id="channelSelectorBar">
             <button type="button" class="channel-btn active" id="btnChannelInPerson" onclick="setChannelMode('inperson')">
               <span class="material-symbols-outlined" style="font-size:16px;">storefront</span>
               In-Person / Terminal Tap
@@ -396,6 +501,18 @@
               <button type="button" class="btn-clear-mcc" id="btnClearMcc" onclick="clearMccInput()" title="Clear selection">✕</button>
             </div>
             <input type="text" inputmode="decimal" id="recAmount" class="form-control" placeholder="Amt" value="100" oninput="onRecAmountInput(this)">
+          </div>
+
+          <!-- Dedicated Kris+ Mode Toggle -->
+          <div class="rec-pref-row" id="krisPlusPrefRow" style="background: rgba(0, 43, 102, 0.35); border-color: rgba(0, 180, 216, 0.3);">
+            <div class="rec-pref-label">
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--kris-cyan);">loyalty</span>
+              <span style="font-weight:700; color:#e0f2fe;">🛍️ Paying via Kris+ App (Apple/Google Pay)</span>
+            </div>
+            <label class="switch switch-sm">
+              <input type="checkbox" id="krisPlusSwitch" onchange="toggleKrisPlusMode()">
+              <span class="slider" style="background-color: #1e3a8a;"></span>
+            </label>
           </div>
 
           <div class="rec-pref-row" id="contactlessPrefRow">
@@ -526,6 +643,7 @@
     </div>
   </div>
 
+  <!-- 3-Tab Bottom Navigation Bar with Insets -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="nav-tab active" id="btnTabCards" onclick="switchTab('cards')">
       <span class="material-symbols-outlined">credit_card</span>
@@ -545,6 +663,7 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
+  <!-- Card Details & Active Cycle Breakdown Modal -->
   <div class="modal-overlay" id="cardDetailOverlay" onclick="closeCardDetailModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -624,6 +743,7 @@
     </div>
   </div>
 
+  <!-- Transaction Logger Modal with Date Picker -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -633,6 +753,12 @@
 
       <input type="hidden" id="editTxId" value="">
 
+      <!-- Date Input Field -->
+      <div class="form-group">
+        <label for="txDateInput">Transaction Date</label>
+        <input type="date" id="txDateInput" class="form-control">
+      </div>
+
       <div class="form-group">
         <label>Select Card Slot</label>
         <select id="cardSelect" class="form-control" onchange="onCardSelectChange()"></select>
@@ -640,7 +766,7 @@
 
       <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
-        <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA">
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA, Kris+ Partner">
       </div>
 
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
@@ -789,7 +915,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.4";
+    const APP_VERSION = "v1.7.6";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -884,6 +1010,7 @@
     let peerVaultKey = "sister";
 
     let currentChannel = "inperson";
+    let isKrisPlusMode = false;
 
     const DEFAULT_PRESETS = [
       { id: 'p_fp', label: 'foodpanda', icon: '🐼', cardId: 'dbs-yuu', desc: 'foodpanda' },
@@ -1022,6 +1149,7 @@
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 2.4 },
           { id: "dbs-vantage", baseRate: 1.5 },
@@ -1083,6 +1211,7 @@
         candidatesLocal: [
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
           { id: "dbs-vantage", baseRate: 1.5 }
         ],
@@ -1099,6 +1228,7 @@
         candidatesLocal: [
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
           { id: "dbs-vantage", baseRate: 1.5 }
         ],
@@ -1134,6 +1264,7 @@
         candidatesLocal: [
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "dbs-vantage", baseRate: 1.5 }
         ],
@@ -1151,7 +1282,8 @@
           { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "uob-ppv-contactless", baseRate: 4.0 }
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
@@ -1168,7 +1300,8 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "uob-ppv-contactless", baseRate: 4.0 }
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
@@ -1185,7 +1318,8 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "uob-ppv-contactless", baseRate: 4.0 }
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
@@ -1333,6 +1467,7 @@
       kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
     };
 
+    // Added strategyType: 'whitelist' vs 'blacklist' to support MileLion optimization
     const ALL_MASTER_CARDS = [
       { 
         id: 'dbs-yuu', 
@@ -1345,6 +1480,7 @@
         baseMpd: 0.14, 
         engine: 'yuu-10', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: 'badge-gold', 
         hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
         isContactlessOnly: false,
@@ -1362,8 +1498,9 @@
         baseMpd: 0.4, 
         engine: 'uob-5', 
         cycleType: 'calendar', 
+        strategyType: 'blacklist',
         badgeClass: '', 
-        hint: 'Apple/Google Pay tap & SimplyGo only.', 
+        hint: 'Apple/Google Pay tap & SimplyGo only. Disqualified on in-app Kris+.', 
         isContactlessOnly: true,
         channelMode: 'inperson',
         themeClass: 'thumb-uob'
@@ -1379,8 +1516,9 @@
         baseMpd: 0.4, 
         engine: 'uob-5', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food online.', 
+        hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food & whitelisted Kris+ dining/retail.', 
         isContactlessOnly: false,
         channelMode: 'online',
         themeClass: 'thumb-uob'
@@ -1397,8 +1535,9 @@
         engine: 'uob-5', 
         cycleType: 'statement', 
         cutoffDay: 18, 
+        strategyType: 'blacklist',
         badgeClass: '', 
-        hint: 'Must hit S$1,000 min in statement cycle for 4.0 mpd (Contactless/Petrol).', 
+        hint: 'Physical NFC terminal tap required (min S$1k/cycle). Bypassed on Kris+.', 
         isContactlessOnly: true,
         channelMode: 'inperson',
         themeClass: 'thumb-uob'
@@ -1415,6 +1554,7 @@
         engine: 'uob-5', 
         cycleType: 'statement', 
         cutoffDay: 18, 
+        strategyType: 'blacklist',
         badgeClass: '', 
         hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
         isContactlessOnly: false,
@@ -1433,8 +1573,9 @@
         engine: 'citi-1', 
         cycleType: 'statement', 
         cutoffDay: 15, 
+        strategyType: 'blacklist',
         badgeClass: '', 
-        hint: 'Online shopping & in-store fashion/apparel. Statement month cycle.', 
+        hint: 'Online shopping & in-store fashion. ⚠️ Excludes in-app mobile wallets (Kris+)!', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-citi'
@@ -1450,6 +1591,7 @@
         baseMpd: 0.4, 
         engine: 'ocbc-5', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
         hint: 'Department stores, fashion whitelist, Watsons, Shopee, Lazada & HeyMax vouchers (S$1,110 cap).', 
         isContactlessOnly: false,
@@ -1467,8 +1609,9 @@
         baseMpd: 0.4, 
         engine: 'dbs-5', 
         cycleType: 'calendar', 
+        strategyType: 'blacklist',
         badgeClass: '', 
-        hint: 'Online spend including SIA, Agoda, Klook, in-app wallets (0.4 mpd in-person).', 
+        hint: 'Online blacklist winner: 4.0 mpd on all online spend & all Kris+ merchants.', 
         isContactlessOnly: false,
         channelMode: 'online',
         themeClass: 'thumb-dbs'
@@ -1484,8 +1627,9 @@
         baseMpd: 0.4, 
         engine: 'uob-5', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'Restaurants, cafes, bars. Local and overseas.', 
+        hint: 'Restaurants, cafes, bars. Works on Kris+ for dining merchants.', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-uob'
@@ -1501,6 +1645,7 @@
         baseMpd: 0.4, 
         engine: 'uob-5', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
         hint: 'Airlines, hotels, OTA bookings. Local and overseas.', 
         isContactlessOnly: false,
@@ -1518,8 +1663,9 @@
         baseMpd: 0.4, 
         engine: 'citi-1', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'Dining & retail. Avoid Fast Food (MCC 5814) and 5499.', 
+        hint: 'Dining & retail whitelist. Works on Kris+ (excl. 5814).', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-hsbc'
@@ -1535,8 +1681,9 @@
         baseMpd: 1.2, 
         engine: 'uob-5', 
         cycleType: 'uncapped', 
+        strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'Uncapped 2.4 mpd on Dining, Online & Transport (requires S$1,000 SIA spend/yr). 3.0 mpd on SIA/Scoot/Kris+.', 
+        hint: 'Uncapped 3.0 mpd on all Kris+ merchants directly! 2.4 mpd on Dining/Transport.', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-uob'
@@ -1552,6 +1699,7 @@
         baseMpd: 0.4, 
         engine: 'citi-1', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
         hint: 'FCY spend: 3.2 mpd (min S$4,000/mo), 2.8 mpd (min S$800/mo), uncapped. 4.0 mpd at select dining groups (Paradise/Les Amis).', 
         isContactlessOnly: false,
@@ -1569,6 +1717,7 @@
         baseMpd: 0.24, 
         engine: 'citi-1', 
         cycleType: 'calendar', 
+        strategyType: 'whitelist',
         badgeClass: '', 
         hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
         isContactlessOnly: false,
@@ -1586,6 +1735,7 @@
         baseMpd: 1.5, 
         engine: 'dbs-5', 
         cycleType: 'uncapped', 
+        strategyType: 'blacklist',
         badgeClass: '', 
         hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
         isContactlessOnly: false,
@@ -1603,6 +1753,7 @@
         baseMpd: 1.4, 
         engine: 'uob-5', 
         cycleType: 'uncapped', 
+        strategyType: 'blacklist',
         badgeClass: '', 
         hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
         isContactlessOnly: false,
@@ -1620,6 +1771,7 @@
         baseMpd: 1.3, 
         engine: 'dbs-5', 
         cycleType: 'uncapped', 
+        strategyType: 'blacklist',
         badgeClass: '', 
         hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', 
         isContactlessOnly: false,
@@ -1637,6 +1789,7 @@
         baseMpd: 1.2, 
         engine: 'citi-1', 
         cycleType: 'uncapped', 
+        strategyType: 'blacklist',
         badgeClass: '', 
         hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
         isContactlessOnly: false,
@@ -1826,9 +1979,31 @@
         icon.style.color = '#94a3b8';
         text.innerText = 'Mode: Singapore (Local SGD)';
         card.classList.remove('fcy-mode');
-        badge.innerText = 'Local SGD';
+        badge.innerText = isKrisPlusMode ? 'Kris+ Active' : 'Local SGD';
       }
     }
+
+    // Kris+ Mode Toggle Handler
+    window.toggleKrisPlusMode = function() {
+      isKrisPlusMode = document.getElementById('krisPlusSwitch').checked;
+      const recCard = document.getElementById('recommenderCard');
+      const badge = document.getElementById('recModeBadge');
+      const contactlessRow = document.getElementById('contactlessPrefRow');
+
+      if (isKrisPlusMode) {
+        recCard.classList.add('kris-mode');
+        badge.innerHTML = '<span style="color:var(--kris-cyan); font-weight:700;">🛍️ Kris+ Mode</span>';
+        // Kris+ operates as an in-app online checkout
+        setChannelMode('online');
+        if (contactlessRow) contactlessRow.style.display = 'none';
+      } else {
+        recCard.classList.remove('kris-mode');
+        badge.innerText = isOverseasMode ? 'FCY Mode Active' : 'Local SGD';
+        setChannelMode('inperson');
+        if (contactlessRow) contactlessRow.style.display = 'flex';
+      }
+      runRecommendation();
+    };
 
     function isTxInActiveCycle(txTimestamp, card) {
       const txDate = new Date(txTimestamp);
@@ -1899,6 +2074,8 @@
       document.getElementById('cardSelect').value = preset.cardId;
       window.onCardSelectChange();
 
+      document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
+
       if (preset.cardId === 'dbs-yuu') {
         const yuuSelect = document.getElementById('yuuMerchantSelect');
         yuuSelect.value = preset.desc;
@@ -1943,16 +2120,17 @@
       if (mode === 'inperson') {
         btnInPerson.classList.add('active');
         btnOnline.classList.remove('active');
-        contactlessRow.style.display = 'flex';
+        if (contactlessRow && !isKrisPlusMode) contactlessRow.style.display = 'flex';
       } else {
         btnInPerson.classList.remove('active');
         btnOnline.classList.add('active');
-        contactlessRow.style.display = 'none';
+        if (contactlessRow) contactlessRow.style.display = 'none';
       }
       runRecommendation();
     };
 
     function autoDetectChannel(queryStr) {
+      if (isKrisPlusMode) return;
       const q = (queryStr || "").toLowerCase().trim();
       const onlineKeywords = ["shopee", "lazada", "taobao", "tiktok", "agoda", "klook", "trip.com", "expedia", "deliveroo", "air carrier", "airline", "sia", "scoot", "online", "4511", "4722"];
       const inPersonKeywords = ["supermarket", "petrol", "5812", "5813", "5814", "5411", "5541", "5462", "5441", "cedele", "chateraise", "cold storage", "giant", "guardian", "shell", "spc", "esso"];
@@ -2050,6 +2228,21 @@
         };
       }
 
+      // Kris+ Unknown Partner Fallback: DBS WWMC earns 4.0 mpd as general online blacklist
+      if (isKrisPlusMode) {
+        return {
+          code: "KRISPLUS-PARTNER",
+          name: "Kris+ Partner Merchant (Uncategorized)",
+          notes: "🛍️ <b>Kris+ In-App Payment:</b> Processed as online spend. DBS WWMC earns 4.0 mpd (online blacklist). KF UOB earns 3.0 mpd uncapped. ⚠️ Citi Rewards & UOB VS are strictly excluded from 4.0 mpd.",
+          candidatesLocal: [
+            { id: "dbs-wwmc", baseRate: 4.0 },
+            { id: "kf-uob", baseRate: 3.0 },
+            { id: "dbs-vantage", baseRate: 1.5 },
+            { id: "uob-prvi", baseRate: 1.4 }
+          ]
+        };
+      }
+
       return null;
     }
 
@@ -2124,12 +2317,12 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Waterfall Allocator with Fixed MCC 5814 Online Route
+    // Smart Waterfall Recommender with Kris+ Mode & Whitelist-First Tiebreaking
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
       const amt = parseFloat(rawAmt) || 100;
-      const allowContactless = (currentChannel === 'inperson') && document.getElementById('contactlessSwitch').checked;
+      const allowContactless = (currentChannel === 'inperson') && !isKrisPlusMode && document.getElementById('contactlessSwitch').checked;
       const resultArea = document.getElementById('recResultArea');
 
       const mccData = resolveMccEntry(inputVal);
@@ -2137,20 +2330,37 @@
       if (!mccData) {
         resultArea.innerHTML = `
           <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">
-            ${isOverseasMode 
-              ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-              : 'Type a 4-digit MCC (e.g. <b>5814</b>, <b>5462</b>, <b>5812</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Watsons</b>).'}
+            ${isKrisPlusMode
+              ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
+              : (isOverseasMode 
+                ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
+                : 'Type a 4-digit MCC (e.g. <b>5812</b>, <b>5814</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Watsons</b>).')}
           </div>
         `;
         return;
       }
 
-      const candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
+      let candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
       
+      // If in Kris+ mode, automatically add DBS WWMC as online blacklist option if not present
+      if (isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
+        candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
+      }
+
       const myOwnedCandidates = candidateList.filter(c => {
         if (!enabledCardIds.includes(c.id)) return false;
         const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
         if (!cardObj) return false;
+
+        // Kris+ Traps & Interlocks
+        if (isKrisPlusMode) {
+          // Citi Rewards strictly excludes mobile wallet in-app transactions
+          if (cardObj.id === 'citi-rewards') return false;
+          // UOB VS Contactless requires physical NFC terminal wave
+          if (cardObj.id === 'uob-vs-contactless') return false;
+          // PPV contactless is not applicable in-app
+          if (cardObj.id === 'uob-ppv-contactless') return false;
+        }
 
         if (currentChannel === 'online' && cardObj.channelMode === 'inperson') return false;
         if (currentChannel === 'inperson' && cardObj.channelMode === 'online') return false;
@@ -2168,7 +2378,7 @@
         resultArea.innerHTML = `
           <div class="mcc-tag-box" style="border-left-color:var(--danger);">
             <b>${mccData.code ? `MCC ${mccData.code} - ` : ''}${mccData.name}</b><br>
-            <span style="color:var(--danger);">${(currentChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap or switching channel." : (candidateList.length > 0 ? `You do not own any active cards configured for ${currentChannel === 'online' ? 'Online' : 'In-Person'} spend on this category.` : mccData.notes)}</span>
+            <span style="color:var(--danger);">${isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB VS Contactless are strictly excluded from 4 mpd on Kris+." : ((currentChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap or switching channel." : (candidateList.length > 0 ? `You do not own any active cards configured for ${currentChannel === 'online' ? 'Online' : 'In-Person'} spend on this category.` : mccData.notes))}</span>
           </div>
         `;
         return;
@@ -2186,6 +2396,11 @@
         }
 
         let evaluatedRate = cand.baseRate;
+
+        // Kris+ Co-brand direct multiplier: KrisFlyer UOB earns 3.0 mpd uncapped on Kris+
+        if (isKrisPlusMode && cand.id === 'kf-uob') {
+          evaluatedRate = 3.0;
+        }
 
         if (cand.id === 'mb-world-mc' && isOverseasMode) {
           const totalProjectedSpend = currentSpend + amt;
@@ -2207,7 +2422,17 @@
           isUncapped,
           daysLeft
         };
-      }).filter(Boolean).sort((a, b) => b.rate - a.rate);
+      }).filter(Boolean).sort((a, b) => {
+        // 1. Primary: Highest earn rate
+        if (b.rate !== a.rate) return b.rate - a.rate;
+
+        // 2. Secondary (MileLion Optimization): Burn Whitelist cards first to preserve flexible Blacklist caps
+        if (a.card.strategyType === 'whitelist' && b.card.strategyType === 'blacklist') return -1;
+        if (a.card.strategyType === 'blacklist' && b.card.strategyType === 'whitelist') return 1;
+
+        // 3. Tertiary: Smallest cap first or days left
+        return a.card.monthlyCap - b.card.monthlyCap;
+      });
 
       const primary = scoredCandidates[0];
       const requiresSplit = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
@@ -2274,17 +2499,23 @@
             `;
 
             buttonsHtml += `
-              <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" onclick="applyRecommendation('${step.card.id}', ${step.amount}, '${mccData.name} (Part ${idx + 1})')">
+              <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" onclick="applyRecommendation('${step.card.id}', ${step.amount}, '${isKrisPlusMode ? 'Kris+ ' : ''}${mccData.name} (Part ${idx + 1})')">
                 Log Part ${idx + 1} ($${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
               </button>
             `;
           });
 
           resultArea.innerHTML = `
-            <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
-              <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online' : '🏪 In-Person'}]<br>
+            <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
+              <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
               ${mccData.notes}
             </div>
+
+            ${isKrisPlusMode ? `
+              <div class="kris-stacked-badge">
+                💡 <b>Kris+ Double-Dip:</b> Remember that credit card miles stack on top of instant Kris+ partner miles (typically +1 to 9 mpd). Transfer partner miles to KrisFlyer within 21 days!
+              </div>
+            ` : ''}
 
             <div class="cascade-split-card">
               <div class="cascade-header">
@@ -2295,7 +2526,7 @@
             </div>
 
             <div style="font-size:0.75rem; color:#94a3b8;">
-              ${(currentChannel === 'inperson' && !allowContactless) ? '🔒 <b>Contactless Excluded:</b> Preserving mobile tap caps for other daily transactions.' : 'Splitting this transaction ensures you do not waste large purchases at poor base rates once caps are exhausted.'}
+              ${isKrisPlusMode ? 'Conserving versatile blacklist caps (DBS WWMC) by utilizing category whitelist cards first.' : 'Splitting this transaction ensures you do not waste large purchases at poor base rates once caps are exhausted.'}
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -2325,22 +2556,30 @@
       const runnerUp = scoredCandidates[1];
 
       resultArea.innerHTML = `
-        <div class="mcc-tag-box" style="${isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : ''}">
-          <b>${isOverseasMode ? '✈️ FCY: ' : ''}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online' : '🏪 In-Person'}]<br>
+        <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
+          <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
           ${mccData.notes}
         </div>
+
+        ${isKrisPlusMode ? `
+          <div class="kris-stacked-badge">
+            💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles (1 to 9 mpd). Transfer to KrisFlyer within 21 days!
+          </div>
+        ` : ''}
+
         <div class="rec-winner-title">
           <span>⭐ <b>${singleCard.card.name}</b></span>
           <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${Math.round(calculatedMiles).toLocaleString()} mi)</span>
         </div>
         <div class="rec-winner-meta">
           ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${singleCard.remainingCap.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> / $${singleCard.card.monthlyCap}`} • Resets in ${singleCard.daysLeft}d
+          ${singleCard.card.strategyType === 'whitelist' ? ' • <span style="color:var(--primary);">Whitelist priority (conserves blacklist caps)</span>' : ''}
         </div>
         ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
         ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : ''}
-        ${(currentChannel === 'inperson' && !allowContactless) ? `<div style="font-size:0.74rem; color:var(--primary); margin-top:2px;">🔒 Contactless card slots currently bypassed</div>` : ''}
+        ${isKrisPlusMode ? `<div style="font-size:0.73rem; color:#94a3b8; margin-top:2px;">🔒 Citi Rewards & UOB VS Contactless bypassed (ineligible on Kris+ in-app)</div>` : ''}
         ${isOverseasMode ? `<div class="dcc-warning">⚠️ <b>DCC Trap:</b> Always select local currency (e.g. JPY, EUR, USD) at the card terminal. Never choose SGD!</div>` : ''}
-        <button class="btn-apply-rec" onclick="applyRecommendation('${singleCard.card.id}', ${amt}, '${isOverseasMode ? '[FCY] ' : ''}${mccData.name}')">Log $${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with This Card</button>
+        <button class="btn-apply-rec" onclick="applyRecommendation('${singleCard.card.id}', ${amt}, '${isKrisPlusMode ? 'Kris+ ' : (isOverseasMode ? '[FCY] ' : '')}${mccData.name}')">Log $${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with This Card</button>
       `;
     };
 
@@ -2349,6 +2588,7 @@
       document.getElementById('amtInput').value = amt;
       document.getElementById('descInput').value = desc || '';
       document.getElementById('bonusCategory').value = 'bonus';
+      document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
       onCardSelectChange();
       openModal();
     };
@@ -2830,6 +3070,7 @@
       rulesContainer.innerHTML = `
         <span class="rule-pill">⭐ ${card.bonusMpd} mpd bonus tier</span>
         <span class="rule-pill">🐢 ${card.baseMpd} mpd base/overflow</span>
+        <span class="rule-pill">${card.strategyType === 'whitelist' ? '📋 Whitelist Card' : '🛡️ Blacklist Card'}</span>
         <span class="rule-pill">${card.engine === 'uob-5' || card.engine === 'ocbc-5' ? '⚠️ S$5 Rounding Blocks' : '✓ Standard $1 Rounding'}</span>
         <span class="rule-pill">${card.isContactlessOnly ? '📱 Apple/Google Pay Tap Only' : (card.channelMode === 'online' ? '🌐 Online Checkout Only' : '💳 Online & In-Store Eligible')}</span>
         <span class="rule-pill-warn" style="font-size:0.7rem; width:100%; border-radius:8px; padding:6px 10px;">Rule: ${card.hint}</span>
@@ -2928,6 +3169,12 @@
       document.getElementById('cardSelect').value = tx.cardId;
       window.onCardSelectChange();
 
+      // Populate recorded transaction date
+      if (tx.timestamp) {
+        const d = new Date(tx.timestamp);
+        document.getElementById('txDateInput').value = d.toLocaleDateString('en-CA');
+      }
+
       if (tx.cardId === 'dbs-yuu') {
         const yuuSelect = document.getElementById('yuuMerchantSelect');
         const exists = Array.from(yuuSelect.options).some(o => o.value === tx.desc);
@@ -2976,6 +3223,7 @@
         const cardId = document.getElementById('cardSelect').value;
         const amt = parseFloat(document.getElementById('amtInput').value);
         const isBonus = document.getElementById('bonusCategory').value === 'bonus';
+        const rawDateVal = document.getElementById('txDateInput').value;
 
         let desc = '';
         if (cardId === 'dbs-yuu') {
@@ -2987,6 +3235,17 @@
         if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount');
         const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
         if (!card) return alert('Please select a valid card');
+
+        // Parse chosen date
+        let txTimestamp = Date.now();
+        let displayDateStr = new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
+
+        if (rawDateVal) {
+          const parts = rawDateVal.split('-').map(Number);
+          const chosenDateObj = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+          txTimestamp = chosenDateObj.getTime();
+          displayDateStr = chosenDateObj.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
+        }
 
         const cardCurrentSpend = Number(card.currentSpend) || 0;
 
@@ -3033,14 +3292,14 @@
         const txRecord = {
           id: txRecordId,
           owner: myVaultKey,
-          timestamp: editId ? (transactions.find(t => t.id === editId)?.timestamp || Date.now()) : Date.now(),
+          timestamp: txTimestamp,
           desc,
           amt,
           cardId,
           bonusCategory: isBonus ? 'bonus' : 'base',
           miles: earnedMiles,
           earnedRawPoints,
-          date: new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
+          date: displayDateStr
         };
 
         await setDoc(doc(db, "milestrack_txns", txRecordId), txRecord);
@@ -3215,6 +3474,10 @@
       document.getElementById('editTxId').value = '';
       document.getElementById('descInput').value = '';
       document.getElementById('amtInput').value = '';
+      
+      // Default to today in local Singapore time (YYYY-MM-DD)
+      document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
+
       document.getElementById('modalFormTitle').innerText = "Log Transaction";
       document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
       window.onCardSelectChange();
