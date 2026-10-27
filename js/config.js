@@ -9,7 +9,7 @@ export const SISTER_EMAILS = [
 ];
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyDrxlcwVdrBIPvvgJHLi2wOAfkEI1DsbAk",
+  apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
   authDomain: "milestracker-sg.firebaseapp.com",
   projectId: "milestracker-sg",
   storageBucket: "milestracker-sg.firebasestorage.app",
