@@ -16,6 +16,7 @@ import {
   saveAppSettings 
 } from "./firebase.js";
 
+// --- Card Cap Tracker Rendering ---
 export function renderCards() {
   const container = document.getElementById('cardsContainer');
   if (!container) return;
@@ -87,6 +88,61 @@ export function renderCards() {
   });
 }
 
+// --- Quick Presets Bar ---
+export function renderPresets() {
+  const container = document.getElementById('presetsBar');
+  if (!container) return;
+  container.innerHTML = '';
+
+  DEFAULT_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.type = 'button';
+    btn.innerHTML = `<span>${p.icon}</span> <span>${p.label}</span>`;
+    btn.onclick = () => {
+      const cardSelect = document.getElementById('cardSelect');
+      const descInput = document.getElementById('descInput');
+      if (cardSelect) cardSelect.value = p.cardId;
+      if (descInput) descInput.value = p.desc;
+      onCardSelectChange();
+      checkShellMerchantTrigger();
+      openModal();
+    };
+    container.appendChild(btn);
+  });
+}
+
+// --- Category Cap Tracker Tab ---
+export function renderCategoryTracker() {
+  const container = document.getElementById('categoryCardsMobile');
+  if (!container) return;
+  container.innerHTML = '';
+
+  CATEGORY_POOLS.forEach(pool => {
+    const poolCards = state.cards.filter(c => pool.cardIds.includes(c.id));
+    const totalSpent = poolCards.reduce((acc, c) => acc + (c.currentSpend || 0), 0);
+    const totalCap = poolCards.reduce((acc, c) => acc + (c.monthlyCap >= 999999 ? 0 : c.monthlyCap), 0);
+    const pct = totalCap > 0 ? Math.min(100, (totalSpent / totalCap) * 100) : 0;
+
+    const div = document.createElement('div');
+    div.className = 'card-item';
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; color:#fff;">${pool.icon} ${pool.name}</span>
+        <span style="font-size:0.8rem; color:#94a3b8;">$${totalSpent.toFixed(2)} / $${totalCap}</span>
+      </div>
+      <div class="progress-bar-container" style="margin:6px 0;">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:${pct}%; background:var(--primary);"></div>
+        </div>
+      </div>
+      <div style="font-size:0.72rem; color:#94a3b8;">${pool.notes}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Transaction Ledger Rendering ---
 export function renderTransactions() {
   const list = document.getElementById('txList');
   const badge = document.getElementById('txCountBadge');
@@ -136,6 +192,7 @@ export function renderTransactions() {
   });
 }
 
+// --- Extended Family Vaults (Admin Hub View) ---
 export function renderFamilyVaultsSection() {
   const sec = document.getElementById('familyVaultsSection');
   if (!sec) return;
@@ -211,6 +268,7 @@ export function openFamilyMemberVaultModal(vaultKey) {
   document.getElementById('sisterVaultOverlay').style.display = 'flex';
 }
 
+// --- Bank Points Vault & Milestones ---
 export function renderVaultBalances() {
   const container = document.getElementById('vaultContainer');
   if (!container) return;
@@ -292,6 +350,7 @@ export function renderTravelGoalBanner() {
   }
 }
 
+// --- UOB Defense Alerts & Dual-Named Compatibility ---
 export function checkUobFeeDefense() {
   updateUobFeeRenewalAlerts();
 }
@@ -327,6 +386,83 @@ export function updateUobFeeRenewalAlerts() {
   });
 }
 
+// --- Reconcile Modal Controls ---
+export function openReconcileModal() {
+  const overlay = document.getElementById('reconcileOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function closeReconcileModal() {
+  const overlay = document.getElementById('reconcileOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// --- Archive History Modal Controls ---
+export function openArchiveModal() {
+  const overlay = document.getElementById('archiveOverlay') || document.getElementById('archiveHistoryOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function closeArchiveModal() {
+  const overlay = document.getElementById('archiveOverlay') || document.getElementById('archiveHistoryOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// --- Settings Modal Controls ---
+export function openSettingsModal() {
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay) {
+    const uobCutoffInput = document.getElementById('uobVsCutoff');
+    const citiCutoffInput = document.getElementById('citiCutoff');
+    if (uobCutoffInput) uobCutoffInput.value = state.settings.uobVsCutoff || 18;
+    if (citiCutoffInput) citiCutoffInput.value = state.settings.citiCutoff || 15;
+    overlay.style.display = 'flex';
+  }
+}
+
+export function closeSettingsModal() {
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// --- Vault Balances Modal Controls ---
+export function openVaultModal() {
+  const overlay = document.getElementById('vaultOverlay');
+  if (overlay) {
+    Object.keys(DEFAULT_VAULT).forEach(k => {
+      const input = document.getElementById(`v_${k}`);
+      if (input) input.value = state.vault[k] || 0;
+    });
+    overlay.style.display = 'flex';
+  }
+}
+
+export function closeVaultModal() {
+  const overlay = document.getElementById('vaultOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// --- Peer & Card Detail Modal Controls ---
+export function closeSisterVaultModal() {
+  const overlay = document.getElementById('sisterVaultOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+export function closeCardDetailModal() {
+  const overlay = document.getElementById('cardDetailOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+export function openModal() {
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+export function closeModal() {
+  document.getElementById('modalOverlay').style.display = 'none';
+  document.getElementById('editTxId').value = '';
+}
+
+// --- Helper Functions ---
 export function checkShellMerchantTrigger() {
   const desc = (document.getElementById('descInput')?.value || '').toLowerCase();
   const area = document.getElementById('shellDiscountCalcArea');
@@ -351,15 +487,6 @@ export function onCardSelectChange() {
     if (yuuGroup) yuuGroup.style.display = 'none';
     if (merchantGroup) merchantGroup.style.display = 'block';
   }
-}
-
-export function openModal() {
-  document.getElementById('modalOverlay').style.display = 'flex';
-}
-
-export function closeModal() {
-  document.getElementById('modalOverlay').style.display = 'none';
-  document.getElementById('editTxId').value = '';
 }
 
 export function openCardDetailModal(cardId) {
@@ -406,6 +533,7 @@ export function openCardDetailModal(cardId) {
   document.getElementById('cardDetailOverlay').style.display = 'flex';
 }
 
+// --- Window Global Bindings for Ledger Buttons ---
 window.editTx = function(id) {
   const tx = state.transactions.find(t => t.id === id);
   if (!tx) return;
