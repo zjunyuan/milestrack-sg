@@ -503,7 +503,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.9</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.2</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -523,7 +523,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.7.9</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.2</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
@@ -1036,7 +1036,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.9";
+    const APP_VERSION = "v1.8.2";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1709,6 +1709,7 @@
       kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
     };
 
+    // Full 15 Master Cards Structure with image paths configured
     const ALL_MASTER_CARDS = [
       { 
         id: 'dbs-yuu', 
@@ -1733,6 +1734,7 @@
         id: 'uob-ppv-contactless', 
         name: 'UOB Preferred Visa (Mobile Tap)', 
         bank: 'UOB', 
+        image: 'assets/cards/uob-ppv.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 600, 
         minSpend: 0, 
@@ -1751,6 +1753,7 @@
         id: 'uob-ppv-online', 
         name: 'UOB Preferred Visa (Online)', 
         bank: 'UOB', 
+        image: 'assets/cards/uob-ppv.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 600, 
         minSpend: 0, 
@@ -1769,6 +1772,7 @@
         id: 'uob-vs-contactless', 
         name: 'UOB Visa Signature (Contactless / Petrol)', 
         bank: 'UOB', 
+        image: 'assets/cards/uob-vs.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 1200, 
         minSpend: 1000, 
@@ -1788,6 +1792,7 @@
         id: 'uob-vs-fcy', 
         name: 'UOB Visa Signature (FCY Overseas)', 
         bank: 'UOB', 
+        image: 'assets/cards/uob-vs.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 1200, 
         minSpend: 1000, 
@@ -1807,6 +1812,7 @@
         id: 'citi-rewards', 
         name: 'Citi Rewards', 
         bank: 'Citi', 
+        image: 'assets/cards/citi-rewards.png',
         vaultKey: 'citi_typ', 
         monthlyCap: 1000, 
         minSpend: 0, 
@@ -1826,6 +1832,7 @@
         id: 'ocbc-rewards', 
         name: 'OCBC Rewards / Titanium', 
         bank: 'OCBC', 
+        image: 'assets/cards/ocbc-rewards.png',
         vaultKey: 'ocbc_pts', 
         monthlyCap: 1110, 
         minSpend: 0, 
@@ -1844,6 +1851,7 @@
         id: 'dbs-wwmc', 
         name: "DBS Woman's World Card", 
         bank: 'DBS', 
+        image: 'assets/cards/dbs-wwmc.png',
         vaultKey: 'dbs_pts', 
         monthlyCap: 1000, 
         minSpend: 0, 
@@ -1900,6 +1908,7 @@
         id: 'hsbc-rev', 
         name: 'HSBC Revolution', 
         bank: 'HSBC', 
+        image: 'assets/cards/hsbc-rev.png',
         vaultKey: 'hsbc_pts', 
         monthlyCap: 1000, 
         minSpend: 0, 
@@ -1918,6 +1927,7 @@
         id: 'kf-uob', 
         name: 'KrisFlyer UOB Credit Card', 
         bank: 'UOB', 
+        image: 'assets/cards/kf-uob.png',
         vaultKey: 'kf_direct', 
         monthlyCap: 999999, 
         minSpend: 0, 
@@ -1936,6 +1946,7 @@
         id: 'mb-world-mc', 
         name: 'Maybank World Mastercard', 
         bank: 'Maybank', 
+        image: 'assets/cards/maybank-world.png',
         vaultKey: 'mb_treats', 
         monthlyCap: 999999, 
         minSpend: 800, 
@@ -1954,6 +1965,7 @@
         id: 'mb-horizon-vs', 
         name: 'Maybank Horizon Visa Signature', 
         bank: 'Maybank', 
+        image: 'assets/cards/maybank-horizon.png',
         vaultKey: 'mb_treats', 
         monthlyCap: 10000, 
         minSpend: 800, 
@@ -1972,6 +1984,7 @@
         id: 'dbs-vantage', 
         name: 'DBS Vantage Card', 
         bank: 'DBS', 
+        image: 'assets/cards/dbs-vantage.png',
         vaultKey: 'dbs_pts', 
         monthlyCap: 999999, 
         minSpend: 0, 
@@ -1990,6 +2003,7 @@
         id: 'uob-prvi', 
         name: 'UOB PRVI Miles', 
         bank: 'UOB', 
+        image: 'assets/cards/uob-prvi.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 999999, 
         minSpend: 0, 
@@ -2008,6 +2022,7 @@
         id: 'dbs-altitude', 
         name: 'DBS Altitude Card', 
         bank: 'DBS', 
+        image: 'assets/cards/dbs-altitude.png',
         vaultKey: 'dbs_pts', 
         monthlyCap: 999999, 
         minSpend: 0, 
@@ -2026,6 +2041,7 @@
         id: 'citi-pm', 
         name: 'Citi PremierMiles', 
         bank: 'Citi', 
+        image: 'assets/cards/citi-pm.png',
         vaultKey: 'citi_miles', 
         monthlyCap: 999999, 
         minSpend: 0, 
