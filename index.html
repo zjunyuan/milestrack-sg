@@ -496,6 +496,45 @@
 
     .detail-tx-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 2px; }
     .detail-tx-empty { text-align: center; padding: 14px; font-size: 0.78rem; color: #94a3b8; background: rgba(0,0,0,0.2); border-radius: 10px; }
+
+    /* Update Available Toast Banner */
+    .update-toast {
+      position: fixed;
+      bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%) translateY(140px);
+      background: rgba(30, 31, 36, 0.96);
+      border: 1px solid var(--primary);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.65);
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+    }
+    .update-toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+    .btn-update-reload {
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-update-reload:active {
+      opacity: 0.8;
+    }
   </style>
 </head>
 <body>
@@ -760,6 +799,12 @@
       <span>Miles Vault</span>
     </button>
   </nav>
+
+  <!-- Automated Update Ready Notification Toast -->
+  <div id="updateToast" class="update-toast">
+    <span style="font-size: 0.85rem; font-weight: 600;">🚀 New version ready</span>
+    <button id="btnReloadApp" class="btn-update-reload">Reload</button>
+  </div>
 
   <button class="fab" id="fabButton" onclick="openModal()" style="display:none;" title="Log Transaction">
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
@@ -3807,10 +3852,55 @@
       }
     };
 
+    // Service Worker Registration with Update Detection & SKIP_WAITING Signaling
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).catch(err => console.error(err));
+      window.addEventListener('load', async () => {
+        try {
+          const reg = await navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`);
+
+          // 1. If an updated worker is already waiting in background
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            showUpdateToast(reg.waiting);
+          }
+
+          // 2. Listen for a new incoming service worker installing
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateToast(newWorker);
+              }
+            });
+          });
+        } catch (err) {
+          console.error("Service worker registration failed:", err);
+        }
       });
+
+      // Reload page immediately once the new service worker activates and claims the client
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+
+    function showUpdateToast(worker) {
+      const toast = document.getElementById('updateToast');
+      const btn = document.getElementById('btnReloadApp');
+      if (!toast || !btn) return;
+
+      toast.classList.add('visible');
+
+      btn.onclick = () => {
+        btn.disabled = true;
+        btn.innerText = 'Reloading...';
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      };
     }
 
     updateOverseasUI();
