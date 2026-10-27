@@ -47,24 +47,38 @@ if (headerVer) headerVer.innerText = APP_VERSION;
 
 // Auth Callbacks
 function onAuthSuccess(user) {
-  document.getElementById('authOverlay').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'flex';
-  document.getElementById('fabButton').style.display = 'flex';
-  document.getElementById('syncStatusIndicator').innerText = "● Cloud Connected";
-  document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email} (${state.myVaultKey === 'primary' ? 'Household' : 'Sister'})`;
+  const authOverlay = document.getElementById('authOverlay');
+  const mainApp = document.getElementById('mainApp');
+  const fabButton = document.getElementById('fabButton');
+  const syncIndicator = document.getElementById('syncStatusIndicator');
+  const userDisplay = document.getElementById('signedInUserDisplay');
 
-  if (state.myVaultKey === "sister") {
-    document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Household Vault (Brother)';
-    document.getElementById('peerModalTitle').innerText = "Household Points Vault (Brother)";
-    document.getElementById('warChestTitle').innerText = "My Personal Mileage War Chest";
-    document.getElementById('cardBonusTitle').innerText = "My Monthly Bonus Caps";
-    document.getElementById('vaultSectionTitle').innerText = "My Bank Points Vault";
+  if (authOverlay) authOverlay.style.display = 'none';
+  if (mainApp) mainApp.style.display = 'block';
+  if (fabButton) fabButton.style.display = 'flex';
+  if (syncIndicator) syncIndicator.innerText = "● Cloud Connected";
+  if (userDisplay) {
+    userDisplay.innerText = `Signed in: ${user.email} (${state.vaultLabel || (state.myVaultKey === 'primary' ? 'Household' : 'Member')})`;
+  }
+
+  const peerCardTitle = document.getElementById('peerCardTitle');
+  const peerModalTitle = document.getElementById('peerModalTitle');
+  const warChestTitle = document.getElementById('warChestTitle');
+  const cardBonusTitle = document.getElementById('cardBonusTitle');
+  const vaultSectionTitle = document.getElementById('vaultSectionTitle');
+
+  if (state.myVaultKey === "sister" || !state.isAdmin) {
+    if (peerCardTitle) peerCardTitle.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Household Vault (Brother)';
+    if (peerModalTitle) peerModalTitle.innerText = "Household Points Vault (Brother)";
+    if (warChestTitle) warChestTitle.innerText = "My Personal Mileage War Chest";
+    if (cardBonusTitle) cardBonusTitle.innerText = "My Monthly Bonus Caps";
+    if (vaultSectionTitle) vaultSectionTitle.innerText = "My Bank Points Vault";
   } else {
-    document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister\'s Vault (Separate)';
-    document.getElementById('peerModalTitle').innerText = "Sister's Points Vault (Separate)";
-    document.getElementById('warChestTitle').innerText = "Household Mileage War Chest";
-    document.getElementById('cardBonusTitle').innerText = "Household Monthly Bonus Caps";
-    document.getElementById('vaultSectionTitle').innerText = "Household Bank Points Vault";
+    if (peerCardTitle) peerCardTitle.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Extended Family Vaults';
+    if (peerModalTitle) peerModalTitle.innerText = "Extended Family Vaults";
+    if (warChestTitle) warChestTitle.innerText = "Household Mileage War Chest";
+    if (cardBonusTitle) cardBonusTitle.innerText = "Household Monthly Bonus Caps";
+    if (vaultSectionTitle) vaultSectionTitle.innerText = "Household Bank Points Vault";
   }
 
   renderPresets();
@@ -74,9 +88,13 @@ function onAuthSuccess(user) {
 }
 
 function onAuthLoggedOut() {
-  document.getElementById('authOverlay').style.display = 'flex';
-  document.getElementById('mainApp').style.display = 'none';
-  document.getElementById('fabButton').style.display = 'none';
+  const authOverlay = document.getElementById('authOverlay');
+  const mainApp = document.getElementById('mainApp');
+  const fabButton = document.getElementById('fabButton');
+
+  if (authOverlay) authOverlay.style.display = 'flex';
+  if (mainApp) mainApp.style.display = 'none';
+  if (fabButton) fabButton.style.display = 'none';
 }
 
 // React to Firestore Event Signals
@@ -110,30 +128,52 @@ document.getElementById('btnLoginGoogle')?.addEventListener('click', loginWithGo
 document.getElementById('btnHeaderLogout')?.addEventListener('click', logoutUser);
 
 document.getElementById('btnHeaderVault')?.addEventListener('click', () => {
-  document.getElementById('v_uob_uni').value = state.myVault.uob_uni?.points || 0;
-  document.getElementById('v_citi_typ').value = state.myVault.citi_typ?.points || 0;
-  document.getElementById('v_citi_miles').value = state.myVault.citi_miles?.points || 0;
-  document.getElementById('v_dbs_pts').value = state.myVault.dbs_pts?.points || 0;
-  document.getElementById('v_yuu_pts').value = state.myVault.yuu_pts?.points || 0;
-  document.getElementById('v_ocbc_pts').value = state.myVault.ocbc_pts?.points || 0;
-  document.getElementById('v_hsbc_pts').value = state.myVault.hsbc_pts?.points || 0;
-  document.getElementById('v_mb_treats').value = state.myVault.mb_treats?.points || 0;
-  document.getElementById('v_kf_miles').value = state.myVault.kf_direct?.points || 0;
-  document.getElementById('vaultOverlay')?.classList.add('open');
+  const vSource = state.myVault || state.vault || {};
+  const setVal = (id, key) => {
+    const el = document.getElementById(id);
+    if (el) el.value = vSource[key]?.points ?? vSource[key] ?? 0;
+  };
+
+  setVal('v_uob_uni', 'uob_uni');
+  setVal('v_citi_typ', 'citi_typ');
+  setVal('v_citi_miles', 'citi_miles');
+  setVal('v_dbs_pts', 'dbs_pts');
+  setVal('v_yuu_pts', 'yuu_pts');
+  setVal('v_ocbc_pts', 'ocbc_pts');
+  setVal('v_hsbc_pts', 'hsbc_pts');
+  setVal('v_mb_treats', 'mb_treats');
+  setVal('v_kf_miles', 'kf_direct');
+
+  const overlay = document.getElementById('vaultOverlay');
+  if (overlay) overlay.style.display = 'flex';
 });
 
 document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async () => {
-  state.myVault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni')?.value) || 0;
-  state.myVault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ')?.value) || 0;
-  state.myVault.citi_miles.points = parseFloat(document.getElementById('v_citi_miles')?.value) || 0;
-  state.myVault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts')?.value) || 0;
-  state.myVault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts')?.value) || 0;
-  state.myVault.ocbc_pts.points = parseFloat(document.getElementById('v_ocbc_pts')?.value) || 0;
-  state.myVault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts')?.value) || 0;
-  state.myVault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats')?.value) || 0;
-  state.myVault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles')?.value) || 0;
-  await updateVaultDoc(state.myVaultKey, state.myVault);
-  document.getElementById('vaultOverlay')?.classList.remove('open');
+  if (!state.myVault) state.myVault = {};
+  
+  const readVal = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+  
+  const updatedVault = {
+    ...state.myVault,
+    uob_uni: { ...(state.myVault.uob_uni || {}), points: readVal('v_uob_uni') },
+    citi_typ: { ...(state.myVault.citi_typ || {}), points: readVal('v_citi_typ') },
+    citi_miles: { ...(state.myVault.citi_miles || {}), points: readVal('v_citi_miles') },
+    dbs_pts: { ...(state.myVault.dbs_pts || {}), points: readVal('v_dbs_pts') },
+    yuu_pts: { ...(state.myVault.yuu_pts || {}), points: readVal('v_yuu_pts') },
+    ocbc_pts: { ...(state.myVault.ocbc_pts || {}), points: readVal('v_ocbc_pts') },
+    hsbc_pts: { ...(state.myVault.hsbc_pts || {}), points: readVal('v_hsbc_pts') },
+    mb_treats: { ...(state.myVault.mb_treats || {}), points: readVal('v_mb_treats') },
+    kf_direct: { ...(state.myVault.kf_direct || {}), points: readVal('v_kf_miles') }
+  };
+
+  state.myVault = updatedVault;
+  state.vault = updatedVault;
+
+  await updateVaultDoc(state.myVaultKey, updatedVault);
+  
+  const overlay = document.getElementById('vaultOverlay');
+  if (overlay) overlay.style.display = 'none';
+  renderVault();
 });
 
 document.getElementById('btnOpenPeerVault')?.addEventListener('click', openSisterVaultModal);
@@ -148,8 +188,14 @@ document.getElementById('fabButton')?.addEventListener('click', openModal);
 document.getElementById('btnCloseModal')?.addEventListener('click', closeModal);
 document.getElementById('btnCloseCardDetail')?.addEventListener('click', closeCardDetailModal);
 document.getElementById('btnCloseSisterVault')?.addEventListener('click', closeSisterVaultModal);
-document.getElementById('btnCloseVault')?.addEventListener('click', () => document.getElementById('vaultOverlay')?.classList.remove('open'));
-document.getElementById('btnCloseSettings')?.addEventListener('click', () => document.getElementById('settingsOverlay')?.classList.remove('open'));
+document.getElementById('btnCloseVault')?.addEventListener('click', () => {
+  const overlay = document.getElementById('vaultOverlay');
+  if (overlay) overlay.style.display = 'none';
+});
+document.getElementById('btnCloseSettings')?.addEventListener('click', () => {
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay) overlay.style.display = 'none';
+});
 
 document.getElementById('btnSaveLedger')?.addEventListener('click', saveTransaction);
 
@@ -212,7 +258,8 @@ document.getElementById('btnClearMcc')?.addEventListener('click', () => {
   const input = document.getElementById('mccInput');
   if (input) {
     input.value = '';
-    document.getElementById('btnClearMcc').style.display = 'none';
+    const btn = document.getElementById('btnClearMcc');
+    if (btn) btn.style.display = 'none';
     input.focus();
     runRecommendation();
   }
@@ -246,7 +293,8 @@ document.getElementById('btnClearTxSearch')?.addEventListener('click', () => {
   if (input) {
     input.value = '';
     state.txSearchQuery = '';
-    document.getElementById('btnClearTxSearch').style.display = 'none';
+    const btn = document.getElementById('btnClearTxSearch');
+    if (btn) btn.style.display = 'none';
     input.focus();
     renderTransactions();
   }
@@ -289,9 +337,10 @@ document.getElementById('btnReconcileUpdateVault')?.addEventListener('click', ()
   const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
   if (!card) return;
 
-  const currentPts = state.myVault[card.vaultKey]?.points || 0;
-  const newPtsStr = prompt(`Update ${state.myVault[card.vaultKey]?.name} balance from statement:`, currentPts);
+  const currentPts = state.myVault?.[card.vaultKey]?.points || 0;
+  const newPtsStr = prompt(`Update ${state.myVault?.[card.vaultKey]?.name || card.vaultKey} balance from statement:`, currentPts);
   if (newPtsStr !== null && !isNaN(parseFloat(newPtsStr))) {
+    if (!state.myVault[card.vaultKey]) state.myVault[card.vaultKey] = {};
     state.myVault[card.vaultKey].points = parseFloat(newPtsStr);
     updateVaultDoc(state.myVaultKey, state.myVault);
     renderReconcileView();
