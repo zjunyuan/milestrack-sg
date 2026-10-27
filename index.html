@@ -19,7 +19,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.6</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.7</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -38,9 +38,10 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.8.6</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.7</span>
         </div>
         <div class="header-actions">
+          <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
           <span class="material-symbols-outlined" id="btnHeaderVault" title="Edit Points Balances">account_balance_wallet</span>
           <span class="material-symbols-outlined" id="btnHeaderSettings" title="Settings & Backup">settings</span>
           <span class="material-symbols-outlined" id="btnHeaderLogout" title="Sign Out">logout</span>
@@ -623,6 +624,82 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.8.6"></script>
+  <!-- MODAL: MONTHLY STATEMENT RECONCILIATION -->
+  <div class="modal-overlay" id="reconcileModalOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-outlined" style="color:var(--accent);">fact_check</span>
+          <h2 style="font-size:1.15rem;">Monthly Statement Reconcile</h2>
+        </div>
+        <span class="material-symbols-outlined" id="btnCloseReconcileModal" style="cursor:pointer; color:#94a3b8;">close</span>
+      </div>
+
+      <p style="font-size:0.75rem; color:#94a3b8; margin: 4px 0 8px;">
+        Compare your bank statement bill totals against app logs to ensure 100% bonus cap accuracy.
+      </p>
+
+      <div class="rec-inputs" style="margin-bottom:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Audit Card Slot</label>
+          <select id="reconcileCardSelect" class="form-control"></select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Target Cycle</label>
+          <select id="reconcileCycleSelect" class="form-control"></select>
+        </div>
+      </div>
+
+      <!-- Audit Comparison Box -->
+      <div class="card-detail-grid">
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">App Logged Spend</span>
+          <span class="detail-stat-val" id="reconcileAppSpend">$0.00</span>
+          <span class="detail-stat-sub" id="reconcileTxnCount">0 txns logged</span>
+        </div>
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Statement Bill Total</span>
+          <input 
+            type="number" 
+            id="reconcileStmtInput" 
+            class="form-control" 
+            placeholder="0.00" 
+            step="0.01" 
+            style="padding:4px 8px; font-size:1.05rem; font-weight:700; text-align:center; height:32px; margin-top:2px;"
+          >
+          <span class="detail-stat-sub" id="reconcileDeltaBadge" style="font-weight:700;">Enter bill total</span>
+        </div>
+      </div>
+
+      <div id="reconcileCycleWindowNote" style="font-size:0.72rem; color:var(--primary); margin: 6px 0;"></div>
+
+      <!-- Logged Transactions for this billing window -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.78rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Logged In This Cycle</span>
+          <button type="button" class="btn-clear-mcc" id="btnReconcileQuickAdd" style="display:flex; color:var(--primary); font-size:0.75rem; padding:2px 6px;">
+            + Add Missing
+          </button>
+        </div>
+        <div id="reconcileTxnList" style="max-height:190px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Direct Points Vault Sync -->
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--outline); margin-top:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.78rem; font-weight:700; color:#fff;" id="reconcileVaultLabel">Bank Points Balance</span>
+          <button type="button" class="btn-clear-mcc" id="btnReconcileUpdateVault" style="color:var(--primary); font-size:0.75rem; font-weight:700;">
+            Update Vault ✏️
+          </button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <span style="font-size:0.72rem; color:#94a3b8;">Official balance from mobile banking:</span>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);" id="reconcileVaultPtsDisplay">0 pts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=1.8.7"></script>
 </body>
 </html>
