@@ -343,6 +343,8 @@ function runRecommendation() {
   }
 
   let candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
+  
+  // Inject DBS WWMC if Kris+ mode is active and not already a candidate
   if (isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
     candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
   }
@@ -375,7 +377,7 @@ function runRecommendation() {
     resultArea.innerHTML = `
       <div class="mcc-tag-box" style="border-left-color:var(--danger);">
         <b>${mccData.code ? `MCC ${mccData.code} - ` : ''}${mccData.name}</b><br>
-        <span style="color:var(--danger);">${isKrisPlusMode ? "No eligible cards available for this Kris+ transaction." : ((currentChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : mccData.notes)}</span>
+        <span style="color:var(--danger);">${isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB contactless tap cards are excluded on Kris+." : ((currentChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : mccData.notes)}</span>
       </div>
     `;
     return;
@@ -459,15 +461,23 @@ function runRecommendation() {
               let rate = c.baseMpd;
 
               if (isKrisPlusMode && c.id === 'kf-uob') {
-                rate = 3.0;
+                rate = 3.0; // Kris+ uncapped rate
               } else if (isOverseasMode) {
                 if (c.id === 'mb-world-mc') rate = 3.2;
                 else if (c.id === 'mb-horizon-vs') rate = 2.8;
                 else if (c.id === 'uob-prvi') rate = 2.4;
                 else if (c.id === 'dbs-vantage') rate = 2.2;
                 else if (c.id === 'dbs-altitude') rate = 2.2;
+                else rate = c.baseMpd;
               } else {
-                rate = c.bonusMpd || c.baseMpd;
+                // Local SGD General Spend Hierarchy
+                if (c.id === 'kf-uob' && isKrisPlusMode) rate = 3.0;
+                else if (c.id === 'dbs-vantage') rate = 1.5;
+                else if (c.id === 'uob-prvi') rate = 1.4;
+                else if (c.id === 'dbs-altitude') rate = 1.3;
+                else if (c.id === 'citi-pm') rate = 1.2;
+                else if (c.id === 'kf-uob') rate = 1.2;
+                else rate = c.baseMpd; // Maybank World MC drops to 0.4 mpd locally
               }
 
               return { card: c, rate, isUncapped: true };
