@@ -178,7 +178,6 @@ function subscribeToCloudData() {
   });
 }
 
-// Helpers
 function isTxInActiveCycle(txTimestamp, card) {
   const txDate = new Date(txTimestamp);
   const now = new Date();
@@ -321,7 +320,6 @@ function resolveMccEntry(input) {
   return null;
 }
 
-// Global Recommendation Engine
 function runRecommendation() {
   const inputVal = document.getElementById('mccInput').value;
   const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -354,6 +352,7 @@ function runRecommendation() {
     const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
     if (!cardObj) return false;
 
+    // Strict Kris+ In-App Exclusions
     if (isKrisPlusMode) {
       if (cardObj.id === 'citi-rewards') return false;
       if (cardObj.id === 'uob-vs-contactless') return false;
@@ -419,6 +418,7 @@ function runRecommendation() {
     let unallocatedAmt = amt;
     const allocationSteps = [];
 
+    // 1. Allocate to available bonus category cards
     for (const candidate of scoredCandidates) {
       if (unallocatedAmt <= 0) break;
       const takeAmt = candidate.isUncapped ? unallocatedAmt : Math.min(candidate.remainingCap, unallocatedAmt);
@@ -445,6 +445,7 @@ function runRecommendation() {
       unallocatedAmt -= takeAmt;
     }
 
+    // 2. Global Uncapped Fallback Resolver for remaining overflow balance
     if (unallocatedAmt > 0) {
       let fallback = scoredCandidates.find(c => c.isUncapped);
 
@@ -456,14 +457,19 @@ function runRecommendation() {
             .filter(c => enabledCardIds.includes(c.id) && c.monthlyCap >= 999999)
             .map(c => {
               let rate = c.baseMpd;
-              if (isKrisPlusMode && c.id === 'kf-uob') rate = 3.0;
-              else if (isOverseasMode) {
+
+              if (isKrisPlusMode && c.id === 'kf-uob') {
+                rate = 3.0;
+              } else if (isOverseasMode) {
                 if (c.id === 'mb-world-mc') rate = 3.2;
                 else if (c.id === 'mb-horizon-vs') rate = 2.8;
                 else if (c.id === 'uob-prvi') rate = 2.4;
                 else if (c.id === 'dbs-vantage') rate = 2.2;
                 else if (c.id === 'dbs-altitude') rate = 2.2;
+              } else {
+                rate = c.bonusMpd || c.baseMpd;
               }
+
               return { card: c, rate, isUncapped: true };
             })
             .sort((a, b) => b.rate - a.rate);
@@ -476,7 +482,10 @@ function runRecommendation() {
 
       if (!fallback) fallback = scoredCandidates[scoredCandidates.length - 1];
 
-      const fallbackRate = (isKrisPlusMode && fallback.card.id === 'kf-uob') ? 3.0 : (fallback.rate || fallback.card.baseMpd);
+      const fallbackRate = (isKrisPlusMode && fallback.card.id === 'kf-uob') 
+        ? 3.0 
+        : (fallback.rate || fallback.card.baseMpd);
+
       const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallbackRate);
       
       allocationSteps.push({
@@ -593,7 +602,6 @@ function applyRecommendation(cardId, amt, desc) {
   openModal();
 }
 
-// UI Renderers
 function renderPresets() {
   const container = document.getElementById('presetsBar');
   if (!container) return;
@@ -983,7 +991,6 @@ function renderExpiryRadar() {
   });
 }
 
-// Shell Helper
 function checkShellMerchantTrigger() {
   const descVal = (document.getElementById('descInput').value || '').toLowerCase();
   const cardId = document.getElementById('cardSelect').value;
@@ -1027,7 +1034,6 @@ function onYuuMerchantChange() {
   document.getElementById('bonusCategory').value = (selected === 'Other / Non-Partner') ? 'base' : 'bonus';
 }
 
-// Modals open / close
 function openModal() {
   document.getElementById('editTxId').value = '';
   document.getElementById('descInput').value = '';
@@ -1143,7 +1149,6 @@ async function saveTransaction() {
   closeModal();
 }
 
-// Navigation Tabs
 function switchTab(tabName) {
   if (window.innerWidth >= 900) return;
   const cardsTab = document.getElementById('tabContentCards');
