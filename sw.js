@@ -1,12 +1,15 @@
 const CACHE_NAME = 'milestrack-cache-v1.8.2';
 
-const STATIC_ASSETS = [
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  // Master Card Art Assets
+  'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
+];
+
+const CARD_ASSETS = [
   './assets/cards/dbs-yuu.png',
   './assets/cards/uob-ppv.png',
   './assets/cards/uob-vs.png',
@@ -21,22 +24,30 @@ const STATIC_ASSETS = [
   './assets/cards/dbs-vantage.png',
   './assets/cards/uob-prvi.png',
   './assets/cards/dbs-altitude.png',
-  './assets/cards/citi-pm.png',
-  // Fonts & Icons
-  'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
+  './assets/cards/citi-pm.png'
 ];
 
-// Install: pre-cache static shell assets
+// Install: Pre-cache core assets, then gracefully attempt card images
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // 1. Must succeed
+      await cache.addAll(CORE_ASSETS);
+
+      // 2. Gracefully attempt each card image (won't crash if file is missing)
+      await Promise.allSettled(
+        CARD_ASSETS.map((url) =>
+          fetch(url).then((res) => {
+            if (res.ok) return cache.put(url, res);
+          }).catch(() => {})
+        )
+      );
     })
   );
   self.skipWaiting();
 });
 
-// Activate: clean up older cache versions
+// Activate: Purge older caches (including v1.7.9)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -52,11 +63,10 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network-first for Firestore/Firebase APIs, Cache-first for local static assets
+// Fetch: Network-first for Firebase, Cache-first for local assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip caching for Firebase Auth, Firestore queries, and non-GET requests
   if (
     event.request.method !== 'GET' ||
     url.hostname.includes('firestore.googleapis.com') ||
@@ -73,7 +83,6 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        // Cache external static resources (like Google Fonts) dynamically
         if (
           networkResponse.status === 200 &&
           (url.hostname.includes('gstatic.com') || url.hostname.includes('fonts.googleapis.com'))
