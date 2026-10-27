@@ -45,7 +45,7 @@
     
     .app-container { width: 100%; max-width: 1180px; padding: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
     
-    /* Re-architected 2-Row Header (Zero Overlap Guaranteed) */
+    /* 2-Row Header Layout */
     header { 
       padding: 4px 2px 8px; 
       display: flex; 
@@ -299,6 +299,51 @@
     .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); line-height: 1.35; }
     .kris-stacked-badge { font-size: 0.75rem; color: var(--kris-cyan); background: rgba(0, 180, 216, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(0, 180, 216, 0.28); line-height: 1.35; }
 
+    /* Shell Petrol Discount Calculator Helper Card */
+    .shell-calc-box {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(239, 68, 68, 0.08) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .shell-calc-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .shell-calc-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .shell-calc-input-row input {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+    }
+    .btn-apply-shell-discount {
+      background: var(--gold);
+      color: #1a1a1a;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
     .cascade-header { font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
     .cascade-step { font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px; }
@@ -458,7 +503,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.7</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.9</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -478,7 +523,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.7.7</span>
+          <span class="version-tag" id="headerVersionTag">v1.7.9</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
@@ -800,7 +845,7 @@
     </div>
   </div>
 
-  <!-- Transaction Logger Modal with Date Picker -->
+  <!-- Transaction Logger Modal with Date Picker & Shell 14% Discount Calculator -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -823,7 +868,7 @@
 
       <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
-        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Kris+ Partner">
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Kris+ Partner" oninput="checkShellMerchantTrigger()">
       </div>
 
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
@@ -849,8 +894,27 @@
       </div>
 
       <div class="form-group">
-        <label>Amount (SGD Equiv)</label>
+        <label>Amount Charged to Card (Nett SGD)</label>
         <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01" oninput="checkLoggerRounding()">
+      </div>
+
+      <!-- Dedicated Shell 14% Instant Discount Helper -->
+      <div id="shellDiscountCalcArea" style="display:none;">
+        <div class="shell-calc-box">
+          <div class="shell-calc-header">
+            <span>⛽ Shell 14% Instant Discount Calculator</span>
+            <span style="font-size:0.7rem; color:#fde68a;">10% Shell GO+ + 4% UOB</span>
+          </div>
+          <div class="shell-calc-input-row">
+            <input type="number" id="shellGrossInput" placeholder="Gross Pump Price ($)" step="0.01" oninput="updateShellNettCalc()">
+            <button type="button" class="btn-apply-shell-discount" id="btnApplyShellDiscount" onclick="applyShellDiscountNett()">
+              Apply 14% Off
+            </button>
+          </div>
+          <span style="font-size:0.7rem; color:#cbd5e1;" id="shellDiscountStatusText">
+            Enter gross pump price from meter to compute nett S$ amount charged.
+          </span>
+        </div>
       </div>
 
       <div id="modalRoundingAlert"></div>
@@ -972,7 +1036,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.7";
+    const APP_VERSION = "v1.7.9";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1074,7 +1138,7 @@
       { id: 'p_cs', label: 'Cold Storage', icon: '🛒', cardId: 'dbs-yuu', desc: 'Cold Storage' },
       { id: 'p_fairprice_app', label: 'FairPrice App', icon: '🍎', cardId: 'uob-ppv-online', desc: 'NTUC FairPrice (App)' },
       { id: 'p_mcd_online', label: "McDonald's (Online)", icon: '🍔', cardId: 'uob-ls-dining', desc: "McDonald's" },
-      { id: 'p_shell', label: "Shell Petrol", icon: '⛽', cardId: 'uob-ppv-contactless', desc: "Shell Service Station" },
+      { id: 'p_shell', label: "Shell (14% off)", icon: '⛽', cardId: 'uob-ppv-contactless', desc: "Shell Service Station (14% off)" },
       { id: 'p_dine', label: 'Restaurant', icon: '🍽️', cardId: 'uob-ls-dining', desc: 'Restaurant Dining' }
     ];
 
@@ -1119,7 +1183,7 @@
         name: "Petrol / Fuel (Shell)",
         icon: "⛽",
         cardIds: ["uob-ppv-contactless", "uob-vs-contactless"],
-        notes: "Shell: UOB PPV (Mobile Tap, S$600 cap) or UOB VS (S$1k min). Maybank World MC earns 4 mpd uncapped."
+        notes: "Shell: UOB PPV (Mobile Tap, 14% off, S$600 cap) or UOB VS (14% off, min S$1k). Maybank World MC earns 4 mpd uncapped."
       }
     ];
 
@@ -1179,11 +1243,10 @@
       };
     }
 
-    // Comprehensive MCC Database (Incorporating all 15 MileLion Guides)
     const MCC_DATABASE = {
       "5541": {
         name: "Petrol Service Stations (Shell, SPC, Esso, Caltex)",
-        notes: "⛽ <b>Shell:</b> UOB PPV (Mobile Tap, 4 mpd, S$600 cap) or UOB VS (4 mpd, min S$1k). Maybank World MC earns 4 mpd uncapped at cashier (+10% Shell Go+ discount). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 to earn 4 mpd on OCBC/Citi Rewards!",
+        notes: "⛽ <b>Shell Exclusive:</b> Pay with UOB PPV (Mobile Tap) or UOB VS for an <b>instant 14% discount</b> (10% Shell GO+ & 4% UOB) + <b>4.0 mpd</b>! Maybank World MC earns 4 mpd uncapped (10% off). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 for 4 mpd on OCBC/Citi Rewards.",
         candidatesLocal: [
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
@@ -1651,6 +1714,7 @@
         id: 'dbs-yuu', 
         name: 'DBS yuu Card (10 mpd)', 
         bank: 'yuu', 
+        image: 'assets/cards/dbs-yuu.png',
         vaultKey: 'yuu_pts', 
         monthlyCap: 822.86, 
         minSpend: 800, 
@@ -1715,7 +1779,7 @@
         cutoffDay: 18, 
         strategyType: 'blacklist',
         badgeClass: '', 
-        hint: 'Physical NFC terminal tap required (min S$1k/cycle). Bypassed on Kris+.', 
+        hint: 'Physical NFC terminal tap required (min S$1k/cycle). 14% instant off at Shell.', 
         isContactlessOnly: true,
         channelMode: 'inperson',
         themeClass: 'thumb-uob'
@@ -1771,7 +1835,7 @@
         cycleType: 'calendar', 
         strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'Department stores, fashion whitelist, Watsons, Shopee, Lazada & HeyMax vouchers (S$1,110 cap).', 
+        hint: 'Department stores, fashion whitelist, Watsons, Shopee, Lazada & HeyMax Shell vouchers (S$1,110 cap).', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-ocbc'
@@ -1798,6 +1862,7 @@
         id: 'uob-ls-dining', 
         name: "UOB Lady's Solitaire (Dining)", 
         bank: 'UOB', 
+        image: 'assets/cards/uobladysolitaire.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 750, 
         minSpend: 0, 
@@ -1816,6 +1881,7 @@
         id: 'uob-ls-travel', 
         name: "UOB Lady's Solitaire (Travel)", 
         bank: 'UOB', 
+        image: 'assets/cards/uobladysolitaire.png',
         vaultKey: 'uob_uni', 
         monthlyCap: 750, 
         minSpend: 0, 
@@ -2266,11 +2332,17 @@
       document.getElementById('modalFormTitle').innerText = `Log: ${preset.label}`;
       document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
 
+      checkShellMerchantTrigger();
       window.openModal();
 
       setTimeout(() => {
-        const amtBox = document.getElementById('amtInput');
-        if (amtBox) amtBox.focus();
+        if (presetId === 'p_shell') {
+          const grossBox = document.getElementById('shellGrossInput');
+          if (grossBox) grossBox.focus();
+        } else {
+          const amtBox = document.getElementById('amtInput');
+          if (amtBox) amtBox.focus();
+        }
       }, 200);
     };
 
@@ -2421,6 +2493,43 @@
       return null;
     }
 
+    // Shell 14% Discount Calculator Helpers
+    window.checkShellMerchantTrigger = function() {
+      const descVal = (document.getElementById('descInput').value || '').toLowerCase();
+      const cardId = document.getElementById('cardSelect').value;
+      const isShell = descVal.includes('shell') || descVal.includes('petrol') || descVal.includes('fuel');
+      const isUobFuelCard = cardId === 'uob-ppv-contactless' || cardId === 'uob-vs-contactless' || cardId === 'mb-world-mc';
+
+      const calcArea = document.getElementById('shellDiscountCalcArea');
+      if (calcArea) {
+        calcArea.style.display = (isShell || (descVal && isUobFuelCard)) ? 'block' : 'none';
+      }
+    };
+
+    window.updateShellNettCalc = function() {
+      const gross = parseFloat(document.getElementById('shellGrossInput').value) || 0;
+      const statusText = document.getElementById('shellDiscountStatusText');
+      const btn = document.getElementById('btnApplyShellDiscount');
+
+      if (gross > 0) {
+        const nett = (gross * 0.86).toFixed(2);
+        const saved = (gross * 0.14).toFixed(2);
+        btn.innerText = `Apply 14% (Net $${nett})`;
+        statusText.innerHTML = `Gross $${gross.toFixed(2)} - 14% ($${saved}) = <b>Net $${nett}</b> charged to card`;
+      } else {
+        btn.innerText = `Apply 14% Off`;
+        statusText.innerText = `Enter gross pump price from meter to compute nett S$ amount charged.`;
+      }
+    };
+
+    window.applyShellDiscountNett = function() {
+      const gross = parseFloat(document.getElementById('shellGrossInput').value) || 0;
+      if (gross <= 0) return alert('Enter gross pump amount from the fuel pump');
+      const nett = (gross * 0.86).toFixed(2);
+      document.getElementById('amtInput').value = nett;
+      checkLoggerRounding();
+    };
+
     window.checkLoggerRounding = function() {
       const alertArea = document.getElementById('modalRoundingAlert');
       const amt = parseFloat(document.getElementById('amtInput').value) || 0;
@@ -2469,6 +2578,7 @@
 
       updateCategoryHint();
       checkLoggerRounding();
+      checkShellMerchantTrigger();
     };
 
     window.onYuuMerchantChange = function() {
@@ -2718,12 +2828,19 @@
       }
 
       const runnerUp = scoredCandidates[1];
+      const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
       resultArea.innerHTML = `
         <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
           <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
           ${mccData.notes}
         </div>
+
+        ${isShellFuel ? `
+          <div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">
+            ⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount (10% Shell Go+ & 4% UOB) + 4.0 mpd!' : '10% Shell Go+ discount + 4.0 mpd uncapped.'}
+          </div>
+        ` : ''}
 
         ${isKrisPlusMode ? `
           <div class="kris-stacked-badge">
@@ -2754,6 +2871,7 @@
       document.getElementById('bonusCategory').value = 'bonus';
       document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
       onCardSelectChange();
+      checkShellMerchantTrigger();
       openModal();
     };
 
@@ -3141,14 +3259,22 @@
           statusNotice = `<span style="color:var(--danger);font-size:0.75rem;">Cap reached (now base rate)</span>`;
         }
 
+        const thumbHtml = card.image
+          ? `<img src="${card.image}" class="card-thumb" style="object-fit:cover; padding:0; border:1px solid rgba(255,255,255,0.15);" alt="${card.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div class="card-thumb ${card.themeClass || 'thumb-uob'}" style="display:none;">
+               <div class="thumb-chip"></div>
+               <div class="thumb-bank">${card.bank}</div>
+             </div>`
+          : `<div class="card-thumb ${card.themeClass || 'thumb-uob'}">
+               <div class="thumb-chip"></div>
+               <div class="thumb-bank">${card.bank}</div>
+             </div>`;
+
         container.innerHTML += `
           <div class="credit-card ${isStatement ? 'statement-cycle' : ''}" onclick="openCardDetailModal('${card.id}')" style="cursor:pointer;">
             <div class="card-header">
               <div class="card-header-left">
-                <div class="card-thumb ${card.themeClass || 'thumb-uob'}">
-                  <div class="thumb-chip"></div>
-                  <div class="thumb-bank">${card.bank}</div>
-                </div>
+                ${thumbHtml}
                 <div>
                   <div class="card-name">${card.name}</div>
                   <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
@@ -3188,8 +3314,18 @@
       const pct = isUncapped ? 100 : Math.min(100, (currentSpend / card.monthlyCap) * 100);
 
       const thumbEl = document.getElementById('modalCardThumb');
-      thumbEl.className = `card-thumb card-detail-thumb ${card.themeClass || 'thumb-uob'}`;
-      thumbEl.innerHTML = `<div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div>`;
+      if (card.image) {
+        thumbEl.className = 'card-thumb card-detail-thumb';
+        thumbEl.style.padding = '0';
+        thumbEl.style.border = '1px solid rgba(255,255,255,0.2)';
+        thumbEl.innerHTML = `<img src="${card.image}" style="width:100%; height:100%; object-fit:cover; border-radius:5px;" alt="${card.name}">`;
+      } else {
+        thumbEl.className = `card-thumb card-detail-thumb ${card.themeClass || 'thumb-uob'}`;
+        thumbEl.style.padding = '';
+        thumbEl.style.border = '';
+        thumbEl.innerHTML = `<div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div>`;
+      }
+
       document.getElementById('modalCardName').innerText = card.name;
       document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
 
@@ -3352,6 +3488,7 @@
       document.getElementById('modalFormTitle').innerText = "Edit Transaction";
       document.getElementById('btnSaveLedger').innerText = "Update Transaction";
 
+      checkShellMerchantTrigger();
       window.checkLoggerRounding();
       document.getElementById('modalOverlay').classList.add('open');
     };
@@ -3639,6 +3776,10 @@
       document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
       document.getElementById('modalFormTitle').innerText = "Log Transaction";
       document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
+      
+      const grossBox = document.getElementById('shellGrossInput');
+      if (grossBox) grossBox.value = '';
+      
       window.onCardSelectChange();
       window.checkLoggerRounding();
       document.getElementById('modalOverlay').classList.add('open');
