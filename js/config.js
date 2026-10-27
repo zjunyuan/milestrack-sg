@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.8.3";
+export const APP_VERSION = "v1.8.4";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -88,6 +88,29 @@ export const YUU_PARTNER_BRANDS = [
   "guardian", "7-eleven", "7-11", "foodpanda", 
   "gojek", "simplygo", "chagee", "singtel", "charge+", "anywheel"
 ];
+
+export function detectYuuMerchant(desc = "") {
+  const clean = (desc || "").toLowerCase();
+  if (clean.includes("on the go") || clean.includes("onthego")) {
+    return null;
+  }
+  for (const brand of YUU_PARTNER_BRANDS) {
+    if (clean.includes(brand)) {
+      if (brand.includes("cold") || brand.includes("cs fresh") || brand.includes("jasons")) return "Cold Storage";
+      if (brand.includes("giant")) return "Giant";
+      if (brand.includes("guardian")) return "Guardian";
+      if (brand.includes("7-eleven") || brand.includes("7-11")) return "7-Eleven";
+      if (brand.includes("foodpanda")) return "foodpanda";
+      if (brand.includes("gojek")) return "Gojek";
+      if (brand.includes("simplygo")) return "SimplyGo";
+      if (brand.includes("chagee")) return "CHAGEE";
+      if (brand.includes("singtel")) return "Singtel";
+      if (brand.includes("charge+")) return "Charge+";
+      if (brand.includes("anywheel")) return "Anywheel";
+    }
+  }
+  return null;
+}
 
 export const DEFAULT_VAULT = {
   uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
