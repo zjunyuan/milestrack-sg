@@ -1,7 +1,20 @@
 import { state } from "./state.js";
-import { ALL_MASTER_CARDS, DEFAULT_VAULT, DEFAULT_PRESETS, CATEGORY_POOLS, KRISFLYER_4PAX_TIERS, VAULT_REGISTRY } from "./config.js";
+import { 
+  ALL_MASTER_CARDS, 
+  DEFAULT_VAULT, 
+  DEFAULT_PRESETS, 
+  CATEGORY_POOLS, 
+  KRISFLYER_4PAX_TIERS, 
+  VAULT_REGISTRY 
+} from "./config.js";
 import { calcEarnedMiles, runRecommendation, getDaysUntilCycleEnd } from "./recommender.js";
-import { addTransaction, updateTransaction, deleteTransaction, saveVaultBalances, saveAppSettings } from "./firebase.js";
+import { 
+  addTransaction, 
+  updateTransaction, 
+  deleteTransaction, 
+  saveVaultBalances, 
+  saveAppSettings 
+} from "./firebase.js";
 
 export function renderCards() {
   const container = document.getElementById('cardsContainer');
@@ -279,10 +292,39 @@ export function renderTravelGoalBanner() {
   }
 }
 
+export function checkUobFeeDefense() {
+  updateUobFeeRenewalAlerts();
+}
+
 export function updateUobFeeRenewalAlerts() {
   const container = document.getElementById('uobFeeAlertContainer');
   if (!container) return;
   container.innerHTML = '';
+
+  const now = new Date();
+  const alerts = state.settings.uobFeeAlerts || {};
+  
+  Object.entries(alerts).forEach(([cardId, renewalMonthStr]) => {
+    if (!renewalMonthStr) return;
+    const [renYear, renMonth] = renewalMonthStr.split('-').map(Number);
+    const renewalDate = new Date(renYear, renMonth - 1, 1);
+    
+    const diffDays = Math.ceil((renewalDate - now) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays >= 0 && diffDays <= 45) {
+      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+      const cardName = card ? card.name : cardId;
+      
+      const alertBox = document.createElement('div');
+      alertBox.className = 'uob-rounding-notice';
+      alertBox.style.cssText = 'background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; margin: 8px 0;';
+      alertBox.innerHTML = `
+        🛡️ <b>UOB Fee Defense Alert:</b> <b>${cardName}</b> renews in <b>${diffDays} days</b> (${renewalMonthStr}).
+        Check for automatic UNI$ deduction and call UOB or request a fee waiver via the TMRW app.
+      `;
+      container.appendChild(alertBox);
+    }
+  });
 }
 
 export function checkShellMerchantTrigger() {
@@ -363,3 +405,25 @@ export function openCardDetailModal(cardId) {
 
   document.getElementById('cardDetailOverlay').style.display = 'flex';
 }
+
+window.editTx = function(id) {
+  const tx = state.transactions.find(t => t.id === id);
+  if (!tx) return;
+  
+  document.getElementById('editTxId').value = tx.id;
+  document.getElementById('txDateInput').value = tx.date || '';
+  document.getElementById('cardSelect').value = tx.cardId || '';
+  document.getElementById('descInput').value = tx.desc || '';
+  document.getElementById('amtInput').value = tx.amount || '';
+  document.getElementById('bonusCategory').value = tx.category || 'bonus';
+  
+  onCardSelectChange();
+  checkShellMerchantTrigger();
+  openModal();
+};
+
+window.deleteTx = async function(id) {
+  if (confirm("Delete this transaction?")) {
+    await deleteTransaction(id);
+  }
+};
