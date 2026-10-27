@@ -560,14 +560,7 @@ export function closeModal() {
   document.getElementById('editTxId').value = '';
 }
 
-// --- Helper Functions ---
-export function checkShellMerchantTrigger() {
-  const desc = (document.getElementById('descInput')?.value || '').toLowerCase();
-  const area = document.getElementById('shellDiscountCalcArea');
-  if (!area) return;
-  area.style.display = desc.includes('shell') ? 'block' : 'none';
-}
-
+// --- Form & Input Change Handlers ---
 export function onCardSelectChange() {
   const select = document.getElementById('cardSelect');
   const cardId = select?.value;
@@ -584,6 +577,39 @@ export function onCardSelectChange() {
   } else {
     if (yuuGroup) yuuGroup.style.display = 'none';
     if (merchantGroup) merchantGroup.style.display = 'block';
+  }
+}
+
+export function onYuuMerchantChange() {
+  const yuuSelect = document.getElementById('yuuMerchantSelect');
+  const descInput = document.getElementById('descInput');
+  if (yuuSelect && descInput && yuuSelect.value) {
+    descInput.value = yuuSelect.value;
+  }
+}
+
+export function checkShellMerchantTrigger() {
+  const desc = (document.getElementById('descInput')?.value || '').toLowerCase();
+  const area = document.getElementById('shellDiscountCalcArea');
+  if (!area) return;
+  area.style.display = desc.includes('shell') ? 'block' : 'none';
+}
+
+export function applyShellDiscount() {
+  const grossInput = document.getElementById('shellGrossInput');
+  const amtInput = document.getElementById('amtInput');
+  const status = document.getElementById('shellDiscountStatusText');
+  if (!grossInput || !amtInput) return;
+
+  const gross = parseFloat(grossInput.value) || 0;
+  if (gross <= 0) return;
+
+  const nett = (gross * 0.86).toFixed(2);
+  amtInput.value = nett;
+
+  if (status) {
+    status.innerText = `Gross: $${gross.toFixed(2)} → 14% instant off = $${nett} charged`;
+    status.style.color = '#34d399';
   }
 }
 
@@ -631,7 +657,7 @@ export function openCardDetailModal(cardId) {
   document.getElementById('cardDetailOverlay').style.display = 'flex';
 }
 
-// --- Window Global Bindings for Ledger Buttons ---
+// --- Window Global Bindings for Inline HTML Attributes ---
 window.editTx = function(id) {
   const tx = state.transactions.find(t => t.id === id);
   if (!tx) return;
