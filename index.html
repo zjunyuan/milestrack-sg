@@ -542,7 +542,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.2</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.3</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -562,7 +562,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.8.2</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.3</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
@@ -1081,7 +1081,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.8.2";
+    const APP_VERSION = "v1.8.3";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1295,15 +1295,12 @@
         candidatesLocal: [
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "mb-world-mc", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "mb-horizon-vs", baseRate: 2.8 }
         ]
       },
       "5811": {
@@ -1313,17 +1310,12 @@
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
       "5812": {
@@ -1335,20 +1327,13 @@
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 },
-          { id: "mb-world-mc", baseRate: 0.4 }
+          { id: "kf-uob", baseRate: 2.4 }
         ],
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "uob-prvi", baseRate: 2.4 },
-          { id: "dbs-vantage", baseRate: 2.2 }
+          { id: "kf-uob", baseRate: 2.4 }
         ]
       },
       "5813": {
@@ -1358,17 +1343,12 @@
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "kf-uob", baseRate: 2.4 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "kf-uob", baseRate: 2.4 }
         ]
       },
       "5814": {
@@ -1378,15 +1358,11 @@
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "kf-uob", baseRate: 2.4 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "uob-ls-dining", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "uob-ls-dining", baseRate: 4.0 }
         ]
       },
       "5441": {
@@ -1396,13 +1372,10 @@
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
@@ -1413,13 +1386,10 @@
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
@@ -1431,14 +1401,11 @@
           { id: "uob-ppv-online", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-wwmc", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "dbs-wwmc", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-ls-dining", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "dbs-wwmc", baseRate: 4.0 }
         ]
       },
@@ -1449,14 +1416,10 @@
           { id: "dbs-yuu", baseRate: 10.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "hsbc-rev", baseRate: 4.0 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "5912": {
@@ -1468,14 +1431,11 @@
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "dbs-wwmc", baseRate: 4.0 },
-          { id: "citi-rewards", baseRate: 0.4 }
+          { id: "dbs-wwmc", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "ocbc-rewards", baseRate: 6.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "ocbc-rewards", baseRate: 6.0 }
         ]
       },
       "8351": {
@@ -1484,14 +1444,10 @@
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "8011": {
@@ -1500,14 +1456,10 @@
         candidatesLocal: [
           { id: "uob-ppv-contactless", baseRate: 4.0 },
           { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-wwmc", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "dbs-wwmc", baseRate: 4.0 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "8021": {
@@ -1515,14 +1467,10 @@
         notes: "Dental checkups & scaling. Earns 4.0 mpd via Mobile Tap (UOB PPV / UOB VS). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
         candidatesLocal: [
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "7512": {
@@ -1532,16 +1480,12 @@
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "hsbc-rev", baseRate: 4.0 },
           { id: "uob-ppv-contactless", baseRate: 4.0 },
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "uob-vs-contactless", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "hsbc-rev", baseRate: 4.0 }
         ]
       },
       "5311": {
@@ -1557,9 +1501,7 @@
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
           { id: "ocbc-rewards", baseRate: 4.0 },
-          { id: "citi-rewards", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "citi-rewards", baseRate: 4.0 }
         ]
       },
       "5651": {
@@ -1575,9 +1517,7 @@
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "ocbc-rewards", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "ocbc-rewards", baseRate: 4.0 }
         ]
       },
       "5621": {
@@ -1593,9 +1533,7 @@
         candidatesOverseas: [
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "ocbc-rewards", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "ocbc-rewards", baseRate: 4.0 }
         ]
       },
       "4511": {
@@ -1605,18 +1543,14 @@
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 3.0 },
-          { id: "mb-horizon-vs", baseRate: 3.24 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "mb-horizon-vs", baseRate: 3.24 }
         ],
         candidatesOverseas: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "kf-uob", baseRate: 3.0 },
           { id: "mb-horizon-vs", baseRate: 3.24 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "4722": {
@@ -1625,18 +1559,13 @@
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
+          { id: "kf-uob", baseRate: 2.4 }
         ],
         candidatesOverseas: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "kf-uob", baseRate: 2.4 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "kf-uob", baseRate: 2.4 }
         ]
       },
       "7011": {
@@ -1645,15 +1574,11 @@
         candidatesLocal: [
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 3.24 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "mb-horizon-vs", baseRate: 3.24 }
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "uob-ls-travel", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "uob-ls-travel", baseRate: 4.0 }
         ]
       },
       "4111": {
@@ -1665,9 +1590,7 @@
           { id: "kf-uob", baseRate: 2.4 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "4121": {
@@ -1681,8 +1604,6 @@
         ],
         candidatesOverseas: [
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "dbs-wwmc", baseRate: 4.0 }
         ]
       },
@@ -1693,14 +1614,10 @@
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "dbs-wwmc", baseRate: 4.0 },
           { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "hsbc-rev", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "hsbc-rev", baseRate: 4.0 }
         ],
         candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
+          { id: "uob-vs-fcy", baseRate: 4.0 }
         ]
       },
       "8062": { 
@@ -2490,15 +2407,12 @@
           { id: "ocbc-rewards", baseRate: 6.0 },
           { id: "citi-rewards", baseRate: 4.0 },
           { id: "dbs-wwmc", baseRate: 4.0 },
-          { id: "uob-ppv-online", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 }
+          { id: "uob-ppv-online", baseRate: 4.0 }
         ],
         candidatesOverseas: [
           { id: "ocbc-rewards", baseRate: 6.0 },
           { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "citi-rewards", baseRate: 4.0 },
-          { id: "mb-horizon-vs", baseRate: 2.8 }
+          { id: "citi-rewards", baseRate: 4.0 }
         ]
       };
     }
@@ -2527,12 +2441,7 @@
           name: "General Overseas Spend (Any MCC)",
           notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend), or 2.4 mpd on UOB PRVI.",
           candidatesOverseas: [
-            { id: "uob-vs-fcy", baseRate: 4.0 },
-            { id: "mb-world-mc", baseRate: 3.2 },
-            { id: "mb-horizon-vs", baseRate: 2.8 },
-            { id: "uob-prvi", baseRate: 2.4 },
-            { id: "dbs-vantage", baseRate: 2.2 },
-            { id: "kf-uob", baseRate: 1.2 }
+            { id: "uob-vs-fcy", baseRate: 4.0 }
           ]
         };
       }
@@ -2543,10 +2452,7 @@
           name: "Kris+ Partner Merchant (Uncategorized)",
           notes: "🛍️ <b>Kris+ In-App Payment:</b> Processed as online spend. DBS WWMC earns 4.0 mpd (online blacklist). KF UOB earns 3.0 mpd uncapped. ⚠️ Citi Rewards & UOB VS are strictly excluded from 4.0 mpd.",
           candidatesLocal: [
-            { id: "dbs-wwmc", baseRate: 4.0 },
-            { id: "kf-uob", baseRate: 3.0 },
-            { id: "dbs-vantage", baseRate: 1.5 },
-            { id: "uob-prvi", baseRate: 1.4 }
+            { id: "dbs-wwmc", baseRate: 4.0 }
           ]
         };
       }
@@ -2663,6 +2569,7 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
+    // Recommendation Engine with Global Fallback Resolver
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -2687,6 +2594,7 @@
 
       let candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
       
+      // Auto-inject DBS WWMC if Kris+ mode is active and not already candidate
       if (isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
         candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
       }
@@ -2696,6 +2604,7 @@
         const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
         if (!cardObj) return false;
 
+        // Strict Kris+ In-App Exclusions
         if (isKrisPlusMode) {
           if (cardObj.id === 'citi-rewards') return false;
           if (cardObj.id === 'uob-vs-contactless') return false;
@@ -2763,19 +2672,20 @@
         };
       }).filter(Boolean).sort((a, b) => {
         if (b.rate !== a.rate) return b.rate - a.rate;
-        // MileLion Optimization: Burn Whitelist first to preserve flexible Blacklist caps
+        // Priority: Burn Whitelist first to preserve flexible Blacklist caps
         if (a.card.strategyType === 'whitelist' && b.card.strategyType === 'blacklist') return -1;
         if (a.card.strategyType === 'blacklist' && b.card.strategyType === 'whitelist') return 1;
         return a.card.monthlyCap - b.card.monthlyCap;
       });
 
       const primary = scoredCandidates[0];
-      const requiresSplit = !primary.isUncapped && primary.remainingCap < amt && scoredCandidates.length > 1;
+      const requiresSplit = !primary.isUncapped && primary.remainingCap < amt;
 
       if (requiresSplit) {
         let unallocatedAmt = amt;
         const allocationSteps = [];
 
+        // 1. Allocate to available bonus category cards
         for (const candidate of scoredCandidates) {
           if (unallocatedAmt <= 0) break;
           const takeAmt = candidate.isUncapped ? unallocatedAmt : Math.min(candidate.remainingCap, unallocatedAmt);
@@ -2802,13 +2712,53 @@
           unallocatedAmt -= takeAmt;
         }
 
+        // 2. Global Fallback Resolver for remaining overflow balance
         if (unallocatedAmt > 0) {
-          const fallback = scoredCandidates.find(c => c.isUncapped) || scoredCandidates[scoredCandidates.length - 1];
-          const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallback.card.baseMpd);
+          let fallback = scoredCandidates.find(c => c.isUncapped);
+
+          if (!fallback) {
+            const isGloballyExcluded = mccData.candidatesLocal && mccData.candidatesLocal.length === 0;
+
+            if (!isGloballyExcluded) {
+              const eligibleGeneralCards = cards
+                .filter(c => enabledCardIds.includes(c.id) && c.monthlyCap >= 999999)
+                .map(c => {
+                  let rate = c.baseMpd;
+
+                  // KrisFlyer UOB earns 3.0 mpd uncapped on all Kris+ transactions
+                  if (isKrisPlusMode && c.id === 'kf-uob') {
+                    rate = 3.0;
+                  } 
+                  // FCY rates in overseas mode
+                  else if (isOverseasMode) {
+                    if (c.id === 'mb-world-mc') rate = 3.2;
+                    else if (c.id === 'mb-horizon-vs') rate = 2.8;
+                    else if (c.id === 'uob-prvi') rate = 2.4;
+                    else if (c.id === 'dbs-vantage') rate = 2.2;
+                    else if (c.id === 'dbs-altitude') rate = 2.2;
+                  }
+
+                  return { card: c, rate, isUncapped: true };
+                })
+                .sort((a, b) => b.rate - a.rate);
+
+              if (eligibleGeneralCards.length > 0) {
+                fallback = eligibleGeneralCards[0];
+              }
+            }
+          }
+
+          if (!fallback) {
+            fallback = scoredCandidates[scoredCandidates.length - 1];
+          }
+
+          const fallbackRate = (isKrisPlusMode && fallback.card.id === 'kf-uob') ? 3.0 : (fallback.rate || fallback.card.baseMpd);
+          const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallbackRate);
+          
           allocationSteps.push({
             card: fallback.card,
             amount: unallocatedAmt,
-            rate: fallback.card.baseMpd,
+            rate: fallbackRate,
             miles: earnedMiles,
             isBase: true
           });
@@ -2827,7 +2777,7 @@
               <div class="cascade-step">
                 <div>
                   ${icon} <b>${step.card.name}</b>: Charge <b>$${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                  <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? 'Base Rate (Cap Overflow)' : `${step.rate} mpd bonus tier`}</div>
+                  <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
                 </div>
                 <span style="color:var(--accent); font-weight:700;">+${Math.round(step.miles).toLocaleString()} mi</span>
               </div>
@@ -2848,7 +2798,7 @@
 
             ${isKrisPlusMode ? `
               <div class="kris-stacked-badge">
-                💡 <b>Kris+ Double-Dip:</b> Remember that credit card miles stack on top of instant Kris+ partner miles (typically +1 to 9 mpd). Transfer partner miles to KrisFlyer within 21 days!
+                💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles (typically +1 to 9 mpd). Transfer partner miles to KrisFlyer within 21 days!
               </div>
             ` : ''}
 
@@ -2861,7 +2811,7 @@
             </div>
 
             <div style="font-size:0.75rem; color:#94a3b8;">
-              ${isKrisPlusMode ? 'Conserving versatile blacklist caps (DBS WWMC) by utilizing category whitelist cards first.' : 'Splitting this transaction ensures you do not waste large purchases at poor base rates once caps are exhausted.'}
+              ${isKrisPlusMode ? 'Conserving versatile blacklist caps by utilizing category whitelist cards first, then routing overflow to uncapped KrisFlyer UOB (3.0 mpd).' : 'Splitting this transaction ensures overflow balance routes to your best uncapped card rather than poor base rates.'}
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
