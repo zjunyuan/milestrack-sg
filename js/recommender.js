@@ -1,4 +1,4 @@
-import { MCC_DATABASE, ALL_MASTER_CARDS } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, MERCHANT_DIRECTORY } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, checkShellMerchantTrigger } from "./ui.js";
 
@@ -47,20 +47,41 @@ export function resolveMccEntry(input) {
   const clean = (input || '').trim().toLowerCase();
   if (!clean) return null;
 
+  // 1. Promo bypasses (e.g. OCBC 6 mpd)
   const promo = checkOcbc6MpdPromo(clean);
   if (promo) return promo;
 
+  // 2. Direct 4-digit numeric MCC match (e.g. "5944")
   const codeMatch = clean.match(/\b\d{4}\b/);
   if (codeMatch && MCC_DATABASE[codeMatch[0]]) {
     return { code: codeMatch[0], ...MCC_DATABASE[codeMatch[0]] };
   }
 
+  // 3. Search curated Merchant Directory by brand name or tag
+  const matchedMerchant = MERCHANT_DIRECTORY.find(m => 
+    m.name.toLowerCase().includes(clean) || 
+    m.tags.some(tag => clean.includes(tag) || tag.includes(clean))
+  );
+
+  if (matchedMerchant && MCC_DATABASE[matchedMerchant.mcc]) {
+    const entry = MCC_DATABASE[matchedMerchant.mcc];
+    return {
+      code: matchedMerchant.mcc,
+      name: `${matchedMerchant.name} (MCC ${matchedMerchant.mcc})`,
+      notes: entry.notes,
+      candidatesLocal: entry.candidatesLocal,
+      candidatesOverseas: entry.candidatesOverseas
+    };
+  }
+
+  // 4. Substring fallback across MCC database descriptions & notes
   for (const [code, item] of Object.entries(MCC_DATABASE)) {
     if (item.name.toLowerCase().includes(clean) || item.notes.toLowerCase().includes(clean)) {
       return { code, ...item };
     }
   }
 
+  // 5. Mode Overlays
   if (state.isOverseasMode) {
     return {
       code: "FCY-GEN",
@@ -119,7 +140,7 @@ export function runRecommendation() {
           ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
           : (state.isOverseasMode 
             ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-            : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).')}
+            : 'Type a retailer (e.g. <b>Decathlon</b>, <b>Hour Glass</b>, <b>FairPrice</b>), 4-digit MCC, or promo (e.g. <b>Shopee</b>).')}
       </div>
     `;
     return;
@@ -147,7 +168,7 @@ export function runRecommendation() {
     if (effectiveChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) return false;
 
     if (effectiveChannel === 'inperson' && cardObj.id === 'citi-rewards') {
-      const eligibleInStoreMccs = ["5311", "5651", "5621", "OCBC-6MPD"];
+      const eligibleInStoreMccs = ["5311", "5651", "5621", "5691", "5631", "5661", "5977", "OCBC-6MPD"];
       if (!eligibleInStoreMccs.includes(mccData.code)) return false;
     }
 
