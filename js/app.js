@@ -26,6 +26,10 @@ let isKrisPlusMode = false;
 let isOverseasMode = false;
 let isSingleSwipeMode = false;
 
+// Transaction Live Search & Filter State
+let txSearchQuery = "";
+let txCardFilter = "ALL";
+
 let enabledCardIds = ALL_MASTER_CARDS.map(c => c.id);
 let cards = ALL_MASTER_CARDS;
 let transactions = [];
@@ -770,10 +774,20 @@ function quickLogPreset(presetId) {
 function renderCards() {
   const container = document.getElementById('cardsContainer');
   const select = document.getElementById('cardSelect');
+  const filterSelect = document.getElementById('txFilterCardSelect');
   if (!container || !select) return;
 
   container.innerHTML = '';
   select.innerHTML = '';
+
+  if (filterSelect) {
+    const currentFilter = filterSelect.value;
+    filterSelect.innerHTML = '<option value="ALL">All Cards</option>';
+    cards.forEach(c => {
+      filterSelect.innerHTML += `<option value="${c.id}">${c.name.split(' ')[0]} ${c.name.split(' ')[1] || ''}</option>`;
+    });
+    filterSelect.value = currentFilter || 'ALL';
+  }
 
   cards.forEach(card => {
     const activeTxns = transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
@@ -952,19 +966,49 @@ function updateTravelGoal(personalTotalMiles) {
   }
 }
 
+// -------------------------------------------------------------
+// Live Search & Card-Filtered Transaction List
+// -------------------------------------------------------------
 function renderTransactions() {
   const list = document.getElementById('txList');
   const badge = document.getElementById('txCountBadge');
   if (!list) return;
   list.innerHTML = '';
-  if (badge) badge.innerText = `${transactions.length} recorded`;
 
-  if (transactions.length === 0) {
-    list.innerHTML = `<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No transactions logged yet.</div>`;
+  const queryClean = txSearchQuery.toLowerCase().trim();
+
+  const filteredTxns = transactions.filter(tx => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
+    
+    if (txCardFilter !== "ALL" && tx.cardId !== txCardFilter) {
+      return false;
+    }
+
+    if (queryClean) {
+      const matchDesc = (tx.desc || '').toLowerCase().includes(queryClean);
+      const matchCard = card.name.toLowerCase().includes(queryClean);
+      const matchDate = (tx.date || '').toLowerCase().includes(queryClean);
+      const matchCategory = (tx.bonusCategory || '').toLowerCase().includes(queryClean);
+      return matchDesc || matchCard || matchDate || matchCategory;
+    }
+
+    return true;
+  });
+
+  if (badge) {
+    if (queryClean || txCardFilter !== "ALL") {
+      badge.innerText = `${filteredTxns.length} of ${transactions.length} shown`;
+    } else {
+      badge.innerText = `${transactions.length} recorded`;
+    }
+  }
+
+  if (filteredTxns.length === 0) {
+    list.innerHTML = `<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
     return;
   }
 
-  transactions.slice().reverse().forEach(tx => {
+  filteredTxns.slice().reverse().forEach(tx => {
     const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
     const row = document.createElement('div');
     row.className = 'tx-item';
@@ -1272,6 +1316,263 @@ async function saveTransaction() {
   closeModal();
 }
 
+// -------------------------------------------------------------
+// Monthly & Annual Cycle Archive Resolver
+// -------------------------------------------------------------
+function getStatementCycleForMonth(card, targetYear, targetMonth) {
+  const cutoff = card.cutoffDay || 15;
+  const windowEnd = new Date(targetYear, targetMonth - 1, cutoff - 1, 23, 59, 59, 999);
+  const windowStart = new Date(targetYear, targetMonth - 2, cutoff, 0, 0, 0, 0);
+
+  const cycleTxns = transactions.filter(tx => {
+    if (tx.cardId !== card.id || !tx.timestamp) return false;
+    const txDate = new Date(tx.timestamp);
+    return txDate >= windowStart && txDate <= windowEnd;
+  });
+
+  const spent = cycleTxns.reduce((sum, tx) => sum + (Number(tx.amt) || 0), 0);
+  const miles = cycleTxns.reduce((sum, tx) => sum + (Number(tx.miles) || 0), 0);
+
+  return {
+    label: `${windowStart.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })} – ${windowEnd.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })}`,
+    spent,
+    miles,
+    txCount: cycleTxns.length
+  };
+}
+
+function getAvailableArchiveMonths() {
+  const monthSet = new Set();
+  const yearSet = new Set();
+  const now = new Date();
+
+  const currentYear = now.getFullYear();
+  yearSet.add(currentYear);
+  monthSet.add(`${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+
+  transactions.forEach(tx => {
+    if (tx.timestamp) {
+      const d = new Date(tx.timestamp);
+      const y = d.getFullYear();
+      yearSet.add(y);
+      monthSet.add(`${y}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+  });
+
+  const sortedYears = Array.from(yearSet).sort((a, b) => b - a);
+  const sortedMonths = Array.from(monthSet).sort().reverse();
+
+  const options = [];
+  sortedYears.forEach(y => {
+    options.push({ value: `YEAR-${y}`, label: `🗓️ Full Year ${y} (All Cards)` });
+    sortedMonths
+      .filter(m => m.startsWith(`${y}-`))
+      .forEach(mKey => {
+        const [, month] = mKey.split('-').map(Number);
+        const dateObj = new Date(y, month - 1, 1);
+        options.push({
+          value: mKey,
+          label: `  • ${dateObj.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}`
+        });
+      });
+  });
+
+  return options;
+}
+
+function openArchiveModal() {
+  const select = document.getElementById('archiveMonthSelect');
+  if (!select) return;
+
+  const cycleOptions = getAvailableArchiveMonths();
+  select.innerHTML = '';
+
+  cycleOptions.forEach(opt => {
+    select.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
+  });
+
+  renderArchiveData();
+  document.getElementById('archiveModalOverlay').classList.add('open');
+}
+
+function closeArchiveModal() {
+  document.getElementById('archiveModalOverlay').classList.remove('open');
+}
+
+function renderArchiveData() {
+  const selectedKey = document.getElementById('archiveMonthSelect').value;
+  if (!selectedKey) return;
+
+  const isFullYear = selectedKey.startsWith('YEAR-');
+  let targetYear = 0;
+  let targetMonth = 0;
+
+  if (isFullYear) {
+    targetYear = parseInt(selectedKey.replace('YEAR-', ''), 10);
+  } else {
+    const parts = selectedKey.split('-').map(Number);
+    targetYear = parts[0];
+    targetMonth = parts[1];
+  }
+
+  const scopedTxns = transactions.filter(tx => {
+    if (!tx.timestamp) return false;
+    const d = new Date(tx.timestamp);
+    if (isFullYear) {
+      return d.getFullYear() === targetYear;
+    }
+    return d.getFullYear() === targetYear && (d.getMonth() + 1) === targetMonth;
+  });
+
+  let totalSpent = 0;
+  let totalMiles = 0;
+  const cardAggregates = {};
+
+  ALL_MASTER_CARDS.forEach(c => {
+    cardAggregates[c.id] = {
+      card: c,
+      spent: 0,
+      miles: 0,
+      txCount: 0
+    };
+  });
+
+  scopedTxns.forEach(tx => {
+    const amt = Number(tx.amt) || 0;
+    const miles = Number(tx.miles) || 0;
+    totalSpent += amt;
+    totalMiles += miles;
+
+    if (cardAggregates[tx.cardId]) {
+      cardAggregates[tx.cardId].spent += amt;
+      cardAggregates[tx.cardId].miles += miles;
+      cardAggregates[tx.cardId].txCount += 1;
+    }
+  });
+
+  const blendedMpd = totalSpent > 0 ? (totalMiles / totalSpent).toFixed(2) : '0.00';
+
+  document.getElementById('archiveTotalSpent').innerText = `$${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById('archiveTxnCount').innerText = `${scopedTxns.length} transactions (${isFullYear ? `Year ${targetYear}` : '1 Month'})`;
+  document.getElementById('archiveTotalMiles').innerText = `+${Math.round(totalMiles).toLocaleString()} mi`;
+  document.getElementById('archiveBlendedMpd').innerText = `${blendedMpd} blended mpd`;
+
+  const listEl = document.getElementById('archiveCardBreakdownList');
+  listEl.innerHTML = '';
+
+  const activeUsedCards = Object.values(cardAggregates).filter(item => item.spent > 0);
+
+  if (activeUsedCards.length === 0) {
+    listEl.innerHTML = `<div class="detail-tx-empty">No transactions recorded for ${isFullYear ? `the year ${targetYear}` : 'this billing cycle'}.</div>`;
+    return;
+  }
+
+  activeUsedCards.sort((a, b) => b.miles - a.miles);
+
+  const now = new Date();
+  const monthsInCycle = isFullYear
+    ? (targetYear === now.getFullYear() ? (now.getMonth() + 1) : 12)
+    : 1;
+
+  activeUsedCards.forEach(item => {
+    const card = item.card;
+    const isUncapped = card.monthlyCap >= 999999;
+    const cumulativeCap = isUncapped ? 999999 : (card.monthlyCap * monthsInCycle);
+    const capPct = isUncapped ? 100 : Math.min(100, (item.spent / cumulativeCap) * 100).toFixed(0);
+    const cardBlendedMpd = item.spent > 0 ? (item.miles / item.spent).toFixed(2) : '0.00';
+
+    let statementAuditHtml = '';
+    if (!isFullYear && card.cycleType === 'statement') {
+      const stmt = getStatementCycleForMonth(card, targetYear, targetMonth);
+      let statusBadge = '';
+      if (card.id.startsWith('uob-vs')) {
+        const isMet = stmt.spent >= 1000;
+        statusBadge = isMet 
+          ? `<span style="color:var(--accent); font-weight:700;">✅ S$1k Min Spend Met ($${stmt.spent.toFixed(0)})</span>` 
+          : `<span style="color:var(--danger); font-weight:700;">⚠️ Min Spend Missed ($${stmt.spent.toFixed(0)} / $1,000)</span>`;
+      } else {
+        statusBadge = `<span>Bill Window: $${stmt.spent.toFixed(0)} / $${card.monthlyCap}</span>`;
+      }
+
+      statementAuditHtml = `
+        <div style="margin-top:4px; padding:6px 8px; background:rgba(0,0,0,0.25); border-radius:8px; font-size:0.7rem; border-left:2px solid var(--primary);">
+          <div style="display:flex; justify-content:space-between; color:#cbd5e1;">
+            <span>Statement Cycle (${stmt.label}):</span>
+            ${statusBadge}
+          </div>
+        </div>
+      `;
+    }
+
+    listEl.innerHTML += `
+      <div style="background:var(--surface-variant); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.85rem; font-weight:700; color:#fff;">${card.name}</span>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);">+${item.miles.toLocaleString()} mi</span>
+        </div>
+        <div class="progress-bar-bg" style="height:5px;">
+          <div class="progress-bar-fill" style="width:${capPct}%; background:${capPct >= 100 && !isUncapped ? 'var(--danger)' : 'var(--primary)'};"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#94a3b8;">
+          <span>Charged $${item.spent.toFixed(2)} ${isUncapped ? '(Uncapped)' : `(Cap: $${cumulativeCap.toLocaleString()} • ${capPct}%)`}</span>
+          <span><b>${cardBlendedMpd} mpd</b> (${item.txCount} txns)</span>
+        </div>
+        ${statementAuditHtml}
+      </div>
+    `;
+  });
+}
+
+function exportArchiveMonthCSV() {
+  const selectedKey = document.getElementById('archiveMonthSelect').value;
+  if (!selectedKey) return;
+
+  const isFullYear = selectedKey.startsWith('YEAR-');
+  let exportTxns = [];
+  let fileName = '';
+
+  if (isFullYear) {
+    const yearVal = parseInt(selectedKey.replace('YEAR-', ''), 10);
+    fileName = `milestrack_full_year_${yearVal}.csv`;
+    exportTxns = transactions.filter(tx => {
+      if (!tx.timestamp) return false;
+      return new Date(tx.timestamp).getFullYear() === yearVal;
+    });
+  } else {
+    const [selYear, selMonth] = selectedKey.split('-').map(Number);
+    fileName = `milestrack_${selectedKey}.csv`;
+    exportTxns = transactions.filter(tx => {
+      if (!tx.timestamp) return false;
+      const d = new Date(tx.timestamp);
+      return d.getFullYear() === selYear && (d.getMonth() + 1) === selMonth;
+    });
+  }
+
+  if (exportTxns.length === 0) return alert("No transactions found for this period.");
+
+  const headers = ["Date", "Description", "Card Slot", "Amount (SGD)", "Earned Miles", "Category"];
+  const rows = exportTxns.map(t => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === t.cardId) || { name: t.cardId };
+    return [
+      t.date,
+      `"${(t.desc || '').replace(/"/g, '""')}"`,
+      `"${card.name}"`,
+      Number(t.amt || 0).toFixed(2),
+      t.miles,
+      t.bonusCategory || 'bonus'
+    ];
+  });
+
+  const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function switchTab(tabName) {
   if (window.innerWidth >= 900) return;
   const cardsTab = document.getElementById('tabContentCards');
@@ -1302,7 +1603,9 @@ function switchTab(tabName) {
   }
 }
 
+// -------------------------------------------------------------
 // Event Listeners Wiring
+// -------------------------------------------------------------
 document.getElementById('btnLoginGoogle')?.addEventListener('click', async () => {
   try { await signInWithPopup(auth, googleProvider); } catch (e) { alert(e.message); }
 });
@@ -1423,6 +1726,36 @@ document.getElementById('btnApplyShellDiscount')?.addEventListener('click', () =
   const gross = parseFloat(document.getElementById('shellGrossInput').value) || 0;
   if (gross > 0) document.getElementById('amtInput').value = (gross * 0.86).toFixed(2);
 });
+
+// Transaction Search Listeners
+document.getElementById('txSearchInput')?.addEventListener('input', (e) => {
+  txSearchQuery = e.target.value;
+  const clearBtn = document.getElementById('btnClearTxSearch');
+  if (clearBtn) clearBtn.style.display = txSearchQuery.trim() ? 'flex' : 'none';
+  renderTransactions();
+});
+
+document.getElementById('btnClearTxSearch')?.addEventListener('click', () => {
+  const input = document.getElementById('txSearchInput');
+  if (input) {
+    input.value = '';
+    txSearchQuery = '';
+    document.getElementById('btnClearTxSearch').style.display = 'none';
+    input.focus();
+    renderTransactions();
+  }
+});
+
+document.getElementById('txFilterCardSelect')?.addEventListener('change', (e) => {
+  txCardFilter = e.target.value;
+  renderTransactions();
+});
+
+// Archive Modal Listeners
+document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', openArchiveModal);
+document.getElementById('btnCloseArchiveModal')?.addEventListener('click', closeArchiveModal);
+document.getElementById('archiveMonthSelect')?.addEventListener('change', renderArchiveData);
+document.getElementById('btnExportArchiveCSV')?.addEventListener('click', exportArchiveMonthCSV);
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
