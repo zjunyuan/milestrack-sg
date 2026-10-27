@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.7.9';
+const CACHE_NAME = 'milestrack-cache-v1.8.2';
 
 const STATIC_ASSETS = [
   './',
@@ -6,8 +6,23 @@ const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  // Master Card Art Assets
   './assets/cards/dbs-yuu.png',
+  './assets/cards/uob-ppv.png',
+  './assets/cards/uob-vs.png',
+  './assets/cards/citi-rewards.png',
+  './assets/cards/ocbc-rewards.png',
+  './assets/cards/dbs-wwmc.png',
   './assets/cards/uobladysolitaire.png',
+  './assets/cards/hsbc-rev.png',
+  './assets/cards/kf-uob.png',
+  './assets/cards/maybank-world.png',
+  './assets/cards/maybank-horizon.png',
+  './assets/cards/dbs-vantage.png',
+  './assets/cards/uob-prvi.png',
+  './assets/cards/dbs-altitude.png',
+  './assets/cards/citi-pm.png',
+  // Fonts & Icons
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
 ];
 
