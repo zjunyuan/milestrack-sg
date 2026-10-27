@@ -19,7 +19,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.9.4</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.7</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -38,7 +38,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.9.4</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.7</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -264,8 +264,6 @@
           </div>
           <button class="btn-view-peer" id="btnOpenPeerVault">View Breakdown ❯</button>
         </div>
-        <!-- Extended Family Vaults container for multi-vault support -->
-        <div id="familyVaultsGrid" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;"></div>
 
         <div>
           <div class="section-title">
@@ -533,7 +531,7 @@
         </div>
       </div>
 
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline); margin-top:10px;">
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
         <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
           My Card Wallet (Active Cards)
         </label>
@@ -543,7 +541,7 @@
         <div class="checklist-grid" id="cardChecklistContainer"></div>
       </div>
 
-      <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3); margin-top:10px;">
+      <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
         <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
           UOB Auto-Deduction Defense (Card Renewal Months)
         </label>
@@ -565,24 +563,24 @@
         </div>
       </div>
 
-      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container); margin-top:10px;">
+      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
         <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
           Citi Rewards Approval Date (5-Year Cycle)
         </label>
         <input type="month" id="citiApprovalInput" class="form-control">
       </div>
 
-      <div class="form-group" style="margin-top:10px;">
+      <div class="form-group">
         <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
         <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
       </div>
 
-      <div class="form-group" style="margin-top:6px;">
+      <div class="form-group">
         <label>Citi Rewards Statement Cutoff Day (1 - 31)</label>
         <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
       </div>
 
-      <button class="btn-submit" id="btnSaveSettings" style="margin-top:10px;">Save Settings</button>
+      <button class="btn-submit" id="btnSaveSettings">Save Settings</button>
     </div>
   </div>
 
@@ -702,12 +700,6 @@
     </div>
   </div>
 
-  <!-- Firebase Compat SDKs (Required for Auth & Firestore) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-  <!-- Application Module Entry Point -->
-  <script type="module" src="js/app.js?v=1.9.4"></script>
+  <script type="module" src="js/app.js?v=1.8.7"></script>
 </body>
 </html>
