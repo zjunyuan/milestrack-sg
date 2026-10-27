@@ -1,5 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged,
+  setPersistence,
+  indexedDBLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -56,9 +64,13 @@ auth = getAuth(app);
 db = getFirestore(app);
 googleProvider = new GoogleAuthProvider();
 
+// Force persistence directly into Android Chrome's permanent IndexedDB layer
+setPersistence(auth, indexedDBLocalPersistence).catch(console.error);
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
+    sessionStorage.removeItem('auth_in_progress');
     const resolvedKey = resolveVaultKey(user.email);
     myVaultKey = resolvedKey;
     peerVaultKey = (resolvedKey === "sister") ? "primary" : "sister";
@@ -1742,7 +1754,29 @@ function switchTab(tabName) {
 // Event Listeners Wiring
 // -------------------------------------------------------------
 document.getElementById('btnLoginGoogle')?.addEventListener('click', async () => {
-  try { await signInWithPopup(auth, googleProvider); } catch (e) { alert(e.message); }
+  const btn = document.getElementById('btnLoginGoogle');
+  try {
+    sessionStorage.setItem('auth_in_progress', '1');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "Signing in...";
+    }
+    await setPersistence(auth, indexedDBLocalPersistence);
+    await signInWithPopup(auth, googleProvider);
+  } catch (e) {
+    sessionStorage.removeItem('auth_in_progress');
+    if (e.code !== 'auth/popup-closed-by-user') {
+      alert(e.message);
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+        Sign in with Google
+      `;
+    }
+  }
 });
 
 document.getElementById('btnHeaderLogout')?.addEventListener('click', async () => {
@@ -1947,7 +1981,8 @@ if ('serviceWorker' in navigator) {
 
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
+    // Only refresh if user is not in the middle of authenticating
+    if (!refreshing && !sessionStorage.getItem('auth_in_progress')) {
       refreshing = true;
       window.location.reload();
     }
