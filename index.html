@@ -19,7 +19,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.9.3</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.9.4</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -38,7 +38,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.9.3</span>
+          <span class="version-tag" id="headerVersionTag">v1.9.4</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -134,7 +134,7 @@
             </label>
           </div>
 
-          <!-- Single Card Swipe Only (No Split) Toggle -->
+          <!-- Single Card Swipe Only Toggle -->
           <div class="rec-pref-row" id="singleSwipePrefRow">
             <div class="rec-pref-label">
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--gold);">credit_card</span>
@@ -184,7 +184,6 @@
           <div class="card-list" id="cardsContainer"></div>
         </div>
 
-        <!-- RECENT TRANSACTIONS WITH SEARCH & FILTER -->
         <div>
           <div class="section-title">
             <span>Recent Transactions</span>
@@ -211,7 +210,7 @@
         </div>
       </div>
 
-      <!-- TAB 2 (Mobile only): CATEGORY CAPS -->
+      <!-- TAB 2: CATEGORY CAPS -->
       <div class="tab-content" id="tabContentCategory" style="display:none;">
         <div class="section-title" style="margin-top:0;">
           <span>Category Cap Tracker</span>
@@ -220,7 +219,7 @@
         <div id="categoryCardsMobile" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
 
-      <!-- TAB 3 (Desktop Col 2 & Mobile Tab 3): MILES VAULT & DESKTOP CATEGORY TRACKER -->
+      <!-- TAB 3: MILES VAULT & EXTENDED FAMILY VAULTS -->
       <div class="tab-content" id="tabContentVault" style="display:none;">
         <div class="summary-card">
           <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
@@ -246,13 +245,13 @@
           </div>
         </div>
 
-        <div class="sister-card">
-          <div class="sister-info">
-            <span class="sister-title" id="peerCardTitle"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
-            <div class="sister-miles" id="sisterMilesDisplay">0 miles</div>
-            <span style="font-size:0.75rem; color:#94a3b8;">Synced via Cloud</span>
+        <!-- EXTENDED FAMILY VAULTS (Admin view only) -->
+        <div id="familyVaultsSection" style="display:none; margin: 14px 0;">
+          <div class="section-title">
+            <span>Extended Family Vaults</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">Admin View Only</span>
           </div>
-          <button class="btn-view-peer" id="btnOpenPeerVault">View Breakdown ❯</button>
+          <div id="familyVaultsGrid" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
         <div>
@@ -270,19 +269,10 @@
           </div>
           <div class="radar-card" id="radarContainer"></div>
         </div>
-
-        <div id="desktopCategorySection" style="display:none; flex-direction:column; gap:10px;">
-          <div class="section-title" style="margin-top:6px;">
-            <span>Category Cap Tracker</span>
-            <span style="font-size:0.75rem; color:#94a3b8;">Pooled 4 mpd Capacity</span>
-          </div>
-          <div id="categoryCardsDesktop" style="display:flex; flex-direction:column; gap:10px;"></div>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Navigation -->
   <nav class="bottom-nav" id="bottomNav">
     <button class="nav-tab active" id="btnTabCards">
       <span class="material-symbols-outlined">credit_card</span>
@@ -297,12 +287,6 @@
       <span>Miles Vault</span>
     </button>
   </nav>
-
-  <!-- Automated Update Ready Notification Toast -->
-  <div id="updateToast" class="update-toast">
-    <span style="font-size: 0.85rem; font-weight: 600;">🚀 New version ready</span>
-    <button id="btnReloadApp" class="btn-update-reload">Reload</button>
-  </div>
 
   <button class="fab" id="fabButton" style="display:none;" title="Log Transaction">
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
@@ -336,13 +320,10 @@
       </div>
 
       <div class="progress-bar-container" style="margin: 2px 0 6px;">
-        <div id="modalMinSpendMarker"></div>
         <div class="progress-bar-bg" style="height:8px;">
           <div class="progress-bar-fill" id="modalCardProgressFill" style="width: 0%;"></div>
         </div>
       </div>
-
-      <div id="modalCardAlertArea"></div>
 
       <div>
         <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Earning Profile & Rules</span>
@@ -352,41 +333,21 @@
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <span style="font-size:0.78rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Cycle Transactions</span>
-          <span style="font-size:0.72rem; color:var(--primary);" id="modalCardTxTotalMiles">+0 miles earned</span>
         </div>
         <div class="detail-tx-list" id="modalCardTxList"></div>
       </div>
-
-      <button class="btn-submit" id="btnQuickLogCard" style="display:flex; align-items:center; justify-content:center; gap:8px;">
-        <span class="material-symbols-outlined" style="font-size:20px;">add_circle</span>
-        Log Expense on This Card
-      </button>
     </div>
   </div>
 
-  <!-- MODAL: SISTER VAULT -->
+  <!-- MODAL: FAMILY MEMBER VAULT BREAKDOWN (DYNAMIC) -->
   <div class="modal-overlay" id="sisterVaultOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem; color:var(--purple);" id="peerModalTitle">Sister's Points Vault (Separate)</h2>
+        <h2 style="font-size:1.15rem; color:var(--purple);" id="peerModalTitle">Family Member Vault</h2>
         <span class="material-symbols-outlined" id="btnCloseSisterVault" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.8rem; color:#94a3b8;">Independent points balances across Singapore banks (not merged with yours):</p>
+      <p style="font-size:0.8rem; color:#94a3b8;">Independent points balances across Singapore banks (read-only):</p>
       <div class="vault-grid" id="sisterVaultContainer" style="margin-top:10px;"></div>
-    </div>
-  </div>
-
-  <!-- MODAL: TRAVEL TIERS -->
-  <div class="modal-overlay" id="travelTiersOverlay">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">4 Pax Business Class Targets</h2>
-        <span class="material-symbols-outlined" id="btnCloseTravelTiers" style="cursor:pointer;">close</span>
-      </div>
-      <p style="font-size:0.78rem; color:#94a3b8;">
-        KrisFlyer Saver Round-Trip Business Class requirement for 4 passengers based solely on your miles:
-      </p>
-      <div id="travelTiersList" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
   </div>
 
@@ -412,29 +373,24 @@
 
       <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
-        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Kris+ Partner">
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Decathlon">
       </div>
 
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
-        <label>Select Eligible yuu Partner (Prevents Spelling Errors)</label>
+        <label>Select Eligible yuu Partner</label>
         <select id="yuuMerchantSelect" class="form-control">
           <option value="Cold Storage">Cold Storage (CS Fresh, Jasons Deli)</option>
           <option value="Giant">Giant (Hypermarket, Express)</option>
           <option value="Guardian">Guardian (Health & Beauty)</option>
           <option value="7-Eleven">7-Eleven (Exclude Changi Airport)</option>
-          <option value="foodpanda">foodpanda (Delivery, pandamart - Excl. PayPal)</option>
+          <option value="foodpanda">foodpanda (Delivery, pandamart)</option>
           <option value="SimplyGo">SimplyGo (MRT / Bus Direct Tap)</option>
-          <option value="Gojek">Gojek (Excl. PayPal checkout)</option>
-          <option value="CHAGEE">CHAGEE (Official Mobile App Orders Only)</option>
-          <option value="Singtel">Singtel (Shops & Exclusive Retailers)</option>
-          <option value="Charge+">Charge+ (Visa only - EV Charging)</option>
-          <option value="Anywheel">Anywheel (Bike Sharing)</option>
-          <option value="Other / Non-Partner">Other / Excluded Merchant (Base Rate Only)</option>
+          <option value="Gojek">Gojek</option>
+          <option value="CHAGEE">CHAGEE (Official Mobile App)</option>
+          <option value="Singtel">Singtel</option>
+          <option value="Charge+">Charge+ (Visa only)</option>
+          <option value="Anywheel">Anywheel</option>
         </select>
-        <div class="yuu-partner-alert">
-          ℹ️ <b>DBS Exclusions:</b> <i>Cold Storage On The Go</i> is strictly excluded. Changi Airport 7-11/Guardian and foodpanda dine-in/PayPal top-ups earn base only. 
-          <br><a href="https://www.dbs.com.sg/personal/cards/credit-cards/dbs-yuu-cards" target="_blank" rel="noopener">Official DBS yuu Participating Merchant Directory ↗</a>
-        </div>
       </div>
 
       <div class="form-group">
@@ -446,19 +402,16 @@
         <div class="shell-calc-box">
           <div class="shell-calc-header">
             <span>⛽ Shell 14% Instant Discount Calculator</span>
-            <span style="font-size:0.7rem; color:#fde68a;">10% Shell GO+ + 4% UOB</span>
           </div>
           <div class="shell-calc-input-row">
             <input type="number" id="shellGrossInput" placeholder="Gross Pump Price ($)" step="0.01">
             <button type="button" class="btn-apply-shell-discount" id="btnApplyShellDiscount">Apply 14% Off</button>
           </div>
           <span style="font-size:0.7rem; color:#cbd5e1;" id="shellDiscountStatusText">
-            Enter gross pump price from meter to compute nett S$ amount charged.
+            Enter gross pump price to compute nett S$ charged.
           </span>
         </div>
       </div>
-
-      <div id="modalRoundingAlert"></div>
 
       <div class="form-group">
         <label>Category Verification</label>
@@ -504,62 +457,6 @@
         <span class="material-symbols-outlined" id="btnCloseSettings" style="cursor:pointer;">close</span>
       </div>
 
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
-          Data Backup & Portability
-        </label>
-        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
-          Export your complete ledger and bank vault snapshot to your local device.
-        </p>
-        <div class="backup-btn-row">
-          <button class="btn-backup" id="btnExportJSON">
-            <span class="material-symbols-outlined" style="font-size:18px;">download</span> JSON Backup
-          </button>
-          <button class="btn-backup" id="btnExportCSV">
-            <span class="material-symbols-outlined" style="font-size:18px;">table_view</span> Ledger CSV
-          </button>
-        </div>
-      </div>
-
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
-          My Card Wallet (Active Cards)
-        </label>
-        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
-          Uncheck cards you do not hold. Unchecked cards are hidden from caps and recommender.
-        </p>
-        <div class="checklist-grid" id="cardChecklistContainer"></div>
-      </div>
-
-      <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
-          UOB Auto-Deduction Defense (Card Renewal Months)
-        </label>
-        <div class="form-group">
-          <label>UOB Lady's Solitaire Renewal Month</label>
-          <input type="month" id="uobLsRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB Visa Signature Renewal Month</label>
-          <input type="month" id="uobVsRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB Preferred Visa Renewal Month</label>
-          <input type="month" id="uobPpvRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB PRVI Miles Renewal Month</label>
-          <input type="month" id="uobPrviRenewalInput" class="form-control">
-        </div>
-      </div>
-
-      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
-        <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
-          Citi Rewards Approval Date (5-Year Cycle)
-        </label>
-        <input type="month" id="citiApprovalInput" class="form-control">
-      </div>
-
       <div class="form-group">
         <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
         <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
@@ -574,119 +471,9 @@
     </div>
   </div>
 
-  <!-- MODAL: MONTHLY CYCLE RESET & FULL-YEAR ARCHIVE -->
-  <div class="modal-overlay" id="archiveModalOverlay">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="material-symbols-outlined" style="color:var(--primary);">calendar_month</span>
-          <h2 style="font-size:1.15rem;">Monthly & Annual Archive</h2>
-        </div>
-        <span class="material-symbols-outlined" id="btnCloseArchiveModal" style="cursor:pointer; color:#94a3b8;">close</span>
-      </div>
-
-      <div class="form-group" style="margin-top:4px;">
-        <label>Select History Cycle or Full Year</label>
-        <select id="archiveMonthSelect" class="form-control"></select>
-      </div>
-
-      <div class="card-detail-grid">
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">Total Spent</span>
-          <span class="detail-stat-val" id="archiveTotalSpent">$0.00</span>
-          <span class="detail-stat-sub" id="archiveTxnCount">0 transactions</span>
-        </div>
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">Miles Generated</span>
-          <span class="detail-stat-val" id="archiveTotalMiles" style="color:var(--accent);">0 mi</span>
-          <span class="detail-stat-sub" id="archiveBlendedMpd">0.00 blended mpd</span>
-        </div>
-      </div>
-
-      <div style="margin-top:6px;">
-        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Card Performance & Cap Tally</span>
-        <div id="archiveCardBreakdownList" style="display:flex; flex-direction:column; gap:8px; margin-top:6px; max-height:280px; overflow-y:auto;"></div>
-      </div>
-
-      <button type="button" class="btn-backup" id="btnExportArchiveCSV" style="margin-top:6px; width:100%;">
-        <span class="material-symbols-outlined" style="font-size:18px;">download</span> Export Period CSV
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL: MONTHLY STATEMENT RECONCILIATION -->
-  <div class="modal-overlay" id="reconcileModalOverlay">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="material-symbols-outlined" style="color:var(--accent);">fact_check</span>
-          <h2 style="font-size:1.15rem;">Monthly Statement Reconcile</h2>
-        </div>
-        <span class="material-symbols-outlined" id="btnCloseReconcileModal" style="cursor:pointer; color:#94a3b8;">close</span>
-      </div>
-
-      <p style="font-size:0.75rem; color:#94a3b8; margin: 4px 0 8px;">
-        Compare your bank statement bill totals against app logs to ensure 100% bonus cap accuracy.
-      </p>
-
-      <div class="rec-inputs" style="margin-bottom:10px;">
-        <div class="form-group" style="flex:1;">
-          <label>Audit Card Slot</label>
-          <select id="reconcileCardSelect" class="form-control"></select>
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label>Target Cycle</label>
-          <select id="reconcileCycleSelect" class="form-control"></select>
-        </div>
-      </div>
-
-      <div class="card-detail-grid">
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">App Logged Spend</span>
-          <span class="detail-stat-val" id="reconcileAppSpend">$0.00</span>
-          <span class="detail-stat-sub" id="reconcileTxnCount">0 txns logged</span>
-        </div>
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">Statement Bill Total</span>
-          <input 
-            type="number" 
-            id="reconcileStmtInput" 
-            class="form-control" 
-            placeholder="0.00" 
-            step="0.01" 
-            style="padding:4px 8px; font-size:1.05rem; font-weight:700; text-align:center; height:32px; margin-top:2px;"
-          >
-          <span class="detail-stat-sub" id="reconcileDeltaBadge" style="font-weight:700;">Enter bill total</span>
-        </div>
-      </div>
-
-      <div id="reconcileCycleWindowNote" style="font-size:0.72rem; color:var(--primary); margin: 6px 0;"></div>
-
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span style="font-size:0.78rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Logged In This Cycle</span>
-          <button type="button" class="btn-clear-mcc" id="btnReconcileQuickAdd" style="display:flex; color:var(--primary); font-size:0.75rem; padding:2px 6px;">
-            + Add Missing
-          </button>
-        </div>
-        <div id="reconcileTxnList" style="max-height:190px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
-      </div>
-
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--outline); margin-top:8px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.78rem; font-weight:700; color:#fff;" id="reconcileVaultLabel">Bank Points Balance</span>
-          <button type="button" class="btn-clear-mcc" id="btnReconcileUpdateVault" style="color:var(--primary); font-size:0.75rem; font-weight:700;">
-            Update Vault ✏️
-          </button>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-          <span style="font-size:0.72rem; color:#94a3b8;">Official balance from mobile banking:</span>
-          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);" id="reconcileVaultPtsDisplay">0 pts</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="js/app.js?v=1.9.3"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script type="module" src="js/app.js?v=1.9.4"></script>
 </body>
 </html>
