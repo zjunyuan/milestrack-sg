@@ -19,7 +19,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.3</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.5</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -38,7 +38,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.8.3</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.5</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderVault" title="Edit Points Balances">account_balance_wallet</span>
@@ -109,6 +109,7 @@
             <input type="text" inputmode="decimal" id="recAmount" class="form-control" placeholder="Amt" value="100">
           </div>
 
+          <!-- Kris+ Mode Toggle -->
           <div class="rec-pref-row" id="krisPlusPrefRow" style="background: rgba(0, 43, 102, 0.35); border-color: rgba(0, 180, 216, 0.3);">
             <div class="rec-pref-label">
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--kris-cyan);">loyalty</span>
@@ -120,6 +121,7 @@
             </label>
           </div>
 
+          <!-- Contactless Tap Toggle -->
           <div class="rec-pref-row" id="contactlessPrefRow">
             <div class="rec-pref-label">
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">contactless</span>
@@ -127,6 +129,18 @@
             </div>
             <label class="switch switch-sm">
               <input type="checkbox" id="contactlessSwitch" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Single Card Swipe Only (No Split) Toggle -->
+          <div class="rec-pref-row" id="singleSwipePrefRow">
+            <div class="rec-pref-label">
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--gold);">credit_card</span>
+              <span>Single Card Swipe Only (No Split)</span>
+            </div>
+            <label class="switch switch-sm">
+              <input type="checkbox" id="singleSwipeSwitch">
               <span class="slider"></span>
             </label>
           </div>
@@ -541,6 +555,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=1.8.5"></script>
 </body>
 </html>
