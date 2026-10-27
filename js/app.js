@@ -24,6 +24,7 @@ let peerVaultKey = "sister";
 let currentChannel = "inperson";
 let isKrisPlusMode = false;
 let isOverseasMode = false;
+let isSingleSwipeMode = false;
 
 let enabledCardIds = ALL_MASTER_CARDS.map(c => c.id);
 let cards = ALL_MASTER_CARDS;
@@ -327,6 +328,9 @@ function runRecommendation() {
   const allowContactless = (currentChannel === 'inperson') && !isKrisPlusMode && document.getElementById('contactlessSwitch').checked;
   const resultArea = document.getElementById('recResultArea');
 
+  // Enforce online routing automatically if Kris+ is active
+  const effectiveChannel = isKrisPlusMode ? 'online' : currentChannel;
+
   const mccData = resolveMccEntry(inputVal);
 
   if (!mccData) {
@@ -344,7 +348,6 @@ function runRecommendation() {
 
   let candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
   
-  // Inject DBS WWMC if Kris+ mode is active and not already a candidate
   if (isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
     candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
   }
@@ -354,18 +357,18 @@ function runRecommendation() {
     const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
     if (!cardObj) return false;
 
-    // Strict Kris+ In-App Exclusions
+    // Strict Kris+ in-app exclusions
     if (isKrisPlusMode) {
       if (cardObj.id === 'citi-rewards') return false;
       if (cardObj.id === 'uob-vs-contactless') return false;
       if (cardObj.id === 'uob-ppv-contactless') return false;
     }
 
-    if (currentChannel === 'online' && cardObj.channelMode === 'inperson') return false;
-    if (currentChannel === 'inperson' && cardObj.channelMode === 'online') return false;
-    if (currentChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) return false;
+    if (effectiveChannel === 'online' && cardObj.channelMode === 'inperson') return false;
+    if (effectiveChannel === 'inperson' && cardObj.channelMode === 'online') return false;
+    if (effectiveChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) return false;
 
-    if (currentChannel === 'inperson' && cardObj.id === 'citi-rewards') {
+    if (effectiveChannel === 'inperson' && cardObj.id === 'citi-rewards') {
       const eligibleInStoreMccs = ["5311", "5651", "5621", "OCBC-6MPD"];
       if (!eligibleInStoreMccs.includes(mccData.code)) return false;
     }
@@ -377,12 +380,122 @@ function runRecommendation() {
     resultArea.innerHTML = `
       <div class="mcc-tag-box" style="border-left-color:var(--danger);">
         <b>${mccData.code ? `MCC ${mccData.code} - ` : ''}${mccData.name}</b><br>
-        <span style="color:var(--danger);">${isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB contactless tap cards are excluded on Kris+." : ((currentChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : mccData.notes)}</span>
+        <span style="color:var(--danger);">${isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB contactless cards are excluded on Kris+." : ((effectiveChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : mccData.notes)}</span>
       </div>
     `;
     return;
   }
 
+  // --------------------------------------------------------------------------
+  // BRANCH 1: Single Card Swipe Mode (No Multi-Card Split)
+  // --------------------------------------------------------------------------
+  if (isSingleSwipeMode) {
+    const allEligibleCardsMap = new Map();
+    
+    // 1. Add category bonus candidates
+    myOwnedCandidates.forEach(cand => {
+      const card = cards.find(c => c.id === cand.id);
+      if (card) allEligibleCardsMap.set(card.id, { card, rate: cand.baseRate });
+    });
+
+    // 2. Add active uncapped general spend cards from wallet
+    cards.filter(c => enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(card => {
+      if (!allEligibleCardsMap.has(card.id)) {
+        let genRate = card.baseMpd;
+        if (isKrisPlusMode && card.id === 'kf-uob') genRate = 3.0;
+        else if (isOverseasMode) {
+          if (card.id === 'mb-world-mc') genRate = 3.2;
+          else if (card.id === 'mb-horizon-vs') genRate = 2.8;
+          else if (card.id === 'uob-prvi') genRate = 2.4;
+          else if (card.id === 'dbs-vantage') genRate = 2.2;
+          else if (card.id === 'dbs-altitude') genRate = 2.2;
+        } else {
+          if (card.id === 'kf-uob' && isKrisPlusMode) genRate = 3.0;
+          else if (card.id === 'dbs-vantage') genRate = 1.5;
+          else if (card.id === 'uob-prvi') genRate = 1.4;
+          else if (card.id === 'dbs-altitude') genRate = 1.3;
+          else if (card.id === 'citi-pm' || card.id === 'kf-uob') genRate = 1.2;
+          else genRate = card.baseMpd;
+        }
+        allEligibleCardsMap.set(card.id, { card, rate: genRate });
+      }
+    });
+
+    // Score each card on a single charge of the full amount
+    const singleCardScores = Array.from(allEligibleCardsMap.values()).map(({ card, rate }) => {
+      const currentSpend = Number(card.currentSpend) || 0;
+      const isUncapped = card.monthlyCap >= 999999;
+      const availableCap = isUncapped ? amt : Math.max(0, card.monthlyCap - currentSpend);
+
+      let effectiveBonusRate = rate;
+      if (isKrisPlusMode && card.id === 'kf-uob') effectiveBonusRate = 3.0;
+
+      let totalEarnedMiles = 0;
+      let breakdownDesc = '';
+
+      if (isUncapped || availableCap >= amt) {
+        totalEarnedMiles = calcEarnedMiles(card, amt, effectiveBonusRate);
+        breakdownDesc = `${effectiveBonusRate} mpd on full $${amt.toLocaleString()}`;
+      } else {
+        const bonusPart = availableCap;
+        const overflowPart = amt - bonusPart;
+
+        const bonusMiles = calcEarnedMiles(card, bonusPart, effectiveBonusRate);
+        const baseMiles = calcEarnedMiles(card, overflowPart, card.baseMpd);
+        totalEarnedMiles = bonusMiles + baseMiles;
+        
+        const blendedMpd = (totalEarnedMiles / amt).toFixed(2);
+        breakdownDesc = `$${bonusPart.toFixed(0)} @ ${effectiveBonusRate} mpd + $${overflowPart.toFixed(0)} @ ${card.baseMpd} mpd (${blendedMpd} blended mpd)`;
+      }
+
+      return {
+        card,
+        totalMiles: totalEarnedMiles,
+        effectiveRate: (totalEarnedMiles / amt).toFixed(2),
+        breakdownDesc,
+        isUncapped
+      };
+    }).sort((a, b) => b.totalMiles - a.totalMiles);
+
+    const winner = singleCardScores[0];
+    const runnerUp = singleCardScores[1];
+
+    resultArea.innerHTML = `
+      <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
+        <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [💳 Single Card Swipe Mode]<br>
+        Evaluating best single card for full payment of <b>$${amt.toLocaleString()}</b> without splitting.
+      </div>
+
+      <div class="rec-winner-title">
+        <span>⭐ <b>${winner.card.name}</b></span>
+        <span style="color:var(--accent); font-weight:700;">+${Math.round(winner.totalMiles).toLocaleString()} mi (${winner.effectiveRate} mpd)</span>
+      </div>
+      <div class="rec-winner-meta">
+        ${winner.breakdownDesc}
+        ${winner.isUncapped ? ' • <span style="color:var(--primary);">Uncapped general spend card</span>' : ' • <span style="color:var(--warning);">Capped card with base overflow</span>'}
+      </div>
+
+      ${runnerUp ? `
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
+          🥈 Alternative: <b>${runnerUp.card.name}</b> (+${Math.round(runnerUp.totalMiles).toLocaleString()} mi • ${runnerUp.effectiveRate} mpd)
+        </div>
+      ` : ''}
+
+      <button class="btn-apply-rec" id="btnApplySingleSwipeRec">
+        Log Full $${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} on ${winner.card.name}
+      </button>
+    `;
+
+    document.getElementById('btnApplySingleSwipeRec')?.addEventListener('click', () => {
+      applyRecommendation(winner.card.id, amt, `${isKrisPlusMode ? 'Kris+ ' : (isOverseasMode ? '[FCY] ' : '')}${mccData.name}`);
+    });
+
+    return;
+  }
+
+  // --------------------------------------------------------------------------
+  // BRANCH 2: Smart Waterfall Split Mode
+  // --------------------------------------------------------------------------
   const scoredCandidates = myOwnedCandidates.map(cand => {
     const card = cards.find(c => c.id === cand.id);
     if (!card) return null;
@@ -461,7 +574,7 @@ function runRecommendation() {
               let rate = c.baseMpd;
 
               if (isKrisPlusMode && c.id === 'kf-uob') {
-                rate = 3.0; // Kris+ uncapped rate
+                rate = 3.0;
               } else if (isOverseasMode) {
                 if (c.id === 'mb-world-mc') rate = 3.2;
                 else if (c.id === 'mb-horizon-vs') rate = 2.8;
@@ -534,7 +647,7 @@ function runRecommendation() {
 
       resultArea.innerHTML = `
         <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
-          <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
+          <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
           ${mccData.notes}
         </div>
         ${isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
@@ -580,7 +693,7 @@ function runRecommendation() {
 
   resultArea.innerHTML = `
     <div class="mcc-tag-box" style="${isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
-      <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${currentChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
+      <b>${isKrisPlusMode ? '🛍️ Kris+ ' : (isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
       ${mccData.notes}
     </div>
     ${isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : ''}
@@ -1262,6 +1375,11 @@ document.getElementById('krisPlusSwitch')?.addEventListener('change', (e) => {
   document.getElementById('btnChannelOnline').classList.toggle('active', isKrisPlusMode);
   document.getElementById('btnChannelInPerson').classList.toggle('active', !isKrisPlusMode);
   document.getElementById('contactlessPrefRow').style.display = isKrisPlusMode ? 'none' : 'flex';
+  runRecommendation();
+});
+
+document.getElementById('singleSwipeSwitch')?.addEventListener('change', (e) => {
+  isSingleSwipeMode = e.target.checked;
   runRecommendation();
 });
 
