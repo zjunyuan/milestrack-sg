@@ -57,7 +57,26 @@ export const DEFAULT_VAULT = {
 };
 
 export const ALL_MASTER_CARDS = [
-  { id: 'dbs-yuu', name: 'DBS yuu Card (10 mpd)', bank: 'DBS', image: 'assets/cards/dbs-yuu.png', vaultKey: 'yuu_pts', monthlyCap: 622.88, minSpend: 800, bonusMpd: 10.0, baseMpd: 0.14, engine: 'yuu-10', cycleType: 'calendar', strategyType: 'whitelist', badgeClass: 'badge-gold', hint: 'Cold Storage, Giant, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE. Req: S$800 min spend + 4 distinct merchants. 0.4 ContactlessOnly: false, channelMode: 'both', themeClass: 'thumb-dbs' },
+  {
+    id: 'dbs-yuu',
+    name: 'DBS yuu Card (10 mpd)',
+    bank: 'DBS',
+    image: 'assets/cards/dbs-yuu.png',
+    vaultKey: 'yuu_pts',
+    monthlyCap: 622.88,
+    minSpend: 800,
+    bonusMpd: 10.0,
+    baseMpd: 0.14,
+    engine: 'yuu-10',
+    cycleType: 'calendar',
+    strategyType: 'whitelist',
+    badgeClass: 'badge-gold',
+    hint: 'Cold Storage, Giant, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE. Req: S$800 min spend + 4 distinct merchants.',
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-dbs'
+  },
+  
   { id: 'uob-ppv-contactless', name: 'UOB Preferred Visa [Mobile Tap]', bank: 'UOB', image: 'assets/cards/uob-ppv.png', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', strategyType: 'blacklist', badgeClass: '', hint: 'Physical in-store contactless mobile payment (Apple/Google Pay) only. S$5 block rounding. Excludes SMART$ & Shopee.', isContactlessOnly: true, channelMode: 'inperson', themeClass: 'thumb-uob' },
   { id: 'uob-ppv-online', name: 'UOB Preferred Visa [Online]', bank: 'UOB', image: 'assets/cards/uob-ppv.png', vaultKey: 'uob_uni', monthlyCap: 600, minSpend: 0, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'calendar', strategyType: 'whitelist', badgeClass: '', hint: 'Supermarkets, Food Delivery, Fast Food & Entertainment online. Excl Shopee/smart$. S$5 block rounding.', isContactlessOnly: false, channelMode: 'online', themeClass: 'thumb-uob' },
   { id: 'uob-vs-contactless', name: 'UOB Visa Signature [Contactless / Petrol]', bank: 'UOB', image: 'assets/cards/uob-vs.png', vaultKey: 'uob_uni', monthlyCap: 1200, minSpend: 1000, bonusMpd: 4.0, baseMpd: 0.4, engine: 'uob-5', cycleType: 'statement', cutoffDay: 18, strategyType: 'blacklist', badgeClass: '', hint: 'Physical NFC terminal tap required (min S$1k/cycle). 14% instant off Shell. isContactlessOnly: true, channelMode: 'inperson', themeClass: 'thumb-uob' },
