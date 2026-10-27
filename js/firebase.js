@@ -7,7 +7,7 @@ import {
   renderExpiryRadar, 
   renderTravelGoalBanner, 
   renderFamilyVaultsSection,
-  updateUobFeeRenewalAlerts 
+  checkUobFeeDefense 
 } from "./ui.js";
 
 let app, auth, db;
@@ -33,9 +33,9 @@ export function resolveVaultContext(email = "") {
   };
 }
 
-export async function initFirebase() {
-  if (!window.firebase) {
-    console.error("Firebase SDK script not loaded yet.");
+export async function initFirebase(onAuthSuccess, onAuthLoggedOut) {
+  if (!window.firebase || !window.firebase.auth || !window.firebase.firestore) {
+    setTimeout(() => initFirebase(onAuthSuccess, onAuthLoggedOut), 50);
     return;
   }
 
@@ -62,16 +62,12 @@ export async function initFirebase() {
       state.vaultLabel = ctx.label;
       state.isAdmin = (ctx.role === 'admin');
 
-      const userDisplay = document.getElementById('signedInUserDisplay');
-      if (userDisplay) {
-        userDisplay.innerText = `Signed in: ${user.email} (${state.vaultLabel})`;
+      if (!state.myVault) {
+        state.myVault = JSON.parse(JSON.stringify(DEFAULT_VAULT));
       }
 
-      document.getElementById('authOverlay').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      document.getElementById('fabButton').style.display = 'flex';
-
       await subscribeToMyVaultData();
+
       if (state.isAdmin) {
         subscribeToExtendedFamilyVaults();
       } else {
@@ -80,13 +76,16 @@ export async function initFirebase() {
       }
 
       updateSyncIndicator(true);
+      if (typeof onAuthSuccess === 'function') {
+        onAuthSuccess(user);
+      }
     } else {
       state.currentUser = null;
       unsubscribeAllListeners();
-      document.getElementById('authOverlay').style.display = 'flex';
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('fabButton').style.display = 'none';
       updateSyncIndicator(false);
+      if (typeof onAuthLoggedOut === 'function') {
+        onAuthLoggedOut();
+      }
     }
   });
 }
@@ -111,12 +110,26 @@ export async function logoutUser() {
 export async function subscribeToMyVaultData() {
   unsubscribeAllListeners();
 
-  // 1. Listen to active user's points vault
   const vaultRef = db.collection("milestrack_vaults").doc(state.myVaultKey);
   unsubVault = vaultRef.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
-      state.vault = { ...JSON.parse(JSON.stringify(DEFAULT_VAULT)), ...data.balances };
+      const loadedBalances = data.balances || {};
+      
+      const merged = JSON.parse(JSON.stringify(DEFAULT_VAULT));
+      Object.keys(merged).forEach(k => {
+        if (loadedBalances[k] !== undefined) {
+          if (typeof loadedBalances[k] === 'object' && loadedBalances[k] !== null) {
+            merged[k] = { ...merged[k], ...loadedBalances[k] };
+          } else {
+            merged[k].points = Number(loadedBalances[k]) || 0;
+          }
+        }
+      });
+
+      state.vault = merged;
+      state.myVault = merged;
+
       if (data.settings) state.settings = { ...state.settings, ...data.settings };
       if (data.enabledCardIds) state.enabledCardIds = data.enabledCardIds;
     } else {
@@ -126,25 +139,23 @@ export async function subscribeToMyVaultData() {
         enabledCardIds: state.enabledCardIds,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      state.myVault = JSON.parse(JSON.stringify(DEFAULT_VAULT));
+      state.vault = JSON.parse(JSON.stringify(DEFAULT_VAULT));
     }
 
-    renderVaultBalances();
-    renderExpiryRadar();
-    renderTravelGoalBanner();
-    updateUobFeeRenewalAlerts();
+    window.dispatchEvent(new CustomEvent('vault-updated'));
+    window.dispatchEvent(new CustomEvent('settings-updated'));
   });
 
-  // 2. Listen to active user's transactions
   unsubTxns = db.collection("milestrack_txns")
     .where("owner", "==", state.myVaultKey)
     .orderBy("date", "desc")
     .onSnapshot(snapshot => {
       state.transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       recalculateCardSpends();
-      renderCards();
-      renderTransactions();
+      window.dispatchEvent(new CustomEvent('txns-updated'));
     }, err => {
-      console.warn("Txn listener index requirement, fallback without sorting:", err);
+      console.warn("Txn listener index fallback:", err);
       db.collection("milestrack_txns")
         .where("owner", "==", state.myVaultKey)
         .onSnapshot(s => {
@@ -152,8 +163,7 @@ export async function subscribeToMyVaultData() {
             .map(d => ({ id: d.id, ...d.data() }))
             .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
           recalculateCardSpends();
-          renderCards();
-          renderTransactions();
+          window.dispatchEvent(new CustomEvent('txns-updated'));
         });
     });
 }
@@ -167,9 +177,16 @@ export function subscribeToExtendedFamilyVaults() {
     unsubPeerVaults[key] = db.collection("milestrack_vaults").doc(key).onSnapshot(doc => {
       if (doc.exists) {
         state.peerVaults[key] = doc.data().balances || {};
+        if (key === 'sister') {
+          state.peerVault = doc.data().balances || {};
+        }
       } else {
         state.peerVaults[key] = {};
+        if (key === 'sister') {
+          state.peerVault = {};
+        }
       }
+      window.dispatchEvent(new CustomEvent('peer-vault-updated'));
       renderFamilyVaultsSection();
     });
   });
@@ -183,12 +200,16 @@ export function unsubscribeAllListeners() {
   });
 }
 
-export async function saveVaultBalances(newBalances) {
-  if (!state.currentUser) return;
-  await db.collection("milestrack_vaults").doc(state.myVaultKey).set({
-    balances: newBalances,
+export async function updateVaultDoc(vaultKey, vaultBalances) {
+  if (!db) db = firebase.firestore();
+  await db.collection("milestrack_vaults").doc(vaultKey).set({
+    balances: vaultBalances,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
+}
+
+export async function saveVaultBalances(newBalances) {
+  await updateVaultDoc(state.myVaultKey, newBalances);
 }
 
 export async function saveAppSettings(newSettings, newEnabledCardIds) {
@@ -240,8 +261,8 @@ export function recalculateCardSpends() {
       isInCycle = (txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth);
     } else if (card.cycleType === 'statement') {
       const cutoff = (card.id === 'uob-vs-contactless' || card.id === 'uob-vs-fcy') 
-        ? (state.settings.uobVsCutoff || 18) 
-        : (state.settings.citiCutoff || 15);
+        ? (state.settings?.uobVsCutoff || 18) 
+        : (state.settings?.citiCutoff || 15);
 
       let cycleStart, cycleEnd;
       if (today >= cutoff) {

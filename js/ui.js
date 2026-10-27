@@ -16,6 +16,18 @@ import {
   saveAppSettings 
 } from "./firebase.js";
 
+// --- Tab Switcher ---
+export function switchTab(tabId) {
+  state.currentTab = tabId;
+  const tabs = ['cards', 'category', 'vault'];
+  tabs.forEach(t => {
+    const content = document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const btn = document.getElementById(`btnTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (content) content.style.display = (t === tabId) ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', t === tabId);
+  });
+}
+
 // --- Card Cap Tracker Rendering ---
 export function renderCards() {
   const container = document.getElementById('cardsContainer');
@@ -148,8 +160,8 @@ export function renderTransactions() {
   const badge = document.getElementById('txCountBadge');
   if (!list) return;
 
-  const searchVal = (document.getElementById('txSearchInput')?.value || '').toLowerCase().trim();
-  const filterCard = document.getElementById('txFilterCardSelect')?.value || 'ALL';
+  const searchVal = (state.txSearchQuery || document.getElementById('txSearchInput')?.value || '').toLowerCase().trim();
+  const filterCard = state.txCardFilter || document.getElementById('txFilterCardSelect')?.value || 'ALL';
 
   const filtered = state.transactions.filter(t => {
     if (filterCard !== 'ALL' && t.cardId !== filterCard) return false;
@@ -192,92 +204,21 @@ export function renderTransactions() {
   });
 }
 
-// --- Extended Family Vaults (Admin Hub View) ---
-export function renderFamilyVaultsSection() {
-  const sec = document.getElementById('familyVaultsSection');
-  if (!sec) return;
-
-  if (!state.isAdmin) {
-    sec.style.display = 'none';
-    return;
-  }
-
-  sec.style.display = 'block';
-  const grid = document.getElementById('familyVaultsGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  const memberKeys = Object.keys(VAULT_REGISTRY).filter(k => k !== 'primary');
-
-  memberKeys.forEach(k => {
-    const conf = VAULT_REGISTRY[k];
-    const peerBalances = state.peerVaults[k] || {};
-
-    let totalPeerMiles = 0;
-    Object.keys(DEFAULT_VAULT).forEach(key => {
-      const pts = Number(peerBalances[key] || 0);
-      const ratio = DEFAULT_VAULT[key].ratio;
-      totalPeerMiles += Math.round(pts * ratio);
-    });
-
-    const card = document.createElement('div');
-    card.className = 'sister-card';
-    card.style.cursor = 'pointer';
-    card.onclick = () => openFamilyMemberVaultModal(k);
-
-    card.innerHTML = `
-      <div class="sister-info">
-        <span class="sister-title"><span class="material-symbols-outlined" style="font-size:16px;">account_balance</span> ${conf.label}</span>
-        <div class="sister-miles">${totalPeerMiles.toLocaleString()} miles</div>
-        <span style="font-size:0.75rem; color:#94a3b8;">${conf.emails[0]} • Tap to view breakdown</span>
-      </div>
-      <button class="btn-view-peer">Inspect ❯</button>
-    `;
-
-    grid.appendChild(card);
-  });
+// --- Bank Points Vault Rendering ---
+export function renderVault() {
+  renderVaultBalances();
 }
 
-export function openFamilyMemberVaultModal(vaultKey) {
-  const conf = VAULT_REGISTRY[vaultKey];
-  if (!conf) return;
-
-  const modalTitle = document.getElementById('peerModalTitle');
-  if (modalTitle) modalTitle.innerText = `${conf.label} (Read-Only)`;
-
-  const container = document.getElementById('sisterVaultContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const balances = state.peerVaults[vaultKey] || {};
-
-  Object.entries(DEFAULT_VAULT).forEach(([k, def]) => {
-    const pts = Number(balances[k] || 0);
-    const miles = Math.round(pts * def.ratio);
-
-    const box = document.createElement('div');
-    box.className = 'vault-item';
-    box.innerHTML = `
-      <div class="vault-name">${def.name}</div>
-      <div class="vault-points">${pts.toLocaleString()} ${def.unit}</div>
-      <div class="vault-miles">=${miles.toLocaleString()} mi (${def.ratio}x)</div>
-    `;
-    container.appendChild(box);
-  });
-
-  document.getElementById('sisterVaultOverlay').style.display = 'flex';
-}
-
-// --- Bank Points Vault & Milestones ---
 export function renderVaultBalances() {
   const container = document.getElementById('vaultContainer');
   if (!container) return;
   container.innerHTML = '';
 
   let totalMiles = 0;
+  const vaultSource = state.myVault || state.vault || DEFAULT_VAULT;
 
   Object.entries(DEFAULT_VAULT).forEach(([k, def]) => {
-    const pts = Number(state.vault[k] || 0);
+    const pts = Number(vaultSource[k]?.points ?? vaultSource[k] ?? 0);
     const miles = Math.round(pts * def.ratio);
     totalMiles += miles;
 
@@ -293,6 +234,7 @@ export function renderVaultBalances() {
 
   const totalEl = document.getElementById('myTotalVaultMiles');
   if (totalEl) totalEl.innerText = `${totalMiles.toLocaleString()} mi`;
+  renderTravelGoalBanner();
 }
 
 export function renderExpiryRadar() {
@@ -326,8 +268,9 @@ export function renderExpiryRadar() {
 
 export function renderTravelGoalBanner() {
   let totalMiles = 0;
+  const vaultSource = state.myVault || state.vault || DEFAULT_VAULT;
   Object.entries(DEFAULT_VAULT).forEach(([k, def]) => {
-    const pts = Number(state.vault[k] || 0);
+    const pts = Number(vaultSource[k]?.points ?? vaultSource[k] ?? 0);
     totalMiles += Math.round(pts * def.ratio);
   });
 
@@ -350,73 +293,128 @@ export function renderTravelGoalBanner() {
   }
 }
 
-// --- UOB Defense Alerts & Compatibility ---
-export function checkUobFeeDefense() {
-  updateUobFeeRenewalAlerts();
+// --- Extended Family & Sister Vault Modals ---
+export function openSisterVaultModal() {
+  openFamilyMemberVaultModal('sister');
 }
 
-export function updateUobFeeRenewalAlerts() {
-  const container = document.getElementById('uobFeeAlertContainer');
+export function closeSisterVaultModal() {
+  const overlay = document.getElementById('sisterVaultOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+export function renderSisterVaultModal() {
+  openFamilyMemberVaultModal('sister');
+}
+
+export function openFamilyMemberVaultModal(vaultKey = 'sister') {
+  const conf = VAULT_REGISTRY[vaultKey] || { label: "Family Vault" };
+  const modalTitle = document.getElementById('peerModalTitle');
+  if (modalTitle) modalTitle.innerText = `${conf.label} (Read-Only)`;
+
+  const container = document.getElementById('sisterVaultContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  const now = new Date();
-  const alerts = state.settings.uobFeeAlerts || {};
-  
-  Object.entries(alerts).forEach(([cardId, renewalMonthStr]) => {
-    if (!renewalMonthStr) return;
-    const [renYear, renMonth] = renewalMonthStr.split('-').map(Number);
-    const renewalDate = new Date(renYear, renMonth - 1, 1);
-    
-    const diffDays = Math.ceil((renewalDate - now) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays >= 0 && diffDays <= 45) {
-      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
-      const cardName = card ? card.name : cardId;
-      
-      const alertBox = document.createElement('div');
-      alertBox.className = 'uob-rounding-notice';
-      alertBox.style.cssText = 'background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; margin: 8px 0;';
-      alertBox.innerHTML = `
-        🛡️ <b>UOB Fee Defense Alert:</b> <b>${cardName}</b> renews in <b>${diffDays} days</b> (${renewalMonthStr}).
-        Check for automatic UNI$ deduction and call UOB or request a fee waiver via the TMRW app.
-      `;
-      container.appendChild(alertBox);
-    }
+  const balances = (state.peerVaults && state.peerVaults[vaultKey]) || state.peerVault || {};
+
+  Object.entries(DEFAULT_VAULT).forEach(([k, def]) => {
+    const pts = Number(balances[k]?.points ?? balances[k] ?? 0);
+    const miles = Math.round(pts * def.ratio);
+
+    const box = document.createElement('div');
+    box.className = 'vault-item';
+    box.innerHTML = `
+      <div class="vault-name">${def.name}</div>
+      <div class="vault-points">${pts.toLocaleString()} ${def.unit}</div>
+      <div class="vault-miles">=${miles.toLocaleString()} mi (${def.ratio}x)</div>
+    `;
+    container.appendChild(box);
   });
+
+  const overlay = document.getElementById('sisterVaultOverlay');
+  if (overlay) overlay.style.display = 'flex';
 }
 
-// --- Archive & Reconciliation Helpers ---
-export function exportArchiveMonthCSV(monthStr) {
-  const txns = state.transactions.filter(t => (t.date || '').startsWith(monthStr));
-  if (!txns.length) {
-    alert(`No transactions found for ${monthStr}.`);
+export function renderFamilyVaultsSection() {
+  const sec = document.getElementById('familyVaultsSection');
+  if (!sec) return;
+
+  if (!state.isAdmin) {
+    sec.style.display = 'none';
     return;
   }
 
-  const headers = ['Date', 'Card ID', 'Card Name', 'Description', 'Amount (SGD)', 'Miles Earned', 'Category', 'Owner'];
-  const rows = txns.map(t => {
-    const card = ALL_MASTER_CARDS.find(c => c.id === t.cardId);
-    return [
-      `"${t.date || ''}"`,
-      `"${t.cardId || ''}"`,
-      `"${card ? card.name : t.cardId || ''}"`,
-      `"${(t.desc || '').replace(/"/g, '""')}"`,
-      parseFloat(t.amount || 0).toFixed(2),
-      Math.round(t.miles || 0),
-      `"${t.category || 'bonus'}"`,
-      `"${t.owner || state.myVaultKey}"`
-    ].join(',');
-  });
+  sec.style.display = 'block';
+  const grid = document.getElementById('familyVaultsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
 
-  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `MilesTrackSG_Archive_${monthStr}_${state.myVaultKey}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const memberKeys = Object.keys(VAULT_REGISTRY).filter(k => k !== 'primary');
+
+  memberKeys.forEach(k => {
+    const conf = VAULT_REGISTRY[k];
+    const peerBalances = (state.peerVaults && state.peerVaults[k]) || {};
+
+    let totalPeerMiles = 0;
+    Object.keys(DEFAULT_VAULT).forEach(key => {
+      const pts = Number(peerBalances[key]?.points ?? peerBalances[key] ?? 0);
+      const ratio = DEFAULT_VAULT[key].ratio;
+      totalPeerMiles += Math.round(pts * ratio);
+    });
+
+    const card = document.createElement('div');
+    card.className = 'sister-card';
+    card.style.cursor = 'pointer';
+    card.onclick = () => openFamilyMemberVaultModal(k);
+
+    card.innerHTML = `
+      <div class="sister-info">
+        <span class="sister-title"><span class="material-symbols-outlined" style="font-size:16px;">account_balance</span> ${conf.label}</span>
+        <div class="sister-miles">${totalPeerMiles.toLocaleString()} miles</div>
+        <span style="font-size:0.75rem; color:#94a3b8;">${conf.emails[0]} • Tap to view breakdown</span>
+      </div>
+      <button class="btn-view-peer">Inspect ❯</button>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+// --- Reconciliation & Archive Views ---
+export function renderReconcileView() {
+  const cardSelect = document.getElementById('reconcileCardSelect');
+  const cardId = cardSelect?.value || state.cards[0]?.id;
+  const card = state.cards.find(c => c.id === cardId);
+  const spendEl = document.getElementById('reconcileAppSpend');
+  if (spendEl && card) {
+    spendEl.innerText = `$${(card.currentSpend || 0).toFixed(2)}`;
+  }
+}
+
+export function updateReconcileDelta(appSpend = 0) {
+  const stmtInput = document.getElementById('reconcileStmtInput');
+  const deltaEl = document.getElementById('reconcileDelta');
+  if (!stmtInput || !deltaEl) return;
+  const stmt = parseFloat(stmtInput.value) || 0;
+  const delta = stmt - appSpend;
+  deltaEl.innerText = `${delta >= 0 ? '+' : ''}$${delta.toFixed(2)}`;
+  deltaEl.style.color = Math.abs(delta) < 0.01 ? '#34d399' : '#f87171';
+}
+
+export function openReconcileModal() {
+  renderReconcileView();
+  const overlay = document.getElementById('reconcileOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function closeReconcileModal() {
+  const overlay = document.getElementById('reconcileOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+export function renderArchiveData() {
+  renderArchiveModal();
 }
 
 export function renderArchiveModal() {
@@ -435,7 +433,6 @@ export function renderArchiveModal() {
   });
 
   const sortedMonths = Object.keys(monthsMap).sort().reverse();
-
   if (!sortedMonths.length) {
     container.innerHTML = '<div style="font-size:0.8rem; color:#94a3b8; text-align:center; padding:12px;">No historical monthly data found.</div>';
     return;
@@ -458,43 +455,6 @@ export function renderArchiveModal() {
   });
 }
 
-export function deleteArchiveMonth(monthStr) {
-  if (confirm(`Are you sure you want to permanently delete all transactions for ${monthStr}?`)) {
-    const toDelete = state.transactions.filter(t => (t.date || '').startsWith(monthStr));
-    toDelete.forEach(t => deleteTransaction(t.id));
-  }
-}
-
-export function renderReconcileModal() {
-  const container = document.getElementById('reconcileContentArea');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const activeCards = state.cards.filter(c => state.enabledCardIds.includes(c.id));
-  activeCards.forEach(c => {
-    const cardDiv = document.createElement('div');
-    cardDiv.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;';
-    cardDiv.innerHTML = `
-      <span>${c.name}</span>
-      <b>$${(c.currentSpend || 0).toFixed(2)} / ${c.monthlyCap >= 999999 ? 'Uncapped' : '$' + c.monthlyCap}</b>
-    `;
-    container.appendChild(cardDiv);
-  });
-}
-
-// --- Reconcile Modal Controls ---
-export function openReconcileModal() {
-  renderReconcileModal();
-  const overlay = document.getElementById('reconcileOverlay');
-  if (overlay) overlay.style.display = 'flex';
-}
-
-export function closeReconcileModal() {
-  const overlay = document.getElementById('reconcileOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
-// --- Archive History Modal Controls ---
 export function openArchiveModal() {
   renderArchiveModal();
   const overlay = document.getElementById('archiveOverlay') || document.getElementById('archiveHistoryOverlay');
@@ -506,111 +466,85 @@ export function closeArchiveModal() {
   if (overlay) overlay.style.display = 'none';
 }
 
-// --- Settings Modal Controls ---
-export function openSettingsModal() {
-  const overlay = document.getElementById('settingsOverlay');
-  if (overlay) {
-    const uobCutoffInput = document.getElementById('uobVsCutoff');
-    const citiCutoffInput = document.getElementById('citiCutoff');
-    if (uobCutoffInput) uobCutoffInput.value = state.settings.uobVsCutoff || 18;
-    if (citiCutoffInput) citiCutoffInput.value = state.settings.citiCutoff || 15;
-    overlay.style.display = 'flex';
+export function exportArchiveMonthCSV(monthStr) {
+  const txns = state.transactions.filter(t => (t.date || '').startsWith(typeof monthStr === 'string' ? monthStr : ''));
+  if (!txns.length) {
+    alert("No transactions found for the selected period.");
+    return;
   }
+
+  const headers = ['Date', 'Card ID', 'Card Name', 'Description', 'Amount (SGD)', 'Miles Earned', 'Category', 'Owner'];
+  const rows = txns.map(t => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === t.cardId);
+    return [
+      `"${t.date || ''}"`,
+      `"${t.cardId || ''}"`,
+      `"${card ? card.name : t.cardId || ''}"`,
+      `"${(t.desc || '').replace(/"/g, '""')}"`,
+      parseFloat(t.amount || 0).toFixed(2),
+      Math.round(t.miles || 0),
+      `"${t.category || 'bonus'}"`,
+      `"${t.owner || state.myVaultKey}"`
+    ].join(',');
+  });
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `MilesTrackSG_Archive_${state.myVaultKey}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
-export function closeSettingsModal() {
-  const overlay = document.getElementById('settingsOverlay');
+// --- UOB Defense Alerts ---
+export function checkUobFeeDefense() {
+  const container = document.getElementById('uobFeeAlertContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const now = new Date();
+  const alerts = state.settings?.uobFeeAlerts || {};
+  
+  Object.entries(alerts).forEach(([cardId, renewalMonthStr]) => {
+    if (!renewalMonthStr) return;
+    const [renYear, renMonth] = renewalMonthStr.split('-').map(Number);
+    const renewalDate = new Date(renYear, renMonth - 1, 1);
+    const diffDays = Math.ceil((renewalDate - now) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays >= 0 && diffDays <= 45) {
+      const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+      const cardName = card ? card.name : cardId;
+      
+      const alertBox = document.createElement('div');
+      alertBox.className = 'uob-rounding-notice';
+      alertBox.style.cssText = 'background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; margin: 8px 0;';
+      alertBox.innerHTML = `
+        🛡️ <b>UOB Fee Defense Alert:</b> <b>${cardName}</b> renews in <b>${diffDays} days</b> (${renewalMonthStr}).
+        Check for automatic UNI$ deduction and call UOB or request a fee waiver via the TMRW app.
+      `;
+      container.appendChild(alertBox);
+    }
+  });
+}
+
+// --- Card Detail & Form Modals ---
+export function openModal() {
+  const overlay = document.getElementById('modalOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+export function closeModal() {
+  const overlay = document.getElementById('modalOverlay');
   if (overlay) overlay.style.display = 'none';
-}
-
-// --- Vault Balances Modal Controls ---
-export function openVaultModal() {
-  const overlay = document.getElementById('vaultOverlay');
-  if (overlay) {
-    Object.keys(DEFAULT_VAULT).forEach(k => {
-      const input = document.getElementById(`v_${k}`);
-      if (input) input.value = state.vault[k] || 0;
-    });
-    overlay.style.display = 'flex';
-  }
-}
-
-export function closeVaultModal() {
-  const overlay = document.getElementById('vaultOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
-// --- Peer & Card Detail Modal Controls ---
-export function closeSisterVaultModal() {
-  const overlay = document.getElementById('sisterVaultOverlay');
-  if (overlay) overlay.style.display = 'none';
+  const idInput = document.getElementById('editTxId');
+  if (idInput) idInput.value = '';
 }
 
 export function closeCardDetailModal() {
   const overlay = document.getElementById('cardDetailOverlay');
   if (overlay) overlay.style.display = 'none';
-}
-
-export function openModal() {
-  document.getElementById('modalOverlay').style.display = 'flex';
-}
-
-export function closeModal() {
-  document.getElementById('modalOverlay').style.display = 'none';
-  document.getElementById('editTxId').value = '';
-}
-
-// --- Form & Input Change Handlers ---
-export function onCardSelectChange() {
-  const select = document.getElementById('cardSelect');
-  const cardId = select?.value;
-  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
-  const hint = document.getElementById('cardHint');
-  const yuuGroup = document.getElementById('yuuMerchantGroup');
-  const merchantGroup = document.getElementById('merchantInputGroup');
-
-  if (card && hint) hint.innerText = card.hint || '';
-
-  if (cardId === 'dbs-yuu') {
-    if (yuuGroup) yuuGroup.style.display = 'block';
-    if (merchantGroup) merchantGroup.style.display = 'none';
-  } else {
-    if (yuuGroup) yuuGroup.style.display = 'none';
-    if (merchantGroup) merchantGroup.style.display = 'block';
-  }
-}
-
-export function onYuuMerchantChange() {
-  const yuuSelect = document.getElementById('yuuMerchantSelect');
-  const descInput = document.getElementById('descInput');
-  if (yuuSelect && descInput && yuuSelect.value) {
-    descInput.value = yuuSelect.value;
-  }
-}
-
-export function checkShellMerchantTrigger() {
-  const desc = (document.getElementById('descInput')?.value || '').toLowerCase();
-  const area = document.getElementById('shellDiscountCalcArea');
-  if (!area) return;
-  area.style.display = desc.includes('shell') ? 'block' : 'none';
-}
-
-export function applyShellDiscount() {
-  const grossInput = document.getElementById('shellGrossInput');
-  const amtInput = document.getElementById('amtInput');
-  const status = document.getElementById('shellDiscountStatusText');
-  if (!grossInput || !amtInput) return;
-
-  const gross = parseFloat(grossInput.value) || 0;
-  if (gross <= 0) return;
-
-  const nett = (gross * 0.86).toFixed(2);
-  amtInput.value = nett;
-
-  if (status) {
-    status.innerText = `Gross: $${gross.toFixed(2)} → 14% instant off = $${nett} charged`;
-    status.style.color = '#34d399';
-  }
 }
 
 export function openCardDetailModal(cardId) {
@@ -657,7 +591,77 @@ export function openCardDetailModal(cardId) {
   document.getElementById('cardDetailOverlay').style.display = 'flex';
 }
 
-// --- Window Global Bindings for Inline HTML Attributes ---
+// --- Form & Input Change Handlers ---
+export function onCardSelectChange() {
+  const select = document.getElementById('cardSelect');
+  const cardId = select?.value;
+  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+  const hint = document.getElementById('cardHint');
+  const yuuGroup = document.getElementById('yuuMerchantGroup');
+  const merchantGroup = document.getElementById('merchantInputGroup');
+
+  if (card && hint) hint.innerText = card.hint || '';
+
+  if (cardId === 'dbs-yuu') {
+    if (yuuGroup) yuuGroup.style.display = 'block';
+    if (merchantGroup) merchantGroup.style.display = 'none';
+  } else {
+    if (yuuGroup) yuuGroup.style.display = 'none';
+    if (merchantGroup) merchantGroup.style.display = 'block';
+  }
+}
+
+export function onYuuMerchantChange() {
+  const yuuSelect = document.getElementById('yuuMerchantSelect');
+  const descInput = document.getElementById('descInput');
+  if (yuuSelect && descInput && yuuSelect.value) {
+    descInput.value = yuuSelect.value;
+  }
+}
+
+export function checkShellMerchantTrigger() {
+  const desc = (document.getElementById('descInput')?.value || '').toLowerCase();
+  const area = document.getElementById('shellDiscountCalcArea');
+  if (!area) return;
+  area.style.display = desc.includes('shell') ? 'block' : 'none';
+}
+
+export async function saveTransaction() {
+  const editId = document.getElementById('editTxId')?.value;
+  const date = document.getElementById('txDateInput')?.value || new Date().toISOString().slice(0, 10);
+  const cardId = document.getElementById('cardSelect')?.value;
+  const desc = document.getElementById('descInput')?.value || 'General Expense';
+  const amount = parseFloat(document.getElementById('amtInput')?.value) || 0;
+  const category = document.getElementById('bonusCategory')?.value || 'bonus';
+
+  if (!cardId || amount <= 0) {
+    alert("Please select a valid card and enter an amount.");
+    return;
+  }
+
+  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+  const miles = calcEarnedMiles(card, amount, category === 'bonus' ? card.bonusMpd : card.baseMpd);
+
+  const txn = {
+    date,
+    cardId,
+    cardName: card?.name || cardId,
+    desc,
+    amount,
+    miles,
+    category
+  };
+
+  if (editId) {
+    await updateTransaction(editId, txn);
+  } else {
+    await addTransaction(txn);
+  }
+
+  closeModal();
+}
+
+// --- Window Global Bindings ---
 window.editTx = function(id) {
   const tx = state.transactions.find(t => t.id === id);
   if (!tx) return;
