@@ -43,34 +43,56 @@
       padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); 
     }
     
-    .app-container { width: 100%; max-width: 1180px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+    .app-container { width: 100%; max-width: 1180px; padding: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
     
-    /* Top Header Refinements */
+    /* Re-architected 2-Row Header (Zero Overlap Guaranteed) */
     header { 
-      padding: 6px 4px 12px; 
+      padding: 4px 2px 8px; 
       display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      gap: 8px;
+      flex-direction: column; 
+      gap: 6px; 
     }
-    header h1 { 
-      font-size: 1.15rem; 
+    .header-row-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .header-brand h1 { 
+      font-size: 1.25rem; 
       font-weight: 700; 
       display: flex; 
       align-items: center; 
       gap: 6px; 
       white-space: nowrap;
+      margin: 0;
     }
-    
+    .version-tag { 
+      font-size: 0.68rem; 
+      font-weight: 700; 
+      padding: 2px 7px; 
+      border-radius: 6px; 
+      background: rgba(158, 202, 255, 0.12); 
+      color: var(--primary); 
+      border: 1px solid rgba(158, 202, 255, 0.25); 
+      vertical-align: middle; 
+      flex-shrink: 0;
+    }
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
     }
     .header-actions .material-symbols-outlined {
       font-size: 20px;
-      padding: 4px;
+      padding: 6px;
       border-radius: 8px;
       cursor: pointer;
       color: #94a3b8;
@@ -80,15 +102,42 @@
       transition: background 0.15s, color 0.15s;
     }
     .header-actions .material-symbols-outlined:active {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
 
-    .version-tag { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(158, 202, 255, 0.12); color: var(--primary); border: 1px solid rgba(158, 202, 255, 0.25); vertical-align: middle; }
-    .sync-status { font-size: 0.72rem; padding: 3px 10px; border-radius: 10px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: flex; align-items: center; gap: 4px; font-weight: 600; white-space: nowrap; }
+    .header-row-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+    }
+    .header-user-email {
+      font-size: 0.72rem; 
+      color: #94a3b8; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      flex: 1;
+      min-width: 0;
+    }
+    .sync-status { 
+      font-size: 0.68rem; 
+      padding: 3px 8px; 
+      border-radius: 8px; 
+      background: rgba(74, 222, 128, 0.15); 
+      color: var(--accent); 
+      display: flex; 
+      align-items: center; 
+      gap: 4px; 
+      font-weight: 600; 
+      white-space: nowrap; 
+      flex-shrink: 0;
+    }
     .sync-status.offline { background: rgba(249, 115, 22, 0.15); color: var(--warning); }
 
-    /* Bottom Navigation Bar Refinements */
+    /* Inset Mobile Navigation Bar */
     .bottom-nav { 
       position: fixed; 
       bottom: 0; 
@@ -145,10 +194,6 @@
 
     @media (max-width: 899px) {
       #desktopCategorySection { display: none !important; }
-    }
-
-    @media (max-width: 400px) {
-      .sync-status { padding: 3px 6px; font-size: 0.68rem; }
     }
 
     .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 16px; }
@@ -355,7 +400,6 @@
     .btn-backup { background: var(--surface-variant); border: 1px solid var(--outline); color: var(--on-surface); padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-backup:hover { background: rgba(158, 202, 255, 0.12); border-color: var(--primary); color: var(--primary); }
 
-    /* FAB Positioning with safe area inset */
     .fab { 
       position: fixed; 
       bottom: calc(76px + env(safe-area-inset-bottom, 0px)); 
@@ -414,7 +458,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.6</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.7.7</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -426,20 +470,25 @@
   </div>
 
   <div class="app-container" id="mainApp" style="display:none;">
+    <!-- Structured 2-Row Header to Prevent Collisions -->
     <header>
-      <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
-        <h1>
-          <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
-          <span>MilesTrack SG</span> 
-          <span class="version-tag" id="headerVersionTag">v1.7.6</span>
-        </h1>
-        <div style="font-size:0.72rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="signedInUserDisplay">Signed in: ...</div>
+      <div class="header-row-main">
+        <div class="header-brand">
+          <h1>
+            <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
+            <span>MilesTrack SG</span>
+          </h1>
+          <span class="version-tag" id="headerVersionTag">v1.7.7</span>
+        </div>
+        <div class="header-actions">
+          <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
+          <span class="material-symbols-outlined" onclick="openSettings()" title="Settings & Backup">settings</span>
+          <span class="material-symbols-outlined" onclick="logoutGoogle()" title="Sign Out">logout</span>
+        </div>
       </div>
-      <div class="header-actions">
+      <div class="header-row-sub">
+        <div class="header-user-email" id="signedInUserDisplay">Signed in: ...</div>
         <span class="sync-status" id="syncStatusIndicator">● Cloud Connected</span>
-        <span class="material-symbols-outlined" onclick="openVaultModal()" title="Edit Points Balances">account_balance_wallet</span>
-        <span class="material-symbols-outlined" onclick="openSettings()" title="Settings & Backup">settings</span>
-        <span class="material-symbols-outlined" onclick="logoutGoogle()" title="Sign Out">logout</span>
       </div>
     </header>
 
@@ -529,6 +578,7 @@
           <datalist id="mccDatalist">
             <option value="Shopee / Lazada / Taobao (OCBC 6 mpd Promo)">
             <option value="Watsons / TikTok Shop (OCBC 6 mpd Promo)">
+            <option value="5541 - Petrol Service Stations (Shell, SPC, Esso)">
             <option value="5812 - Restaurants & Dining Places">
             <option value="5814 - Fast Food (McD, KFC, Starbucks)">
             <option value="5813 - Bars, Taverns & Nightclubs">
@@ -537,6 +587,11 @@
             <option value="5499 - Misc Food Stores & Delivery (GrabFood)">
             <option value="5811 - Catering Services">
             <option value="5411 - Supermarkets & Groceries">
+            <option value="5912 - Pharmacies & Personal Care (Guardian, Watsons, Unity)">
+            <option value="8351 - Child Care & Nursery Services (Education-Adjacent)">
+            <option value="8011 - Doctors & Outpatient Clinics">
+            <option value="8021 - Dentists & Orthodontists">
+            <option value="7512 - Car Rental Agencies (Hertz, Avis, Klook)">
             <option value="5311 - Department Stores (Takashimaya, Tangs)">
             <option value="5651 - Family Clothing (Uniqlo, Zara)">
             <option value="5621 - Women's Ready-to-Wear">
@@ -545,8 +600,10 @@
             <option value="7011 - Hotels & Resorts">
             <option value="4111 - Commuter Transport / SimplyGo">
             <option value="4121 - Taxis & Ride-Hailing (Grab, Gojek)">
-            <option value="5541 - Petrol Service Stations (Shell, SPC, Esso)">
             <option value="5999 - General Retail & Souvenirs">
+            <option value="8062 - Hospitals & Inpatient Healthcare">
+            <option value="8211 - Schools & Primary / Secondary Tuition">
+            <option value="8398 - Charities & Non-Profit Donations">
             <option value="4900 - Utilities (SP Group, Senoko)">
             <option value="6300 - Insurance Premiums">
             <option value="9399 - Government Services & Taxes">
@@ -766,7 +823,7 @@
 
       <div class="form-group" id="merchantInputGroup">
         <label>Merchant / Description</label>
-        <input type="text" id="descInput" class="form-control" placeholder="e.g. Cold Storage, Uniqlo, SIA, Kris+ Partner">
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Kris+ Partner">
       </div>
 
       <div class="form-group" id="yuuMerchantGroup" style="display:none;">
@@ -915,7 +972,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const APP_VERSION = "v1.7.6";
+    const APP_VERSION = "v1.7.7";
 
     const authVer = document.getElementById("authVersionTag");
     const headerVer = document.getElementById("headerVersionTag");
@@ -1017,6 +1074,7 @@
       { id: 'p_cs', label: 'Cold Storage', icon: '🛒', cardId: 'dbs-yuu', desc: 'Cold Storage' },
       { id: 'p_fairprice_app', label: 'FairPrice App', icon: '🍎', cardId: 'uob-ppv-online', desc: 'NTUC FairPrice (App)' },
       { id: 'p_mcd_online', label: "McDonald's (Online)", icon: '🍔', cardId: 'uob-ls-dining', desc: "McDonald's" },
+      { id: 'p_shell', label: "Shell Petrol", icon: '⛽', cardId: 'uob-ppv-contactless', desc: "Shell Service Station" },
       { id: 'p_dine', label: 'Restaurant', icon: '🍽️', cardId: 'uob-ls-dining', desc: 'Restaurant Dining' }
     ];
 
@@ -1058,10 +1116,10 @@
       },
       {
         id: "petrol",
-        name: "Petrol / Fuel",
+        name: "Petrol / Fuel (Shell)",
         icon: "⛽",
-        cardIds: ["uob-vs-contactless"],
-        notes: "Shell, SPC, Esso, Caltex. Must meet S$1,000 statement baseline on UOB VS."
+        cardIds: ["uob-ppv-contactless", "uob-vs-contactless"],
+        notes: "Shell: UOB PPV (Mobile Tap, S$600 cap) or UOB VS (S$1k min). Maybank World MC earns 4 mpd uncapped."
       }
     ];
 
@@ -1121,7 +1179,25 @@
       };
     }
 
+    // Comprehensive MCC Database (Incorporating all 15 MileLion Guides)
     const MCC_DATABASE = {
+      "5541": {
+        name: "Petrol Service Stations (Shell, SPC, Esso, Caltex)",
+        notes: "⛽ <b>Shell:</b> UOB PPV (Mobile Tap, 4 mpd, S$600 cap) or UOB VS (4 mpd, min S$1k). Maybank World MC earns 4 mpd uncapped at cashier (+10% Shell Go+ discount). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 to earn 4 mpd on OCBC/Citi Rewards!",
+        candidatesLocal: [
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 },
+          { id: "uob-prvi", baseRate: 2.4 }
+        ]
+      },
       "5811": {
         name: "Catering Services",
         notes: "Neo Garden, Stamford Catering. Covered by UOB Lady's (Dining) & HSBC Rev. ⚠️ EXCLUDED on KrisFlyer UOB.",
@@ -1275,6 +1351,91 @@
           { id: "uob-prvi", baseRate: 2.4 }
         ]
       },
+      "5912": {
+        name: "Pharmacies & Personal Care (Guardian, Watsons, Unity)",
+        notes: "Guardian: DBS yuu (10 mpd). Watsons: OCBC Rewards (6 mpd promo). UOB PPV & HSBC Rev earn 4 mpd. ⚠️ Guardian/Watsons in-app checkout codes as MCC 5499!",
+        candidatesLocal: [
+          { id: "dbs-yuu", baseRate: 10.0 },
+          { id: "ocbc-rewards", baseRate: 6.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-ppv-online", baseRate: 4.0 },
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "citi-rewards", baseRate: 0.4 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "ocbc-rewards", baseRate: 6.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "8351": {
+        name: "Child Care & Nursery Services",
+        notes: "Childcare is education-adjacent! Eligible for 4.0 mpd on DBS WWMC (Online) & Mobile Tap (UOB PPV / VS). ⚠️ Excluded on HSBC Rev.",
+        candidatesLocal: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "8011": {
+        name: "Doctors & Outpatient Clinics",
+        notes: "Private clinic consultations. Earns 4.0 mpd on UOB PPV (Mobile Tap), UOB VS Tap, and DBS WWMC (teleconsults). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
+        candidatesLocal: [
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "8021": {
+        name: "Dentists & Orthodontists",
+        notes: "Dental checkups & scaling. Earns 4.0 mpd via Mobile Tap (UOB PPV / UOB VS). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
+        candidatesLocal: [
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
+        ],
+        candidatesOverseas: [
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
+      "7512": {
+        name: "Car Rental Agencies (Hertz, Avis, Klook Car Rental)",
+        notes: "⚠️ Citi Rewards strictly EXCLUDES car rentals! Covered by DBS WWMC (online) and HSBC Revolution.",
+        candidatesLocal: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "uob-ppv-contactless", baseRate: 4.0 },
+          { id: "uob-vs-contactless", baseRate: 4.0 },
+          { id: "dbs-vantage", baseRate: 1.5 },
+          { id: "uob-prvi", baseRate: 1.4 }
+        ],
+        candidatesOverseas: [
+          { id: "dbs-wwmc", baseRate: 4.0 },
+          { id: "uob-vs-fcy", baseRate: 4.0 },
+          { id: "hsbc-rev", baseRate: 4.0 },
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ]
+      },
       "5311": {
         name: "Department Stores (Takashimaya, Tangs, Isetan)",
         notes: "Department store shopping. OCBC Rewards & Citi Rewards eligible.",
@@ -1417,21 +1578,6 @@
           { id: "dbs-wwmc", baseRate: 4.0 }
         ]
       },
-      "5541": {
-        name: "Petrol / Service Stations",
-        notes: "⚠️ HSBC Revolution strictly EXCLUDES petrol! Local: UOB VS. Overseas: UOB VS FCY.",
-        candidatesLocal: [
-          { id: "uob-vs-contactless", baseRate: 4.0 },
-          { id: "dbs-vantage", baseRate: 1.5 },
-          { id: "uob-prvi", baseRate: 1.4 }
-        ],
-        candidatesOverseas: [
-          { id: "uob-vs-fcy", baseRate: 4.0 },
-          { id: "mb-world-mc", baseRate: 3.2 },
-          { id: "mb-horizon-vs", baseRate: 2.8 },
-          { id: "uob-prvi", baseRate: 2.4 }
-        ]
-      },
       "5999": {
         name: "General Retail, Souvenirs & Specialty Stores",
         notes: "All general retail and souvenir spending.",
@@ -1448,6 +1594,39 @@
           { id: "mb-horizon-vs", baseRate: 2.8 },
           { id: "uob-prvi", baseRate: 2.4 }
         ]
+      },
+      "8062": { 
+        name: "Hospitals & Inpatient Care", 
+        notes: "❌ Excluded from rewards by all major Singapore banks. Only Maybank Horizon (0.16 mpd local / 2.8 mpd FCY) awards points.", 
+        candidatesLocal: [], 
+        candidatesOverseas: [
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ] 
+      },
+      "8211": { 
+        name: "Schools & Primary / Secondary Education", 
+        notes: "❌ Excluded from rewards across all major credit cards. (Only Maybank 0.16 mpd or CardUp payment facility applies).", 
+        candidatesLocal: [], 
+        candidatesOverseas: [
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ] 
+      },
+      "8220": { 
+        name: "Colleges & Universities (NUS, NTU, SMU)", 
+        notes: "❌ Excluded from rewards across all major credit cards. NUS now codes under MCC 9399 / 8220.", 
+        candidatesLocal: [], 
+        candidatesOverseas: [
+          { id: "mb-world-mc", baseRate: 3.2 },
+          { id: "mb-horizon-vs", baseRate: 2.8 }
+        ] 
+      },
+      "8398": { 
+        name: "Charities & Social Service Organizations (Donations)", 
+        notes: "❌ Excluded from rewards across all major credit cards.", 
+        candidatesLocal: [], 
+        candidatesOverseas: [] 
       },
       "4900": { name: "Utilities", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
       "6300": { name: "Insurance", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
@@ -1467,7 +1646,6 @@
       kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
     };
 
-    // Added strategyType: 'whitelist' vs 'blacklist' to support MileLion optimization
     const ALL_MASTER_CARDS = [
       { 
         id: 'dbs-yuu', 
@@ -1701,7 +1879,7 @@
         cycleType: 'calendar', 
         strategyType: 'whitelist',
         badgeClass: '', 
-        hint: 'FCY spend: 3.2 mpd (min S$4,000/mo), 2.8 mpd (min S$800/mo), uncapped. 4.0 mpd at select dining groups (Paradise/Les Amis).', 
+        hint: '4.0 mpd on offline Shell Petrol! FCY: 3.2 mpd (min S$4k/mo), 2.8 mpd (min S$800/mo), uncapped.', 
         isContactlessOnly: false,
         channelMode: 'both',
         themeClass: 'thumb-maybank'
@@ -1983,7 +2161,6 @@
       }
     }
 
-    // Kris+ Mode Toggle Handler
     window.toggleKrisPlusMode = function() {
       isKrisPlusMode = document.getElementById('krisPlusSwitch').checked;
       const recCard = document.getElementById('recommenderCard');
@@ -1993,7 +2170,6 @@
       if (isKrisPlusMode) {
         recCard.classList.add('kris-mode');
         badge.innerHTML = '<span style="color:var(--kris-cyan); font-weight:700;">🛍️ Kris+ Mode</span>';
-        // Kris+ operates as an in-app online checkout
         setChannelMode('online');
         if (contactlessRow) contactlessRow.style.display = 'none';
       } else {
@@ -2133,7 +2309,7 @@
       if (isKrisPlusMode) return;
       const q = (queryStr || "").toLowerCase().trim();
       const onlineKeywords = ["shopee", "lazada", "taobao", "tiktok", "agoda", "klook", "trip.com", "expedia", "deliveroo", "air carrier", "airline", "sia", "scoot", "online", "4511", "4722"];
-      const inPersonKeywords = ["supermarket", "petrol", "5812", "5813", "5814", "5411", "5541", "5462", "5441", "cedele", "chateraise", "cold storage", "giant", "guardian", "shell", "spc", "esso"];
+      const inPersonKeywords = ["supermarket", "petrol", "shell", "5812", "5813", "5814", "5411", "5541", "5462", "5441", "cedele", "chateraise", "cold storage", "giant", "guardian", "spc", "esso"];
 
       if (onlineKeywords.some(k => q.includes(k))) {
         setChannelMode('online');
@@ -2228,7 +2404,6 @@
         };
       }
 
-      // Kris+ Unknown Partner Fallback: DBS WWMC earns 4.0 mpd as general online blacklist
       if (isKrisPlusMode) {
         return {
           code: "KRISPLUS-PARTNER",
@@ -2317,7 +2492,6 @@
       return Math.round(Math.floor(amount) * rate);
     }
 
-    // Smart Waterfall Recommender with Kris+ Mode & Whitelist-First Tiebreaking
     window.runRecommendation = function() {
       const inputVal = document.getElementById('mccInput').value;
       const rawAmt = (document.getElementById('recAmount').value || '').replace(/,/g, '');
@@ -2334,7 +2508,7 @@
               ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
               : (isOverseasMode 
                 ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-                : 'Type a 4-digit MCC (e.g. <b>5812</b>, <b>5814</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Watsons</b>).')}
+                : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).')}
           </div>
         `;
         return;
@@ -2342,7 +2516,6 @@
 
       let candidateList = isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
       
-      // If in Kris+ mode, automatically add DBS WWMC as online blacklist option if not present
       if (isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
         candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
       }
@@ -2352,13 +2525,9 @@
         const cardObj = ALL_MASTER_CARDS.find(card => card.id === c.id);
         if (!cardObj) return false;
 
-        // Kris+ Traps & Interlocks
         if (isKrisPlusMode) {
-          // Citi Rewards strictly excludes mobile wallet in-app transactions
           if (cardObj.id === 'citi-rewards') return false;
-          // UOB VS Contactless requires physical NFC terminal wave
           if (cardObj.id === 'uob-vs-contactless') return false;
-          // PPV contactless is not applicable in-app
           if (cardObj.id === 'uob-ppv-contactless') return false;
         }
 
@@ -2397,7 +2566,6 @@
 
         let evaluatedRate = cand.baseRate;
 
-        // Kris+ Co-brand direct multiplier: KrisFlyer UOB earns 3.0 mpd uncapped on Kris+
         if (isKrisPlusMode && cand.id === 'kf-uob') {
           evaluatedRate = 3.0;
         }
@@ -2423,14 +2591,10 @@
           daysLeft
         };
       }).filter(Boolean).sort((a, b) => {
-        // 1. Primary: Highest earn rate
         if (b.rate !== a.rate) return b.rate - a.rate;
-
-        // 2. Secondary (MileLion Optimization): Burn Whitelist cards first to preserve flexible Blacklist caps
+        // MileLion Optimization: Burn Whitelist first to preserve flexible Blacklist caps
         if (a.card.strategyType === 'whitelist' && b.card.strategyType === 'blacklist') return -1;
         if (a.card.strategyType === 'blacklist' && b.card.strategyType === 'whitelist') return 1;
-
-        // 3. Tertiary: Smallest cap first or days left
         return a.card.monthlyCap - b.card.monthlyCap;
       });
 
@@ -3169,7 +3333,6 @@
       document.getElementById('cardSelect').value = tx.cardId;
       window.onCardSelectChange();
 
-      // Populate recorded transaction date
       if (tx.timestamp) {
         const d = new Date(tx.timestamp);
         document.getElementById('txDateInput').value = d.toLocaleDateString('en-CA');
@@ -3236,7 +3399,6 @@
         const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
         if (!card) return alert('Please select a valid card');
 
-        // Parse chosen date
         let txTimestamp = Date.now();
         let displayDateStr = new Date().toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
 
@@ -3474,10 +3636,7 @@
       document.getElementById('editTxId').value = '';
       document.getElementById('descInput').value = '';
       document.getElementById('amtInput').value = '';
-      
-      // Default to today in local Singapore time (YYYY-MM-DD)
       document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
-
       document.getElementById('modalFormTitle').innerText = "Log Transaction";
       document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
       window.onCardSelectChange();
