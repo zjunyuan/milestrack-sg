@@ -1,844 +1,705 @@
-export const APP_VERSION = "v1.8.7";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MilesTrack SG</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-export const PRIMARY_EMAILS = [
-  "zjunyuan@gmail.com",
-  "eunice.er.yc@gmail.com"
-];
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
-export const SISTER_EMAILS = [
-  "minsyyy@gmail.com"
-];
+  <div class="auth-overlay" id="authOverlay" style="display:none;">
+    <div class="auth-box">
+      <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.7</span></h2>
+      <p style="font-size:0.85rem; color:#94a3b8;">
+        Independent points vaults and miles optimization for you and family.
+      </p>
+      <button class="btn-google" id="btnLoginGoogle">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+        Sign in with Google
+      </button>
+    </div>
+  </div>
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",
-  authDomain: "milestracker-sg.firebaseapp.com",
-  projectId: "milestracker-sg",
-  storageBucket: "milestracker-sg.firebasestorage.app",
-  messagingSenderId: "323564797306",
-  appId: "1:323564797306:web:f0e41ab676ae207d62aac3"
-};
+  <div class="app-container" id="mainApp" style="display:none;">
+    <header>
+      <div class="header-row-main">
+        <div class="header-brand">
+          <h1>
+            <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
+            <span>MilesTrack SG</span>
+          </h1>
+          <span class="version-tag" id="headerVersionTag">v1.8.7</span>
+        </div>
+        <div class="header-actions">
+          <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
+          <span class="material-symbols-outlined" id="btnHeaderVault" title="Edit Points Balances">account_balance_wallet</span>
+          <span class="material-symbols-outlined" id="btnHeaderSettings" title="Settings & Backup">settings</span>
+          <span class="material-symbols-outlined" id="btnHeaderLogout" title="Sign Out">logout</span>
+        </div>
+      </div>
+      <div class="header-row-sub">
+        <div class="header-user-email" id="signedInUserDisplay">Signed in: ...</div>
+        <span class="sync-status" id="syncStatusIndicator">● Cloud Connected</span>
+      </div>
+    </header>
 
-export const DEFAULT_PRESETS = [
-  { id: 'p_fp', label: 'foodpanda', icon: '🐼', cardId: 'dbs-yuu', desc: 'foodpanda' },
-  { id: 'p_cs', label: 'Cold Storage', icon: '🛒', cardId: 'dbs-yuu', desc: 'Cold Storage' },
-  { id: 'p_fairprice_app', label: 'FairPrice App', icon: '🍎', cardId: 'uob-ppv-online', desc: 'NTUC FairPrice (App)' },
-  { id: 'p_mcd_online', label: "McDonald's (Online)", icon: '🍔', cardId: 'uob-ls-dining', desc: "McDonald's" },
-  { id: 'p_shell', label: "Shell (14% off)", icon: '⛽', cardId: 'uob-ppv-contactless', desc: "Shell Service Station (14% off)" },
-  { id: 'p_dine', label: 'Restaurant', icon: '🍽️', cardId: 'uob-ls-dining', desc: 'Restaurant Dining' }
-];
+    <div class="desktop-grid">
+      <!-- TAB 1: CARDS & LOGGER -->
+      <div class="tab-content" id="tabContentCards">
+        <div class="overseas-toggle-bar" id="overseasBar">
+          <div class="toggle-label">
+            <span class="material-symbols-outlined" id="overseasIcon" style="color:#94a3b8;">travel</span>
+            <span id="overseasText">Mode: Singapore (Local SGD)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="overseasSwitch">
+            <span class="slider"></span>
+          </label>
+        </div>
 
-export const CATEGORY_POOLS = [
-  {
-    id: "dining",
-    name: "Dining & Food Places",
-    icon: "🍽️",
-    cardIds: ["uob-ls-dining", "hsbc-rev", "uob-ppv-contactless", "uob-ppv-online", "uob-vs-contactless"],
-    notes: "Restaurants, cafes, caterers, fast food. Contactless tap applies in-person; online slots apply in-app."
-  },
-  {
-    id: "groceries",
-    name: "Supermarkets & Groceries",
-    icon: "🛒",
-    cardIds: ["dbs-yuu", "uob-ppv-contactless", "uob-ppv-online", "hsbc-rev"],
-    notes: "yuu stores (Cold Storage/Giant), FairPrice App & general supermarkets."
-  },
-  {
-    id: "shopping",
-    name: "Online Shopping & Fashion",
-    icon: "🛍️",
-    cardIds: ["ocbc-rewards", "dbs-wwmc", "citi-rewards", "uob-ppv-online"],
-    notes: "OCBC 6 mpd promo, Shopee, Lazada, Taobao, Uniqlo, fashion whitelists."
-  },
-  {
-    id: "travel",
-    name: "Travel, Flights & Hotels",
-    icon: "✈️",
-    cardIds: ["dbs-wwmc", "uob-ls-travel"],
-    notes: "SIA, Scoot, Agoda, Klook, OTA hotels. Citi & HSBC strictly excluded."
-  },
-  {
-    id: "transport",
-    name: "Transport & SimplyGo",
-    icon: "🚇",
-    cardIds: ["dbs-yuu", "uob-ppv-contactless", "dbs-wwmc"],
-    notes: "SimplyGo bus/train, Grab, Gojek ride hailing."
-  },
-  {
-    id: "petrol",
-    name: "Petrol / Fuel (Shell)",
-    icon: "⛽",
-    cardIds: ["uob-ppv-contactless", "uob-vs-contactless"],
-    notes: "Shell: UOB PPV (Mobile Tap, 14% off, S$600 cap) or UOB VS (14% off, min S$1k). Maybank World MC earns 4 mpd uncapped."
-  }
-];
+        <div class="presets-section">
+          <div class="presets-header">
+            <span>⚡ Quick Log Presets</span>
+            <span style="font-size:0.7rem; color:#94a3b8;">1-Tap Fill</span>
+          </div>
+          <div class="presets-scroll" id="presetsBar"></div>
+        </div>
 
-export const KRISFLYER_4PAX_TIERS = [
-  { name: "Bali / KL / Surabaya (Zone 2)", oneWay: 22000, totalMiles: 176000 },
-  { name: "Bangkok / Phuket / Vietnam (Zone 3)", oneWay: 25000, totalMiles: 200000 },
-  { name: "Hong Kong / Taipei (Zone 4)", oneWay: 36500, totalMiles: 292000 },
-  { name: "Perth / Darwin (Zone 8)", oneWay: 42500, totalMiles: 340000 },
-  { name: "Tokyo / Osaka / Seoul (Zone 7)", oneWay: 54500, totalMiles: 436000 },
-  { name: "Sydney / Melbourne / Auckland (Zone 9)", oneWay: 72000, totalMiles: 576000 },
-  { name: "London / Paris / Zurich (Zone 11)", oneWay: 108500, totalMiles: 868000 },
-  { name: "USA West / East Coast (Zone 12/13)", oneWay: 112500, totalMiles: 900000 }
-];
+        <div class="recommender-card" id="recommenderCard">
+          <div class="rec-header">
+            <span class="rec-title">
+              <span class="material-symbols-outlined" style="font-size:20px;">calculate</span>
+              <span id="recTitleText">MCC & Card Recommender</span>
+            </span>
+            <span style="font-size:0.75rem; color:#94a3b8;" id="recModeBadge">Local SGD</span>
+          </div>
 
-export const YUU_PARTNER_BRANDS = [
-  "cold storage", "cs fresh", "jasons", "giant", 
-  "guardian", "7-eleven", "7-11", "foodpanda", 
-  "gojek", "simplygo", "chagee", "singtel", "charge+", "anywheel"
-];
+          <div class="channel-selector" id="channelSelectorBar">
+            <button type="button" class="channel-btn active" id="btnChannelInPerson">
+              <span class="material-symbols-outlined" style="font-size:16px;">storefront</span>
+              In-Person / Terminal Tap
+            </button>
+            <button type="button" class="channel-btn" id="btnChannelOnline">
+              <span class="material-symbols-outlined" style="font-size:16px;">shopping_bag</span>
+              Online / In-App
+            </button>
+          </div>
 
-export function detectYuuMerchant(desc = "") {
-  const clean = (desc || "").toLowerCase();
-  if (clean.includes("on the go") || clean.includes("onthego")) {
-    return null;
-  }
-  for (const brand of YUU_PARTNER_BRANDS) {
-    if (clean.includes(brand)) {
-      if (brand.includes("cold") || brand.includes("cs fresh") || brand.includes("jasons")) return "Cold Storage";
-      if (brand.includes("giant")) return "Giant";
-      if (brand.includes("guardian")) return "Guardian";
-      if (brand.includes("7-eleven") || brand.includes("7-11")) return "7-Eleven";
-      if (brand.includes("foodpanda")) return "foodpanda";
-      if (brand.includes("gojek")) return "Gojek";
-      if (brand.includes("simplygo")) return "SimplyGo";
-      if (brand.includes("chagee")) return "CHAGEE";
-      if (brand.includes("singtel")) return "Singtel";
-      if (brand.includes("charge+")) return "Charge+";
-      if (brand.includes("anywheel")) return "Anywheel";
-    }
-  }
-  return null;
-}
+          <div class="rec-inputs">
+            <div class="mcc-input-wrapper">
+              <input 
+                type="text" 
+                id="mccInput" 
+                list="mccDatalist" 
+                class="form-control" 
+                placeholder="Type MCC, retailer, or promo" 
+                onfocus="this.select()"
+              >
+              <button type="button" class="btn-clear-mcc" id="btnClearMcc" title="Clear selection">✕</button>
+            </div>
+            <input type="text" inputmode="decimal" id="recAmount" class="form-control" placeholder="Amt" value="100">
+          </div>
 
-export const DEFAULT_VAULT = {
-  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
-  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval' },
-  citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)' },
-  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires' },
-  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
-  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned' },
-  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
-  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
-  kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
-};
+          <!-- Kris+ Mode Toggle -->
+          <div class="rec-pref-row" id="krisPlusPrefRow" style="background: rgba(0, 43, 102, 0.35); border-color: rgba(0, 180, 216, 0.3);">
+            <div class="rec-pref-label">
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--kris-cyan);">loyalty</span>
+              <span style="font-weight:700; color:#e0f2fe;">🛍️ Paying via Kris+ App (Apple/Google Pay)</span>
+            </div>
+            <label class="switch switch-sm">
+              <input type="checkbox" id="krisPlusSwitch">
+              <span class="slider" style="background-color: #1e3a8a;"></span>
+            </label>
+          </div>
 
-export const ALL_MASTER_CARDS = [
-  { 
-    id: 'dbs-yuu', 
-    name: 'DBS yuu Card (10 mpd)', 
-    bank: 'yuu', 
-    image: 'assets/cards/dbs-yuu.png',
-    vaultKey: 'yuu_pts', 
-    monthlyCap: 822.86, 
-    minSpend: 800, 
-    bonusMpd: 10.0, 
-    baseMpd: 0.14, 
-    engine: 'yuu-10', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: 'badge-gold', 
-    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-yuu'
-  },
-  { 
-    id: 'uob-ppv-contactless', 
-    name: 'UOB Preferred Visa (Mobile Tap)', 
-    bank: 'UOB', 
-    image: 'assets/cards/uob-ppv.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 600, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'calendar', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: 'Apple/Google Pay tap & SimplyGo only. Disqualified on in-app Kris+.', 
-    isContactlessOnly: true,
-    channelMode: 'inperson',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'uob-ppv-online', 
-    name: 'UOB Preferred Visa (Online)', 
-    bank: 'UOB', 
-    image: 'assets/cards/uob-ppv.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 600, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food & whitelisted Kris+ dining/retail.', 
-    isContactlessOnly: false,
-    channelMode: 'online',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'uob-vs-contactless', 
-    name: 'UOB Visa Signature (Contactless / Petrol)', 
-    bank: 'UOB', 
-    image: 'assets/cards/uob-vs.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 1200, 
-    minSpend: 1000, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'statement', 
-    cutoffDay: 18, 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: 'Physical NFC terminal tap required (min S$1k/cycle). 14% instant off at Shell.', 
-    isContactlessOnly: true,
-    channelMode: 'inperson',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'uob-vs-fcy', 
-    name: 'UOB Visa Signature (FCY Overseas)', 
-    bank: 'UOB', 
-    image: 'assets/cards/uob-vs.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 1200, 
-    minSpend: 1000, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'statement', 
-    cutoffDay: 18, 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'citi-rewards', 
-    name: 'Citi Rewards', 
-    bank: 'Citi', 
-    image: 'assets/cards/citi-rewards.png',
-    vaultKey: 'citi_typ', 
-    monthlyCap: 1000, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'citi-1', 
-    cycleType: 'statement', 
-    cutoffDay: 15, 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: 'Online shopping & in-store fashion. ⚠️ Excludes in-app mobile wallets (Kris+)!', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-citi'
-  },
-  { 
-    id: 'ocbc-rewards', 
-    name: 'OCBC Rewards / Titanium', 
-    bank: 'OCBC', 
-    image: 'assets/cards/ocbc-rewards.png',
-    vaultKey: 'ocbc_pts', 
-    monthlyCap: 1110, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'ocbc-5', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Department stores, fashion whitelist, Watsons, Shopee, Lazada & HeyMax Shell vouchers (S$1,110 cap).', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-ocbc'
-  },
-  { 
-    id: 'dbs-wwmc', 
-    name: "DBS Woman's World Card", 
-    bank: 'DBS', 
-    image: 'assets/cards/dbs-wwmc.png',
-    vaultKey: 'dbs_pts', 
-    monthlyCap: 1000, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'dbs-5', 
-    cycleType: 'calendar', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: 'Online blacklist winner: 4.0 mpd on all online spend & all Kris+ merchants.', 
-    isContactlessOnly: false,
-    channelMode: 'online',
-    themeClass: 'thumb-dbs'
-  },
-  { 
-    id: 'uob-ls-dining', 
-    name: "UOB Lady's Solitaire (Dining)", 
-    bank: 'UOB', 
-    image: 'assets/cards/uobladysolitaire.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 750, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Restaurants, cafes, bars. Works on Kris+ for dining merchants.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'uob-ls-travel', 
-    name: "UOB Lady's Solitaire (Travel)", 
-    bank: 'UOB', 
-    image: 'assets/cards/uobladysolitaire.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 750, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'uob-5', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Airlines, hotels, OTA bookings. Local and overseas.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'hsbc-rev', 
-    name: 'HSBC Revolution', 
-    bank: 'HSBC', 
-    image: 'assets/cards/hsbc-rev.png',
-    vaultKey: 'hsbc_pts', 
-    monthlyCap: 1000, 
-    minSpend: 0, 
-    bonusMpd: 4.0, 
-    baseMpd: 0.4, 
-    engine: 'citi-1', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Dining & retail whitelist. Works on Kris+ (excl. 5814).', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-hsbc'
-  },
-  { 
-    id: 'kf-uob', 
-    name: 'KrisFlyer UOB Credit Card', 
-    bank: 'UOB', 
-    image: 'assets/cards/kf-uob.png',
-    vaultKey: 'kf_direct', 
-    monthlyCap: 999999, 
-    minSpend: 0, 
-    bonusMpd: 2.4, 
-    baseMpd: 1.2, 
-    engine: 'uob-5', 
-    cycleType: 'uncapped', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: 'Uncapped 3.0 mpd on all Kris+ merchants directly! 2.4 mpd on Dining/Transport.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'mb-world-mc', 
-    name: 'Maybank World Mastercard', 
-    bank: 'Maybank', 
-    image: 'assets/cards/maybank-world.png',
-    vaultKey: 'mb_treats', 
-    monthlyCap: 999999, 
-    minSpend: 800, 
-    bonusMpd: 3.2, 
-    baseMpd: 0.4, 
-    engine: 'citi-1', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: '4.0 mpd on offline Shell Petrol! FCY: 3.2 mpd (min S$4k/mo), 2.8 mpd (min S$800/mo), uncapped.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-maybank'
-  },
-  { 
-    id: 'mb-horizon-vs', 
-    name: 'Maybank Horizon Visa Signature', 
-    bank: 'Maybank', 
-    image: 'assets/cards/maybank-horizon.png',
-    vaultKey: 'mb_treats', 
-    monthlyCap: 10000, 
-    minSpend: 800, 
-    bonusMpd: 2.8, 
-    baseMpd: 0.24, 
-    engine: 'citi-1', 
-    cycleType: 'calendar', 
-    strategyType: 'whitelist',
-    badgeClass: '', 
-    hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-maybank'
-  },
-  { 
-    id: 'dbs-vantage', 
-    name: 'DBS Vantage Card', 
-    bank: 'DBS', 
-    image: 'assets/cards/dbs-vantage.png',
-    vaultKey: 'dbs_pts', 
-    monthlyCap: 999999, 
-    minSpend: 0, 
-    bonusMpd: 1.5, 
-    baseMpd: 1.5, 
-    engine: 'dbs-5', 
-    cycleType: 'uncapped', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-dbs'
-  },
-  { 
-    id: 'uob-prvi', 
-    name: 'UOB PRVI Miles', 
-    bank: 'UOB', 
-    image: 'assets/cards/uob-prvi.png',
-    vaultKey: 'uob_uni', 
-    monthlyCap: 999999, 
-    minSpend: 0, 
-    bonusMpd: 1.4, 
-    baseMpd: 1.4, 
-    engine: 'uob-5', 
-    cycleType: 'uncapped', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-uob'
-  },
-  { 
-    id: 'dbs-altitude', 
-    name: 'DBS Altitude Card', 
-    bank: 'DBS', 
-    image: 'assets/cards/dbs-altitude.png',
-    vaultKey: 'dbs_pts', 
-    monthlyCap: 999999, 
-    minSpend: 0, 
-    bonusMpd: 1.3, 
-    baseMpd: 1.3, 
-    engine: 'dbs-5', 
-    cycleType: 'uncapped', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: '1.3 mpd local / 2.2 mpd FCY. Non-expiring DBS Points.', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-dbs'
-  },
-  { 
-    id: 'citi-pm', 
-    name: 'Citi PremierMiles', 
-    bank: 'Citi', 
-    image: 'assets/cards/citi-pm.png',
-    vaultKey: 'citi_miles', 
-    monthlyCap: 999999, 
-    minSpend: 0, 
-    bonusMpd: 1.2, 
-    baseMpd: 1.2, 
-    engine: 'citi-1', 
-    cycleType: 'uncapped', 
-    strategyType: 'blacklist',
-    badgeClass: '', 
-    hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
-    isContactlessOnly: false,
-    channelMode: 'both',
-    themeClass: 'thumb-citi'
-  }
-];
+          <!-- Contactless Tap Toggle -->
+          <div class="rec-pref-row" id="contactlessPrefRow">
+            <div class="rec-pref-label">
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">contactless</span>
+              <span>Allow Contactless Tap (Apple/Google Pay)</span>
+            </div>
+            <label class="switch switch-sm">
+              <input type="checkbox" id="contactlessSwitch" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
 
-export const MCC_DATABASE = {
-  "5541": {
-    name: "Petrol Service Stations (Shell, SPC, Esso, Caltex)",
-    notes: "⛽ <b>Shell Exclusive:</b> Pay with UOB PPV (Mobile Tap) or UOB VS for an <b>instant 14% discount</b> (10% Shell GO+ & 4% UOB) + <b>4.0 mpd</b>! Maybank World MC earns 4 mpd uncapped (10% off). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 for 4 mpd on OCBC/Citi Rewards.",
-    candidatesLocal: [
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 },
-      { id: "mb-world-mc", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "mb-world-mc", baseRate: 3.2 },
-      { id: "mb-horizon-vs", baseRate: 2.8 }
-    ]
-  },
-  "5811": {
-    name: "Catering Services",
-    notes: "Neo Garden, Stamford Catering. Covered by UOB Lady's (Dining) & HSBC Rev. ⚠️ EXCLUDED on KrisFlyer UOB.",
-    candidatesLocal: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ]
-  },
-  "5812": {
-    name: "Restaurants & Dining Places",
-    notes: "Sit-down restaurants, cafes. All dining and contactless cards eligible.",
-    candidatesLocal: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ]
-  },
-  "5813": {
-    name: "Bars, Taverns, Lounges & Nightclubs",
-    notes: "Pubs and bars. ⚠️ EXCLUDED on UOB Lady's Dining (requires Entertainment category!). Use HSBC Rev, KF UOB, or Mobile Tap.",
-    candidatesLocal: [
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ]
-  },
-  "5814": {
-    name: "Fast Food & Quick Service (McD, KFC, Starbucks, GrabFood)",
-    notes: "⚠️ HSBC Revolution strictly EXCLUDES 5814! Online: UOB PPV Online / Lady's. In-person: PPV Contactless Tap.",
-    candidatesLocal: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "uob-ls-dining", baseRate: 4.0 }
-    ]
-  },
-  "5441": {
-    name: "Candy, Nut & Confectionery Stores",
-    notes: "Sweet shops, candy stores. ⚠️ EXCLUDED on UOB Lady's Dining & KF UOB! Use HSBC Rev or Mobile Tap (PPV/VS).",
-    candidatesLocal: [
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ]
-  },
-  "5462": {
-    name: "Bakeries & Cake Shops (Cedele, Chateraise, Bengawan Solo)",
-    notes: "Bread and pastries. ⚠️ EXCLUDED on UOB Lady's Dining & KF UOB! Use HSBC Rev or Mobile Tap (PPV/VS).",
-    candidatesLocal: [
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ]
-  },
-  "5499": {
-    name: "Miscellaneous Food Stores & Specialty Food",
-    notes: "Specialty food marts, GrabFood/FoodPanda. ⚠️ EXCLUDED on HSBC Rev & KF UOB! Covered by UOB Lady's Dining & PPV.",
-    candidatesLocal: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-ls-dining", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ]
-  },
-  "5411": {
-    name: "Grocery Stores & Supermarkets",
-    notes: "yuu Outlets earn 10.0 mpd on DBS yuu in SG (requires S$800 spend + 4 merchants). General supermarkets: UOB PPV or HSBC Rev.",
-    candidatesLocal: [
-      { id: "dbs-yuu", baseRate: 10.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "5912": {
-    name: "Pharmacies & Personal Care (Guardian, Watsons, Unity)",
-    notes: "Guardian: DBS yuu (10 mpd). Watsons: OCBC Rewards (6 mpd promo). UOB PPV & HSBC Rev earn 4 mpd. ⚠️ Guardian/Watsons in-app checkout codes as MCC 5499!",
-    candidatesLocal: [
-      { id: "dbs-yuu", baseRate: 10.0 },
-      { id: "ocbc-rewards", baseRate: 6.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 6.0 }
-    ]
-  },
-  "8351": {
-    name: "Child Care & Nursery Services",
-    notes: "Childcare is education-adjacent! Eligible for 4.0 mpd on DBS WWMC (Online) & Mobile Tap (UOB PPV / VS). ⚠️ Excluded on HSBC Rev.",
-    candidatesLocal: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "8011": {
-    name: "Doctors & Outpatient Clinics",
-    notes: "Private clinic consultations. Earns 4.0 mpd on UOB PPV (Mobile Tap), UOB VS Tap, and DBS WWMC (teleconsults). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
-    candidatesLocal: [
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "8021": {
-    name: "Dentists & Orthodontists",
-    notes: "Dental checkups & scaling. Earns 4.0 mpd via Mobile Tap (UOB PPV / UOB VS). ⚠️ Excluded on Lady's, HSBC Rev & Citi in-store.",
-    candidatesLocal: [
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "7512": {
-    name: "Car Rental Agencies (Hertz, Avis, Klook Car Rental)",
-    notes: "⚠️ Citi Rewards strictly EXCLUDES car rentals! Covered by DBS WWMC (online) and HSBC Revolution.",
-    candidatesLocal: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-vs-contactless", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ]
-  },
-  "5311": {
-    name: "Department Stores (Takashimaya, Tangs, Isetan)",
-    notes: "Department store shopping. OCBC Rewards & Citi Rewards eligible.",
-    candidatesLocal: [
-      { id: "ocbc-rewards", baseRate: 4.0 },
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 4.0 },
-      { id: "citi-rewards", baseRate: 4.0 }
-    ]
-  },
-  "5651": {
-    name: "Family Clothing & Fashion (Uniqlo, Zara)",
-    notes: "Apparel bonus eligible across Citi, OCBC Rewards, and HSBC.",
-    candidatesLocal: [
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 4.0 }
-    ]
-  },
-  "5621": {
-    name: "Women's Ready-to-Wear Stores",
-    notes: "Fashion apparel bonus eligible across Citi & OCBC Rewards.",
-    candidatesLocal: [
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "ocbc-rewards", baseRate: 4.0 }
-    ]
-  },
-  "4511": {
-    name: "Airlines & Air Carriers (Singapore Airlines, Scoot)",
-    notes: "⚠️ Citi Rewards strictly EXCLUDES airfares! Use DBS WWMC, Solitaire, Maybank Horizon, or PRVI Miles.",
-    candidatesLocal: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 3.0 },
-      { id: "mb-horizon-vs", baseRate: 3.24 }
-    ],
-    candidatesOverseas: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 3.0 },
-      { id: "mb-horizon-vs", baseRate: 3.24 },
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "4722": {
-    name: "Travel Agencies & OTAs (Agoda, Klook, Trip.com, Expedia)",
-    notes: "⚠️ EXCLUDED on Citi Rewards AND HSBC Rev! Use DBS WWMC or Solitaire (Travel).",
-    candidatesLocal: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ],
-    candidatesOverseas: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 },
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ]
-  },
-  "7011": {
-    name: "Hotels, Motels & Resorts",
-    notes: "⚠️ Citi Rewards strictly EXCLUDES hotels! Use DBS WWMC, Solitaire (Travel), or Maybank Horizon.",
-    candidatesLocal: [
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 },
-      { id: "mb-horizon-vs", baseRate: 3.24 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "uob-ls-travel", baseRate: 4.0 }
-    ]
-  },
-  "4111": {
-    name: "Commuter Transport / Transit",
-    notes: "Local SimplyGo earns 10 mpd on yuu (counts toward 4-merchant rule). Overseas transit: use UOB VS (4 mpd) or Maybank Horizon (2.8 mpd).",
-    candidatesLocal: [
-      { id: "dbs-yuu", baseRate: 10.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "4121": {
-    name: "Taxis & Ride-Hailing (Grab, Gojek, Uber)",
-    notes: "Ride hailing and taxis. Gojek counts toward DBS yuu 4-merchant quota.",
-    candidatesLocal: [
-      { id: "dbs-yuu", baseRate: 10.0 },
-      { id: "uob-ppv-contactless", baseRate: 4.0 },
-      { id: "kf-uob", baseRate: 2.4 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 }
-    ]
-  },
-  "5999": {
-    name: "General Retail, Souvenirs & Specialty Stores",
-    notes: "All general retail and souvenir spending.",
-    candidatesLocal: [
-      { id: "citi-rewards", baseRate: 4.0 },
-      { id: "dbs-wwmc", baseRate: 4.0 },
-      { id: "uob-ppv-online", baseRate: 4.0 },
-      { id: "hsbc-rev", baseRate: 4.0 }
-    ],
-    candidatesOverseas: [
-      { id: "uob-vs-fcy", baseRate: 4.0 }
-    ]
-  },
-  "8062": { 
-    name: "Hospitals & Inpatient Care", 
-    notes: "❌ Excluded from rewards by all major Singapore banks. Only Maybank Horizon (0.16 mpd local / 2.8 mpd FCY) awards points.", 
-    candidatesLocal: [], 
-    candidatesOverseas: [
-      { id: "mb-world-mc", baseRate: 3.2 },
-      { id: "mb-horizon-vs", baseRate: 2.8 }
-    ] 
-  },
-  "8211": { 
-    name: "Schools & Primary / Secondary Education", 
-    notes: "❌ Excluded from rewards across all major credit cards. (Only Maybank 0.16 mpd or CardUp payment facility applies).", 
-    candidatesLocal: [], 
-    candidatesOverseas: [
-      { id: "mb-world-mc", baseRate: 3.2 },
-      { id: "mb-horizon-vs", baseRate: 2.8 }
-    ] 
-  },
-  "8220": { 
-    name: "Colleges & Universities (NUS, NTU, SMU)", 
-    notes: "❌ Excluded from rewards across all major credit cards. NUS now codes under MCC 9399 / 8220.", 
-    candidatesLocal: [], 
-    candidatesOverseas: [
-      { id: "mb-world-mc", baseRate: 3.2 },
-      { id: "mb-horizon-vs", baseRate: 2.8 }
-    ] 
-  },
-  "8398": { 
-    name: "Charities & Social Service Organizations (Donations)", 
-    notes: "❌ Excluded from rewards across all major credit cards.", 
-    candidatesLocal: [], 
-    candidatesOverseas: [] 
-  },
-  "4900": { name: "Utilities", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
-  "6300": { name: "Insurance", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
-  "9399": { name: "Government / Taxes", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
-  "6540": { name: "Stored Value Card / Wallet Top-Ups", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] }
-};
+          <!-- Single Card Swipe Only (No Split) Toggle -->
+          <div class="rec-pref-row" id="singleSwipePrefRow">
+            <div class="rec-pref-label">
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--gold);">credit_card</span>
+              <span>Single Card Swipe Only (No Split)</span>
+            </div>
+            <label class="switch switch-sm">
+              <input type="checkbox" id="singleSwipeSwitch">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <datalist id="mccDatalist">
+            <option value="Shopee / Lazada / Taobao (OCBC 6 mpd Promo)">
+            <option value="Watsons / TikTok Shop (OCBC 6 mpd Promo)">
+            <option value="5541 - Petrol Service Stations (Shell, SPC, Esso)">
+            <option value="5812 - Restaurants & Dining Places">
+            <option value="5814 - Fast Food (McD, KFC, Starbucks)">
+            <option value="5813 - Bars, Taverns & Nightclubs">
+            <option value="5462 - Bakeries & Cake Shops (Cedele, Chateraise)">
+            <option value="5441 - Candy, Nut & Confectionery">
+            <option value="5499 - Misc Food Stores & Delivery (GrabFood)">
+            <option value="5811 - Catering Services">
+            <option value="5411 - Supermarkets & Groceries">
+            <option value="5912 - Pharmacies & Personal Care (Guardian, Watsons, Unity)">
+            <option value="8351 - Child Care & Nursery Services (Education-Adjacent)">
+            <option value="8011 - Doctors & Outpatient Clinics">
+            <option value="8021 - Dentists & Orthodontists">
+            <option value="7512 - Car Rental Agencies (Hertz, Avis, Klook)">
+            <option value="5311 - Department Stores (Takashimaya, Tangs)">
+            <option value="5651 - Family Clothing (Uniqlo, Zara)">
+            <option value="5621 - Women's Ready-to-Wear">
+            <option value="4511 - Airlines & Air Carriers (SIA, Scoot)">
+            <option value="4722 - Travel Agencies & OTAs (Agoda, Klook)">
+            <option value="7011 - Hotels & Resorts">
+            <option value="4111 - Commuter Transport / SimplyGo">
+            <option value="4121 - Taxis & Ride-Hailing (Grab, Gojek)">
+            <option value="5999 - General Retail & Souvenirs">
+            <option value="8062 - Hospitals & Inpatient Healthcare">
+            <option value="8211 - Schools & Primary / Secondary Tuition">
+            <option value="8398 - Charities & Non-Profit Donations">
+            <option value="4900 - Utilities (SP Group, Senoko)">
+            <option value="6300 - Insurance Premiums">
+            <option value="9399 - Government Services & Taxes">
+            <option value="6540 - Wallet Top-Ups (GrabPay, Revolut)">
+          </datalist>
+
+          <div class="rec-result" id="recResultArea"></div>
+        </div>
+
+        <div id="uobFeeAlertContainer"></div>
+
+        <div>
+          <div class="section-title">
+            <span id="cardBonusTitle">Monthly Bonus Caps</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">Tap card for details</span>
+          </div>
+          <div class="card-list" id="cardsContainer"></div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS WITH SEARCH & FILTER -->
+        <div>
+          <div class="section-title">
+            <span>Recent Transactions</span>
+            <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
+          </div>
+          
+          <div style="display:flex; gap:8px; margin: 4px 0 10px;">
+            <div class="mcc-input-wrapper" style="flex:1;">
+              <input 
+                type="text" 
+                id="txSearchInput" 
+                class="form-control" 
+                placeholder="Search merchant, card, or notes..." 
+                style="padding: 9px 12px; font-size: 0.85rem;"
+              >
+              <button type="button" class="btn-clear-mcc" id="btnClearTxSearch" title="Clear search">✕</button>
+            </div>
+            <select id="txFilterCardSelect" class="form-control" style="width:auto; max-width: 140px; padding: 9px 8px; font-size: 0.8rem;">
+              <option value="ALL">All Cards</option>
+            </select>
+          </div>
+
+          <div id="txList"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2 (Mobile only): CATEGORY CAPS -->
+      <div class="tab-content" id="tabContentCategory" style="display:none;">
+        <div class="section-title" style="margin-top:0;">
+          <span>Category Cap Tracker</span>
+          <span style="font-size:0.75rem; color:#94a3b8;">Pooled 4 mpd Capacity</span>
+        </div>
+        <div id="categoryCardsMobile" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <!-- TAB 3 (Desktop Col 2 & Mobile Tab 3): MILES VAULT & DESKTOP CATEGORY TRACKER -->
+      <div class="tab-content" id="tabContentVault" style="display:none;">
+        <div class="summary-card">
+          <div style="font-size:0.8rem; text-transform:uppercase; color:var(--primary); letter-spacing:0.5px;" id="warChestTitle">Household Mileage War Chest</div>
+          <div class="total-miles" id="myTotalVaultMiles">0 mi</div>
+          
+          <div class="summary-subtext">
+            <span>Active Vault Points Only</span>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <span id="btnOpenArchiveHistory" style="color:var(--primary); cursor:pointer; display:flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:16px;">history</span> Archive History
+              </span>
+              <span id="btnSummaryUpdateVault" style="color:var(--primary); cursor:pointer;">Update Points ✏️</span>
+            </div>
+          </div>
+
+          <div class="travel-goal-badge" id="travelGoalBadge">
+            <div class="travel-goal-header">
+              <span>✈️ 4 Pax Business Return Target (My Miles)</span>
+              <span style="text-decoration:underline;">View All Zones ❯</span>
+            </div>
+            <div class="travel-goal-dest" id="travelGoalDest">Calculating...</div>
+            <div class="travel-goal-progress" id="travelGoalProgress"></div>
+          </div>
+        </div>
+
+        <div class="sister-card">
+          <div class="sister-info">
+            <span class="sister-title" id="peerCardTitle"><span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister's Vault (Separate)</span>
+            <div class="sister-miles" id="sisterMilesDisplay">0 miles</div>
+            <span style="font-size:0.75rem; color:#94a3b8;">Synced via Cloud</span>
+          </div>
+          <button class="btn-view-peer" id="btnOpenPeerVault">View Breakdown ❯</button>
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span id="vaultSectionTitle">Bank Points Vault</span>
+            <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenVaultBalances">Update Balances ✏️</span>
+          </div>
+          <div class="vault-grid" id="vaultContainer"></div>
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span>Points Expiry Radar</span>
+            <span style="font-size:0.75rem; color:#94a3b8; cursor:pointer;" id="btnOpenExpirySettings">Configure Expiry ⚙️</span>
+          </div>
+          <div class="radar-card" id="radarContainer"></div>
+        </div>
+
+        <div id="desktopCategorySection" style="display:none; flex-direction:column; gap:10px;">
+          <div class="section-title" style="margin-top:6px;">
+            <span>Category Cap Tracker</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">Pooled 4 mpd Capacity</span>
+          </div>
+          <div id="categoryCardsDesktop" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-tab active" id="btnTabCards">
+      <span class="material-symbols-outlined">credit_card</span>
+      <span>Cards & Caps</span>
+    </button>
+    <button class="nav-tab" id="btnTabCategory">
+      <span class="material-symbols-outlined">donut_large</span>
+      <span>Category Caps</span>
+    </button>
+    <button class="nav-tab" id="btnTabVault">
+      <span class="material-symbols-outlined">account_balance_wallet</span>
+      <span>Miles Vault</span>
+    </button>
+  </nav>
+
+  <!-- Automated Update Ready Notification Toast -->
+  <div id="updateToast" class="update-toast">
+    <span style="font-size: 0.85rem; font-weight: 600;">🚀 New version ready</span>
+    <button id="btnReloadApp" class="btn-update-reload">Reload</button>
+  </div>
+
+  <button class="fab" id="fabButton" style="display:none;" title="Log Transaction">
+    <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
+  </button>
+
+  <!-- MODAL: CARD DETAILS -->
+  <div class="modal-overlay" id="cardDetailOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="card-detail-header">
+          <div id="modalCardThumb" class="card-thumb card-detail-thumb"></div>
+          <div>
+            <div class="card-detail-title" id="modalCardName">Card Name</div>
+            <div class="card-detail-subtitle" id="modalCardCycle">Billing Cycle</div>
+          </div>
+        </div>
+        <span class="material-symbols-outlined" id="btnCloseCardDetail" style="cursor:pointer; color:#94a3b8;">close</span>
+      </div>
+
+      <div class="card-detail-grid">
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Active Spend</span>
+          <span class="detail-stat-val" id="modalCardSpent">$0.00</span>
+          <span class="detail-stat-sub" id="modalCardSpentSub">0% of cap</span>
+        </div>
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Capacity Left</span>
+          <span class="detail-stat-val" id="modalCardRemaining">$0.00</span>
+          <span class="detail-stat-sub" id="modalCardDaysLeft">Resets in 0d</span>
+        </div>
+      </div>
+
+      <div class="progress-bar-container" style="margin: 2px 0 6px;">
+        <div id="modalMinSpendMarker"></div>
+        <div class="progress-bar-bg" style="height:8px;">
+          <div class="progress-bar-fill" id="modalCardProgressFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div id="modalCardAlertArea"></div>
+
+      <div>
+        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Earning Profile & Rules</span>
+        <div class="rule-pill-container" id="modalCardRules"></div>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.78rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Cycle Transactions</span>
+          <span style="font-size:0.72rem; color:var(--primary);" id="modalCardTxTotalMiles">+0 miles earned</span>
+        </div>
+        <div class="detail-tx-list" id="modalCardTxList"></div>
+      </div>
+
+      <button class="btn-submit" id="btnQuickLogCard" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+        <span class="material-symbols-outlined" style="font-size:20px;">add_circle</span>
+        Log Expense on This Card
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: SISTER VAULT -->
+  <div class="modal-overlay" id="sisterVaultOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem; color:var(--purple);" id="peerModalTitle">Sister's Points Vault (Separate)</h2>
+        <span class="material-symbols-outlined" id="btnCloseSisterVault" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.8rem; color:#94a3b8;">Independent points balances across Singapore banks (not merged with yours):</p>
+      <div class="vault-grid" id="sisterVaultContainer" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TRAVEL TIERS -->
+  <div class="modal-overlay" id="travelTiersOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">4 Pax Business Class Targets</h2>
+        <span class="material-symbols-outlined" id="btnCloseTravelTiers" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.78rem; color:#94a3b8;">
+        KrisFlyer Saver Round-Trip Business Class requirement for 4 passengers based solely on your miles:
+      </p>
+      <div id="travelTiersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TRANSACTION LOGGER -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;" id="modalFormTitle">Log Transaction</h2>
+        <span class="material-symbols-outlined" id="btnCloseModal" style="cursor:pointer;">close</span>
+      </div>
+
+      <input type="hidden" id="editTxId" value="">
+
+      <div class="form-group">
+        <label for="txDateInput">Transaction Date</label>
+        <input type="date" id="txDateInput" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>Select Card Slot</label>
+        <select id="cardSelect" class="form-control"></select>
+      </div>
+
+      <div class="form-group" id="merchantInputGroup">
+        <label>Merchant / Description</label>
+        <input type="text" id="descInput" class="form-control" placeholder="e.g. Shell, FairPrice, SIA, Kris+ Partner">
+      </div>
+
+      <div class="form-group" id="yuuMerchantGroup" style="display:none;">
+        <label>Select Eligible yuu Partner (Prevents Spelling Errors)</label>
+        <select id="yuuMerchantSelect" class="form-control">
+          <option value="Cold Storage">Cold Storage (CS Fresh, Jasons Deli)</option>
+          <option value="Giant">Giant (Hypermarket, Express)</option>
+          <option value="Guardian">Guardian (Health & Beauty)</option>
+          <option value="7-Eleven">7-Eleven (Exclude Changi Airport)</option>
+          <option value="foodpanda">foodpanda (Delivery, pandamart - Excl. PayPal)</option>
+          <option value="SimplyGo">SimplyGo (MRT / Bus Direct Tap)</option>
+          <option value="Gojek">Gojek (Excl. PayPal checkout)</option>
+          <option value="CHAGEE">CHAGEE (Official Mobile App Orders Only)</option>
+          <option value="Singtel">Singtel (Shops & Exclusive Retailers)</option>
+          <option value="Charge+">Charge+ (Visa only - EV Charging)</option>
+          <option value="Anywheel">Anywheel (Bike Sharing)</option>
+          <option value="Other / Non-Partner">Other / Excluded Merchant (Base Rate Only)</option>
+        </select>
+        <div class="yuu-partner-alert">
+          ℹ️ <b>DBS Exclusions:</b> <i>Cold Storage On The Go</i> is strictly excluded. Changi Airport 7-11/Guardian and foodpanda dine-in/PayPal top-ups earn base only. 
+          <br><a href="https://www.dbs.com.sg/personal/cards/credit-cards/dbs-yuu-cards" target="_blank" rel="noopener">Official DBS yuu Participating Merchant Directory ↗</a>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Amount Charged to Card (Nett SGD)</label>
+        <input type="number" id="amtInput" class="form-control" placeholder="0.00" step="0.01">
+      </div>
+
+      <div id="shellDiscountCalcArea" style="display:none;">
+        <div class="shell-calc-box">
+          <div class="shell-calc-header">
+            <span>⛽ Shell 14% Instant Discount Calculator</span>
+            <span style="font-size:0.7rem; color:#fde68a;">10% Shell GO+ + 4% UOB</span>
+          </div>
+          <div class="shell-calc-input-row">
+            <input type="number" id="shellGrossInput" placeholder="Gross Pump Price ($)" step="0.01">
+            <button type="button" class="btn-apply-shell-discount" id="btnApplyShellDiscount">Apply 14% Off</button>
+          </div>
+          <span style="font-size:0.7rem; color:#cbd5e1;" id="shellDiscountStatusText">
+            Enter gross pump price from meter to compute nett S$ amount charged.
+          </span>
+        </div>
+      </div>
+
+      <div id="modalRoundingAlert"></div>
+
+      <div class="form-group">
+        <label>Category Verification</label>
+        <select id="bonusCategory" class="form-control">
+          <option value="bonus">Eligible Bonus Spend</option>
+          <option value="base">General / Excluded Spend</option>
+        </select>
+        <span id="cardHint" style="font-size:0.75rem; color:#94a3b8; padding-top:2px;"></span>
+      </div>
+
+      <button class="btn-submit" id="btnSaveLedger">Save to Ledger</button>
+    </div>
+  </div>
+
+  <!-- MODAL: VAULT BALANCES -->
+  <div class="modal-overlay" id="vaultOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Edit Points Balances</h2>
+        <span class="material-symbols-outlined" id="btnCloseVault" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.8rem; color:#94a3b8;">Enter current bank points balances from your banking apps:</p>
+
+      <div class="form-group"><label>UOB UNI$ (PPV, VS, Lady's, PRVI)</label><input type="number" id="v_uob_uni" class="form-control"></div>
+      <div class="form-group"><label>Citi ThankYou Points (Citi Rewards)</label><input type="number" id="v_citi_typ" class="form-control"></div>
+      <div class="form-group"><label>Citi Miles (Citi PremierMiles - Standalone)</label><input type="number" id="v_citi_miles" class="form-control"></div>
+      <div class="form-group"><label>DBS Points (DBS WWMC, Altitude, Vantage)</label><input type="number" id="v_dbs_pts" class="form-control"></div>
+      <div class="form-group"><label>DBS yuu Points</label><input type="number" id="v_yuu_pts" class="form-control"></div>
+      <div class="form-group"><label>OCBC$ (OCBC Rewards / Titanium)</label><input type="number" id="v_ocbc_pts" class="form-control"></div>
+      <div class="form-group"><label>HSBC Reward Points (Revolution)</label><input type="number" id="v_hsbc_pts" class="form-control"></div>
+      <div class="form-group"><label>Maybank TREATS Points (World MC, Horizon VS)</label><input type="number" id="v_mb_treats" class="form-control"></div>
+      <div class="form-group"><label>Direct KrisFlyer Miles (KrisFlyer UOB & Airline Account)</label><input type="number" id="v_kf_miles" class="form-control"></div>
+
+      <button class="btn-submit" id="btnSaveVaultBalances">Save to Vault</button>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTINGS -->
+  <div class="modal-overlay" id="settingsOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Settings & Card Wallet</h2>
+        <span class="material-symbols-outlined" id="btnCloseSettings" style="cursor:pointer;">close</span>
+      </div>
+
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
+          Data Backup & Portability
+        </label>
+        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
+          Export your complete ledger and bank vault snapshot to your local device.
+        </p>
+        <div class="backup-btn-row">
+          <button class="btn-backup" id="btnExportJSON">
+            <span class="material-symbols-outlined" style="font-size:18px;">download</span> JSON Backup
+          </button>
+          <button class="btn-backup" id="btnExportCSV">
+            <span class="material-symbols-outlined" style="font-size:18px;">table_view</span> Ledger CSV
+          </button>
+        </div>
+      </div>
+
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
+          My Card Wallet (Active Cards)
+        </label>
+        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
+          Uncheck cards you do not hold. Unchecked cards are hidden from caps and recommender.
+        </p>
+        <div class="checklist-grid" id="cardChecklistContainer"></div>
+      </div>
+
+      <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
+          UOB Auto-Deduction Defense (Card Renewal Months)
+        </label>
+        <div class="form-group">
+          <label>UOB Lady's Solitaire Renewal Month</label>
+          <input type="month" id="uobLsRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB Visa Signature Renewal Month</label>
+          <input type="month" id="uobVsRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB Preferred Visa Renewal Month</label>
+          <input type="month" id="uobPpvRenewalInput" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top:6px;">
+          <label>UOB PRVI Miles Renewal Month</label>
+          <input type="month" id="uobPrviRenewalInput" class="form-control">
+        </div>
+      </div>
+
+      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
+        <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
+          Citi Rewards Approval Date (5-Year Cycle)
+        </label>
+        <input type="month" id="citiApprovalInput" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
+        <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
+      </div>
+
+      <div class="form-group">
+        <label>Citi Rewards Statement Cutoff Day (1 - 31)</label>
+        <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
+      </div>
+
+      <button class="btn-submit" id="btnSaveSettings">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- MODAL: MONTHLY CYCLE RESET & FULL-YEAR ARCHIVE -->
+  <div class="modal-overlay" id="archiveModalOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-outlined" style="color:var(--primary);">calendar_month</span>
+          <h2 style="font-size:1.15rem;">Monthly & Annual Archive</h2>
+        </div>
+        <span class="material-symbols-outlined" id="btnCloseArchiveModal" style="cursor:pointer; color:#94a3b8;">close</span>
+      </div>
+
+      <div class="form-group" style="margin-top:4px;">
+        <label>Select History Cycle or Full Year</label>
+        <select id="archiveMonthSelect" class="form-control"></select>
+      </div>
+
+      <div class="card-detail-grid">
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Total Spent</span>
+          <span class="detail-stat-val" id="archiveTotalSpent">$0.00</span>
+          <span class="detail-stat-sub" id="archiveTxnCount">0 transactions</span>
+        </div>
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Miles Generated</span>
+          <span class="detail-stat-val" id="archiveTotalMiles" style="color:var(--accent);">0 mi</span>
+          <span class="detail-stat-sub" id="archiveBlendedMpd">0.00 blended mpd</span>
+        </div>
+      </div>
+
+      <div style="margin-top:6px;">
+        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Card Performance & Cap Tally</span>
+        <div id="archiveCardBreakdownList" style="display:flex; flex-direction:column; gap:8px; margin-top:6px; max-height:280px; overflow-y:auto;"></div>
+      </div>
+
+      <button type="button" class="btn-backup" id="btnExportArchiveCSV" style="margin-top:6px; width:100%;">
+        <span class="material-symbols-outlined" style="font-size:18px;">download</span> Export Period CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: MONTHLY STATEMENT RECONCILIATION -->
+  <div class="modal-overlay" id="reconcileModalOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-outlined" style="color:var(--accent);">fact_check</span>
+          <h2 style="font-size:1.15rem;">Monthly Statement Reconcile</h2>
+        </div>
+        <span class="material-symbols-outlined" id="btnCloseReconcileModal" style="cursor:pointer; color:#94a3b8;">close</span>
+      </div>
+
+      <p style="font-size:0.75rem; color:#94a3b8; margin: 4px 0 8px;">
+        Compare your bank statement bill totals against app logs to ensure 100% bonus cap accuracy.
+      </p>
+
+      <div class="rec-inputs" style="margin-bottom:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Audit Card Slot</label>
+          <select id="reconcileCardSelect" class="form-control"></select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Target Cycle</label>
+          <select id="reconcileCycleSelect" class="form-control"></select>
+        </div>
+      </div>
+
+      <!-- Audit Comparison Box -->
+      <div class="card-detail-grid">
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">App Logged Spend</span>
+          <span class="detail-stat-val" id="reconcileAppSpend">$0.00</span>
+          <span class="detail-stat-sub" id="reconcileTxnCount">0 txns logged</span>
+        </div>
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Statement Bill Total</span>
+          <input 
+            type="number" 
+            id="reconcileStmtInput" 
+            class="form-control" 
+            placeholder="0.00" 
+            step="0.01" 
+            style="padding:4px 8px; font-size:1.05rem; font-weight:700; text-align:center; height:32px; margin-top:2px;"
+          >
+          <span class="detail-stat-sub" id="reconcileDeltaBadge" style="font-weight:700;">Enter bill total</span>
+        </div>
+      </div>
+
+      <div id="reconcileCycleWindowNote" style="font-size:0.72rem; color:var(--primary); margin: 6px 0;"></div>
+
+      <!-- Logged Transactions for this billing window -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.78rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Logged In This Cycle</span>
+          <button type="button" class="btn-clear-mcc" id="btnReconcileQuickAdd" style="display:flex; color:var(--primary); font-size:0.75rem; padding:2px 6px;">
+            + Add Missing
+          </button>
+        </div>
+        <div id="reconcileTxnList" style="max-height:190px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Direct Points Vault Sync -->
+      <div style="background: rgba(158, 202, 255, 0.05); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--outline); margin-top:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.78rem; font-weight:700; color:#fff;" id="reconcileVaultLabel">Bank Points Balance</span>
+          <button type="button" class="btn-clear-mcc" id="btnReconcileUpdateVault" style="color:var(--primary); font-size:0.75rem; font-weight:700;">
+            Update Vault ✏️
+          </button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <span style="font-size:0.72rem; color:#94a3b8;">Official balance from mobile banking:</span>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);" id="reconcileVaultPtsDisplay">0 pts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=1.8.7"></script>
+</body>
+</html>
