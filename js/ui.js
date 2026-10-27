@@ -350,7 +350,7 @@ export function renderTravelGoalBanner() {
   }
 }
 
-// --- UOB Defense Alerts & Dual-Named Compatibility ---
+// --- UOB Defense Alerts & Compatibility ---
 export function checkUobFeeDefense() {
   updateUobFeeRenewalAlerts();
 }
@@ -386,8 +386,105 @@ export function updateUobFeeRenewalAlerts() {
   });
 }
 
+// --- Archive & Reconciliation Helpers ---
+export function exportArchiveMonthCSV(monthStr) {
+  const txns = state.transactions.filter(t => (t.date || '').startsWith(monthStr));
+  if (!txns.length) {
+    alert(`No transactions found for ${monthStr}.`);
+    return;
+  }
+
+  const headers = ['Date', 'Card ID', 'Card Name', 'Description', 'Amount (SGD)', 'Miles Earned', 'Category', 'Owner'];
+  const rows = txns.map(t => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === t.cardId);
+    return [
+      `"${t.date || ''}"`,
+      `"${t.cardId || ''}"`,
+      `"${card ? card.name : t.cardId || ''}"`,
+      `"${(t.desc || '').replace(/"/g, '""')}"`,
+      parseFloat(t.amount || 0).toFixed(2),
+      Math.round(t.miles || 0),
+      `"${t.category || 'bonus'}"`,
+      `"${t.owner || state.myVaultKey}"`
+    ].join(',');
+  });
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `MilesTrackSG_Archive_${monthStr}_${state.myVaultKey}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+export function renderArchiveModal() {
+  const container = document.getElementById('archiveMonthsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const monthsMap = {};
+  state.transactions.forEach(t => {
+    if (!t.date) return;
+    const m = t.date.slice(0, 7);
+    if (!monthsMap[m]) monthsMap[m] = { count: 0, totalAmt: 0, totalMiles: 0 };
+    monthsMap[m].count++;
+    monthsMap[m].totalAmt += (parseFloat(t.amount) || 0);
+    monthsMap[m].totalMiles += (parseFloat(t.miles) || 0);
+  });
+
+  const sortedMonths = Object.keys(monthsMap).sort().reverse();
+
+  if (!sortedMonths.length) {
+    container.innerHTML = '<div style="font-size:0.8rem; color:#94a3b8; text-align:center; padding:12px;">No historical monthly data found.</div>';
+    return;
+  }
+
+  sortedMonths.forEach(m => {
+    const d = monthsMap[m];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;';
+    row.innerHTML = `
+      <div>
+        <div style="font-weight:700; color:#fff;">${m}</div>
+        <div style="font-size:0.7rem; color:#94a3b8;">${d.count} txns • $${d.totalAmt.toFixed(2)} • +${Math.round(d.totalMiles).toLocaleString()} mi</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-clear-mcc" onclick="window.exportArchiveCSV('${m}')" title="Export CSV">📥 CSV</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+export function deleteArchiveMonth(monthStr) {
+  if (confirm(`Are you sure you want to permanently delete all transactions for ${monthStr}?`)) {
+    const toDelete = state.transactions.filter(t => (t.date || '').startsWith(monthStr));
+    toDelete.forEach(t => deleteTransaction(t.id));
+  }
+}
+
+export function renderReconcileModal() {
+  const container = document.getElementById('reconcileContentArea');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeCards = state.cards.filter(c => state.enabledCardIds.includes(c.id));
+  activeCards.forEach(c => {
+    const cardDiv = document.createElement('div');
+    cardDiv.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;';
+    cardDiv.innerHTML = `
+      <span>${c.name}</span>
+      <b>$${(c.currentSpend || 0).toFixed(2)} / ${c.monthlyCap >= 999999 ? 'Uncapped' : '$' + c.monthlyCap}</b>
+    `;
+    container.appendChild(cardDiv);
+  });
+}
+
 // --- Reconcile Modal Controls ---
 export function openReconcileModal() {
+  renderReconcileModal();
   const overlay = document.getElementById('reconcileOverlay');
   if (overlay) overlay.style.display = 'flex';
 }
@@ -399,6 +496,7 @@ export function closeReconcileModal() {
 
 // --- Archive History Modal Controls ---
 export function openArchiveModal() {
+  renderArchiveModal();
   const overlay = document.getElementById('archiveOverlay') || document.getElementById('archiveHistoryOverlay');
   if (overlay) overlay.style.display = 'flex';
 }
@@ -554,4 +652,8 @@ window.deleteTx = async function(id) {
   if (confirm("Delete this transaction?")) {
     await deleteTransaction(id);
   }
+};
+
+window.exportArchiveCSV = function(monthStr) {
+  exportArchiveMonthCSV(monthStr);
 };
