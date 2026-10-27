@@ -1,9 +1,12 @@
-const CACHE_NAME = 'milestrack-cache-v1.8.3';
+const CACHE_NAME = 'milestrack-cache-v1.8.4';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './css/style.css',
+  './js/config.js',
+  './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
@@ -31,10 +34,7 @@ const CARD_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      // 1. Critical core assets must succeed
       await cache.addAll(CORE_ASSETS);
-
-      // 2. Individual card art assets (fault-tolerant: won't abort if a file is not yet uploaded)
       await Promise.allSettled(
         CARD_ASSETS.map((url) =>
           fetch(url).then((res) => {
@@ -44,7 +44,6 @@ self.addEventListener('install', (event) => {
       );
     })
   );
-  // Do not automatically force-skip here if we want the user to see the reload prompt
 });
 
 // Activate: Purge older cache versions immediately
@@ -70,7 +69,7 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch: Network-first for Firestore/Firebase, Cache-first for local static assets
+// Fetch: Network-first for Firebase APIs, Cache-first for local static assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
