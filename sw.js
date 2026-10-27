@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.7.7';
+const CACHE_NAME = 'milestrack-cache-v1.7.9';
 
 const STATIC_ASSETS = [
   './',
@@ -6,6 +6,8 @@ const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './assets/cards/dbs-yuu.png',
+  './assets/cards/uobladysolitaire.png',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
 ];
 
