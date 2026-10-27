@@ -19,7 +19,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.5</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.8.6</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -38,7 +38,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.8.5</span>
+          <span class="version-tag" id="headerVersionTag">v1.8.6</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderVault" title="Edit Points Balances">account_balance_wallet</span>
@@ -193,11 +193,29 @@
           <div class="card-list" id="cardsContainer"></div>
         </div>
 
+        <!-- RECENT TRANSACTIONS WITH SEARCH & FILTER -->
         <div>
           <div class="section-title">
             <span>Recent Transactions</span>
             <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
           </div>
+          
+          <div style="display:flex; gap:8px; margin: 4px 0 10px;">
+            <div class="mcc-input-wrapper" style="flex:1;">
+              <input 
+                type="text" 
+                id="txSearchInput" 
+                class="form-control" 
+                placeholder="Search merchant, card, or notes..." 
+                style="padding: 9px 12px; font-size: 0.85rem;"
+              >
+              <button type="button" class="btn-clear-mcc" id="btnClearTxSearch" title="Clear search">✕</button>
+            </div>
+            <select id="txFilterCardSelect" class="form-control" style="width:auto; max-width: 140px; padding: 9px 8px; font-size: 0.8rem;">
+              <option value="ALL">All Cards</option>
+            </select>
+          </div>
+
           <div id="txList"></div>
         </div>
       </div>
@@ -219,7 +237,12 @@
           
           <div class="summary-subtext">
             <span>Active Vault Points Only</span>
-            <span id="btnSummaryUpdateVault" style="color:var(--primary); cursor:pointer;">Update Points ✏️</span>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <span id="btnOpenArchiveHistory" style="color:var(--primary); cursor:pointer; display:flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:16px;">history</span> Archive History
+              </span>
+              <span id="btnSummaryUpdateVault" style="color:var(--primary); cursor:pointer;">Update Points ✏️</span>
+            </div>
           </div>
 
           <div class="travel-goal-badge" id="travelGoalBadge">
@@ -294,7 +317,7 @@
     <span class="material-symbols-outlined" style="font-size: 28px;">add</span>
   </button>
 
-  <!-- Modals -->
+  <!-- MODAL: CARD DETAILS -->
   <div class="modal-overlay" id="cardDetailOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -350,6 +373,7 @@
     </div>
   </div>
 
+  <!-- MODAL: SISTER VAULT -->
   <div class="modal-overlay" id="sisterVaultOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -361,6 +385,7 @@
     </div>
   </div>
 
+  <!-- MODAL: TRAVEL TIERS -->
   <div class="modal-overlay" id="travelTiersOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -374,6 +399,7 @@
     </div>
   </div>
 
+  <!-- MODAL: TRANSACTION LOGGER -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -456,6 +482,7 @@
     </div>
   </div>
 
+  <!-- MODAL: VAULT BALANCES -->
   <div class="modal-overlay" id="vaultOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -478,6 +505,7 @@
     </div>
   </div>
 
+  <!-- MODAL: SETTINGS -->
   <div class="modal-overlay" id="settingsOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -555,6 +583,46 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.8.5"></script>
+  <!-- MODAL: MONTHLY CYCLE RESET & FULL-YEAR ARCHIVE -->
+  <div class="modal-overlay" id="archiveModalOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-outlined" style="color:var(--primary);">calendar_month</span>
+          <h2 style="font-size:1.15rem;">Monthly & Annual Archive</h2>
+        </div>
+        <span class="material-symbols-outlined" id="btnCloseArchiveModal" style="cursor:pointer; color:#94a3b8;">close</span>
+      </div>
+
+      <div class="form-group" style="margin-top:4px;">
+        <label>Select History Cycle or Full Year</label>
+        <select id="archiveMonthSelect" class="form-control"></select>
+      </div>
+
+      <div class="card-detail-grid">
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Total Spent</span>
+          <span class="detail-stat-val" id="archiveTotalSpent">$0.00</span>
+          <span class="detail-stat-sub" id="archiveTxnCount">0 transactions</span>
+        </div>
+        <div class="detail-stat-box">
+          <span class="detail-stat-lbl">Miles Generated</span>
+          <span class="detail-stat-val" id="archiveTotalMiles" style="color:var(--accent);">0 mi</span>
+          <span class="detail-stat-sub" id="archiveBlendedMpd">0.00 blended mpd</span>
+        </div>
+      </div>
+
+      <div style="margin-top:6px;">
+        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Card Performance & Cap Tally</span>
+        <div id="archiveCardBreakdownList" style="display:flex; flex-direction:column; gap:8px; margin-top:6px; max-height:280px; overflow-y:auto;"></div>
+      </div>
+
+      <button type="button" class="btn-backup" id="btnExportArchiveCSV" style="margin-top:6px; width:100%;">
+        <span class="material-symbols-outlined" style="font-size:18px;">download</span> Export Period CSV
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=1.8.6"></script>
 </body>
 </html>
