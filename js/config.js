@@ -1,12 +1,33 @@
-export const APP_VERSION = "v1.9.3";
+export const APP_VERSION = "v1.9.4";
 
-export const PRIMARY_EMAILS = [
-  "zjunyuan@gmail.com",
-  "eunice.er.yc@gmail.com"
-];
-export const SISTER_EMAILS = [
-  "minsyyy@gmail.com"
-];
+export const VAULT_REGISTRY = {
+  primary: {
+    id: "primary",
+    label: "Household Vault",
+    role: "admin",
+    emails: ["zjunyuan@gmail.com", "eunice.er.yc@gmail.com"]
+  },
+  sister: {
+    id: "sister",
+    label: "Minsi's Vault",
+    role: "member",
+    emails: ["minsyyy@gmail.com"]
+  },
+  ellice: {
+    id: "ellice",
+    label: "Ellice's Vault",
+    role: "member",
+    emails: ["ellicee@gmail.com"]
+  },
+  eugene: {
+    id: "eugene",
+    label: "Eugene's Vault",
+    role: "member",
+    emails: ["geneer@gmail.com"]
+  }
+};
+
+export const PRIMARY_EMAILS = VAULT_REGISTRY.primary.emails;
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",

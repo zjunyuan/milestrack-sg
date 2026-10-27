@@ -1,194 +1,275 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut, 
-  onAuthStateChanged,
-  setPersistence,
-  indexedDBLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  query, 
-  where, 
-  limit 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-import { 
-  firebaseConfig, 
-  PRIMARY_EMAILS, 
-  SISTER_EMAILS, 
-  DEFAULT_VAULT, 
-  ALL_MASTER_CARDS 
-} from "./config.js";
+import { firebaseConfig, DEFAULT_VAULT, VAULT_REGISTRY } from "./config.js";
 import { state } from "./state.js";
+import { 
+  renderCards, 
+  renderTransactions, 
+  renderVaultBalances, 
+  renderExpiryRadar, 
+  renderTravelGoalBanner, 
+  renderFamilyVaultsSection,
+  updateUobFeeRenewalAlerts 
+} from "./ui.js";
 
-export let auth, db, googleProvider;
+let app, auth, db;
+let unsubTxns = null;
+let unsubVault = null;
+const unsubPeerVaults = {};
 
-export function resolveVaultKey(email = "") {
+export function resolveVaultContext(email = "") {
   const clean = email.toLowerCase().trim();
-  if (PRIMARY_EMAILS.includes(clean)) return "primary";
-  if (SISTER_EMAILS.includes(clean)) return "sister";
-  return clean.replace(/[^a-zA-Z0-9]/g, "_");
+  for (const [key, conf] of Object.entries(VAULT_REGISTRY)) {
+    if (conf.emails.map(e => e.toLowerCase()).includes(clean)) {
+      return {
+        vaultKey: key,
+        role: conf.role,
+        label: conf.label
+      };
+    }
+  }
+  return {
+    vaultKey: clean.replace(/[^a-zA-Z0-9]/g, "_"),
+    role: "member",
+    label: "Personal Vault"
+  };
 }
 
-export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  googleProvider = new GoogleAuthProvider();
+export async function initFirebase() {
+  if (!window.firebase) {
+    console.error("Firebase SDK script not loaded yet.");
+    return;
+  }
 
-  setPersistence(auth, indexedDBLocalPersistence).catch(console.error);
+  if (!firebase.apps.length) {
+    app = firebase.initializeApp(firebaseConfig);
+  } else {
+    app = firebase.app();
+  }
 
-  onAuthStateChanged(auth, async (user) => {
+  auth = firebase.auth();
+  db = firebase.firestore();
+
+  try {
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch (err) {
+    console.warn("Could not enable local auth persistence:", err);
+  }
+
+  auth.onAuthStateChanged(async (user) => {
     if (user) {
       state.currentUser = user;
-      sessionStorage.removeItem('auth_in_progress');
-      const resolvedKey = resolveVaultKey(user.email);
-      state.myVaultKey = resolvedKey;
-      state.peerVaultKey = (resolvedKey === "sister") ? "primary" : "sister";
+      const ctx = resolveVaultContext(user.email);
+      state.myVaultKey = ctx.vaultKey;
+      state.vaultLabel = ctx.label;
+      state.isAdmin = (ctx.role === 'admin');
 
-      if (onAuthSuccess) onAuthSuccess(user);
-      await checkAndMigrateSharedVault();
-      subscribeToCloudData();
+      const userDisplay = document.getElementById('signedInUserDisplay');
+      if (userDisplay) {
+        userDisplay.innerText = `Signed in: ${user.email} (${state.vaultLabel})`;
+      }
+
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      document.getElementById('fabButton').style.display = 'flex';
+
+      await subscribeToMyVaultData();
+      if (state.isAdmin) {
+        subscribeToExtendedFamilyVaults();
+      } else {
+        const familySec = document.getElementById('familyVaultsSection');
+        if (familySec) familySec.style.display = 'none';
+      }
+
+      updateSyncIndicator(true);
     } else {
       state.currentUser = null;
-      if (onAuthLoggedOut) onAuthLoggedOut();
+      unsubscribeAllListeners();
+      document.getElementById('authOverlay').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('fabButton').style.display = 'none';
+      updateSyncIndicator(false);
     }
   });
 }
 
 export async function loginWithGoogle() {
-  const btn = document.getElementById('btnLoginGoogle');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    sessionStorage.setItem('auth_in_progress', '1');
-    if (btn) {
-      btn.disabled = true;
-      btn.innerText = "Signing in...";
-    }
-    await setPersistence(auth, indexedDBLocalPersistence);
-    await signInWithPopup(auth, googleProvider);
-  } catch (e) {
-    sessionStorage.removeItem('auth_in_progress');
-    if (e.code !== 'auth/popup-closed-by-user') {
-      alert(e.message);
-    }
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
-        Sign in with Google
-      `;
-    }
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    console.error("Google Auth Error:", err);
+    alert("Sign-in failed: " + err.message);
   }
 }
 
 export async function logoutUser() {
-  if (confirm("Sign out?")) {
-    await signOut(auth);
+  if (confirm("Sign out of MilesTrack SG?")) {
+    await auth.signOut();
   }
 }
 
-async function checkAndMigrateSharedVault() {
-  if (state.myVaultKey !== "primary") return;
-  try {
-    const primDocRef = doc(db, "milestrack_vaults", "primary");
-    const primDocSnap = await getDoc(primDocRef);
+export async function subscribeToMyVaultData() {
+  unsubscribeAllListeners();
 
-    let myPointsSum = 0;
-    if (primDocSnap.exists()) {
-      const data = primDocSnap.data();
-      for (const k in data) myPointsSum += (data[k]?.points || 0);
-    }
-
-    if (!primDocSnap.exists() || myPointsSum === 0) {
-      const sharedDocRef = doc(db, "milestrack_shared", "vault");
-      const sharedSnap = await getDoc(sharedDocRef);
-      if (sharedSnap.exists()) {
-        state.myVault = { ...DEFAULT_VAULT, ...sharedSnap.data() };
-        await setDoc(primDocRef, state.myVault);
-        window.dispatchEvent(new CustomEvent('vault-updated'));
-      }
-    }
-  } catch (e) {
-    console.warn("Migration notice:", e);
-  }
-}
-
-export function subscribeToCloudData() {
-  onSnapshot(doc(db, "milestrack_vaults", state.myVaultKey), (docSnap) => {
-    if (docSnap.exists()) {
-      state.myVault = { ...DEFAULT_VAULT, ...docSnap.data() };
-      window.dispatchEvent(new CustomEvent('vault-updated'));
+  // 1. Listen to active user's points vault
+  const vaultRef = db.collection("milestrack_vaults").doc(state.myVaultKey);
+  unsubVault = vaultRef.onSnapshot(doc => {
+    if (doc.exists) {
+      const data = doc.data();
+      state.vault = { ...JSON.parse(JSON.stringify(DEFAULT_VAULT)), ...data.balances };
+      if (data.settings) state.settings = { ...state.settings, ...data.settings };
+      if (data.enabledCardIds) state.enabledCardIds = data.enabledCardIds;
     } else {
-      setDoc(doc(db, "milestrack_vaults", state.myVaultKey), DEFAULT_VAULT);
+      vaultRef.set({
+        balances: DEFAULT_VAULT,
+        settings: state.settings,
+        enabledCardIds: state.enabledCardIds,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
-  }, (err) => console.error("My vault error:", err));
 
-  onSnapshot(doc(db, "milestrack_vaults", state.peerVaultKey), (docSnap) => {
-    if (docSnap.exists()) {
-      state.peerVault = { ...DEFAULT_VAULT, ...docSnap.data() };
-      window.dispatchEvent(new CustomEvent('peer-vault-updated'));
-    }
-  }, (err) => console.error("Peer vault error:", err));
+    renderVaultBalances();
+    renderExpiryRadar();
+    renderTravelGoalBanner();
+    updateUobFeeRenewalAlerts();
+  });
 
-  onSnapshot(doc(db, "milestrack_settings", state.myVaultKey), (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.citiApprovalDate) state.citiApprovalDate = data.citiApprovalDate;
-      if (data.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...data.uobRenewals };
-      if (data.enabledCards && Array.isArray(data.enabledCards)) {
-        state.enabledCardIds = data.enabledCards;
-      }
-      if (data.cutoffDays) {
-        ALL_MASTER_CARDS.forEach(c => {
-          if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
-          if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
+  // 2. Listen to active user's transactions
+  unsubTxns = db.collection("milestrack_txns")
+    .where("owner", "==", state.myVaultKey)
+    .orderBy("date", "desc")
+    .onSnapshot(snapshot => {
+      state.transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      recalculateCardSpends();
+      renderCards();
+      renderTransactions();
+    }, err => {
+      console.warn("Txn listener index requirement, fallback without sorting:", err);
+      db.collection("milestrack_txns")
+        .where("owner", "==", state.myVaultKey)
+        .onSnapshot(s => {
+          state.transactions = s.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+          recalculateCardSpends();
+          renderCards();
+          renderTransactions();
         });
+    });
+}
+
+export function subscribeToExtendedFamilyVaults() {
+  Object.keys(VAULT_REGISTRY).forEach(key => {
+    if (key === 'primary') return;
+    
+    if (unsubPeerVaults[key]) unsubPeerVaults[key]();
+
+    unsubPeerVaults[key] = db.collection("milestrack_vaults").doc(key).onSnapshot(doc => {
+      if (doc.exists) {
+        state.peerVaults[key] = doc.data().balances || {};
+      } else {
+        state.peerVaults[key] = {};
       }
-      state.cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
-      window.dispatchEvent(new CustomEvent('settings-updated'));
+      renderFamilyVaultsSection();
+    });
+  });
+}
+
+export function unsubscribeAllListeners() {
+  if (unsubTxns) { unsubTxns(); unsubTxns = null; }
+  if (unsubVault) { unsubVault(); unsubVault = null; }
+  Object.keys(unsubPeerVaults).forEach(k => {
+    if (unsubPeerVaults[k]) { unsubPeerVaults[k](); delete unsubPeerVaults[k]; }
+  });
+}
+
+export async function saveVaultBalances(newBalances) {
+  if (!state.currentUser) return;
+  await db.collection("milestrack_vaults").doc(state.myVaultKey).set({
+    balances: newBalances,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+export async function saveAppSettings(newSettings, newEnabledCardIds) {
+  if (!state.currentUser) return;
+  await db.collection("milestrack_vaults").doc(state.myVaultKey).set({
+    settings: newSettings,
+    enabledCardIds: newEnabledCardIds,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+export async function addTransaction(txn) {
+  if (!state.currentUser) return;
+  const payload = {
+    ...txn,
+    owner: state.myVaultKey,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await db.collection("milestrack_txns").add(payload);
+}
+
+export async function updateTransaction(id, txn) {
+  if (!state.currentUser) return;
+  await db.collection("milestrack_txns").doc(id).update(txn);
+}
+
+export async function deleteTransaction(id) {
+  if (!state.currentUser) return;
+  await db.collection("milestrack_txns").doc(id).delete();
+}
+
+export function recalculateCardSpends() {
+  state.cards.forEach(card => card.currentSpend = 0);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const today = now.getDate();
+
+  state.transactions.forEach(tx => {
+    const card = state.cards.find(c => c.id === tx.cardId);
+    if (!card) return;
+
+    const txDate = new Date(tx.date);
+    if (isNaN(txDate.getTime())) return;
+
+    let isInCycle = false;
+
+    if (card.cycleType === 'calendar' || card.cycleType === 'monthly') {
+      isInCycle = (txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth);
+    } else if (card.cycleType === 'statement') {
+      const cutoff = (card.id === 'uob-vs-contactless' || card.id === 'uob-vs-fcy') 
+        ? (state.settings.uobVsCutoff || 18) 
+        : (state.settings.citiCutoff || 15);
+
+      let cycleStart, cycleEnd;
+      if (today >= cutoff) {
+        cycleStart = new Date(currentYear, currentMonth, cutoff);
+        cycleEnd = new Date(currentYear, currentMonth + 1, cutoff - 1, 23, 59, 59);
+      } else {
+        cycleStart = new Date(currentYear, currentMonth - 1, cutoff);
+        cycleEnd = new Date(currentYear, currentMonth, cutoff - 1, 23, 59, 59);
+      }
+      isInCycle = (txDate >= cycleStart && txDate <= cycleEnd);
+    } else {
+      isInCycle = (txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth);
+    }
+
+    if (isInCycle) {
+      card.currentSpend += (parseFloat(tx.amount) || 0);
     }
   });
-
-  const txQuery = query(
-    collection(db, "milestrack_txns"), 
-    where("owner", "==", state.myVaultKey),
-    limit(200)
-  );
-  
-  onSnapshot(txQuery, (querySnapshot) => {
-    state.transactions = [];
-    querySnapshot.forEach((d) => {
-      state.transactions.push({ ...d.data(), firestoreId: d.id });
-    });
-    state.transactions.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    window.dispatchEvent(new CustomEvent('txns-updated'));
-  }, (err) => {
-    console.error("Transactions snapshot listener error:", err);
-  });
 }
 
-export async function saveTxToFirestore(txRecordId, payload) {
-  await setDoc(doc(db, "milestrack_txns", txRecordId), payload);
-}
-
-export async function deleteTxFromFirestore(firestoreDocId) {
-  await deleteDoc(doc(db, "milestrack_txns", firestoreDocId));
-}
-
-export async function updateVaultDoc(targetVaultKey, vaultPayload) {
-  await setDoc(doc(db, "milestrack_vaults", targetVaultKey), vaultPayload);
-}
-
-export async function updateSettingsDoc(targetVaultKey, settingsPayload) {
-  await setDoc(doc(db, "milestrack_settings", targetVaultKey), settingsPayload);
+function updateSyncIndicator(connected) {
+  const el = document.getElementById('syncStatusIndicator');
+  if (!el) return;
+  if (connected) {
+    el.innerHTML = '● Cloud Connected';
+    el.style.color = '#34d399';
+  } else {
+    el.innerHTML = '○ Offline / Not Logged In';
+    el.style.color = '#94a3b8';
+  }
 }
