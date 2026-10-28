@@ -1,4 +1,4 @@
-// Transaction date vs posting date: the month-end banner, the "how each card counts" sheet, and the hint on the log form.
+// Transaction date vs posting date: the "how each card counts" sheet (opened from the card chips, Settings and the statement import) and the hint on the log form.
 // The rules and date logic are in posting.js.
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS } from "./config.js";
@@ -23,37 +23,6 @@ export function postingDetailHtml(card) {
   if (!rule) return "";
   const b = BASIS_LABEL[rule.basis];
   return `${b.icon} <b>${escapeHtml(b.short)}.</b> ${escapeHtml(rule.note)}`;
-}
-
-// ---- banner ---------------------------------------------------------------------------------------------------------
-export function renderPostingBanner() {
-  const box = $("postingBannerContainer");
-  if (!box) return;
-  // Only the last 3 days of a cycle (the last day and the two before), and only for cards where spend moving to the next cycle could still cost you (cap room left, or a minimum spend not met yet).
-  const matters = (card) => {
-    const live = state.cards.find(c => c.id === card.id) || card;
-    const spent = Number(live.currentSpend) || 0;
-    return ((Number(card.monthlyCap) || 0) < 999999 && spent < card.monthlyCap) || ((Number(card.minSpend) || 0) > 0 && spent < card.minSpend);
-  };
-  const rows = bannerRows(enabledCards(), new Date(), 2).filter(r => r.phase === "ending" && matters(r.card));
-  if (!rows.length) { box.innerHTML = ""; return; }
-  const ending = rows.filter(r => r.phase === "ending");
-  const lead = ending.length ? ending : rows;
-  const names = [...new Set(lead.map(r => r.card.name.replace(/\s*\(.*\)$/, "")))];
-  const shown = names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3} more` : "");
-  const calOnly = ending.length && ending.every(r => r.card.cycleType === "calendar");
-  const title = ending.length
-    ? `${calOnly ? "Month-end" : "Cycle ends soon"}: ${names.length} card${names.length === 1 ? "" : "s"} ${names.length === 1 ? "counts" : "count"} spend by posting date`
-    : `New cycle: last-day spend may still be posting in`;
-  const detail = ending.length
-    ? `A charge from the last 2 to 3 days of the cycle can post after it ends and count to the next one (${shown}). Tap for dates.`
-    : `Purchases from the end of the last cycle can post into this one on ${shown}. Tap for details.`;
-  box.innerHTML = `
-    <button type="button" class="hm-banner post-banner" id="btnPostingBanner">
-      <span class="hm-banner-icon">🗓️</span>
-      <span class="hm-banner-text"><b>${escapeHtml(title)}</b><small>${escapeHtml(detail)}</small></span>
-    </button>`;
-  $("btnPostingBanner")?.addEventListener("click", openPostingSheet);
 }
 
 // ---- sheet ----------------------------------------------------------------------------------------------------------
@@ -123,7 +92,6 @@ export function refreshLogHint() {
 }
 
 export function initPostingUi() {
-  window.addEventListener("cards-rendered", renderPostingBanner);
   window.addEventListener("open-posting-sheet", openPostingSheet);
   window.addEventListener("tx-form-changed", refreshLogHint);
   $("btnClosePosting")?.addEventListener("click", closePostingSheet);
