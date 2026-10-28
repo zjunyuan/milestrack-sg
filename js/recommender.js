@@ -12,6 +12,7 @@ import {
 } from "./retailers.js";
 import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
+import { findKrisPlusMerchants, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
@@ -177,7 +178,32 @@ export function getDaysUntilCycleEnd(card) {
   return 999;
 }
 
+// Kris+ earn note: when the typed merchant is on the Kris+ earning list, say how many extra Kris+ miles paying through the app would add.
+function appendKrisPlusNote() {
+  const area = document.getElementById('recResultArea'); if (!area) return;
+  area.querySelector('.kp-note')?.remove();
+  const input = document.getElementById('mccInput')?.value || '';
+  let hits = findKrisPlusMerchants(input);
+  if (!hits.length) { const r = resolveMccEntry(input); if (r && r.retailer) hits = findKrisPlusMerchants(r.retailer.name); }
+  if (!hits.length || !area.innerHTML.trim()) return;
+  const amt = parseFloat((document.getElementById('recAmount')?.value || '').replace(/,/g, '')) || 100;
+  const m = hits[0], extra = Math.round(amt * m.mpd);
+  const also = hits.length > 1 ? ` Also on Kris+: ${hits.slice(1).map(h => `${escapeHtml(h.name)} (${h.mpd} mpd)`).join(', ')}.` : '';
+  const div = document.createElement('div');
+  div.className = 'kp-note';
+  div.innerHTML = `🛍️ <b>Kris+ merchant:</b> ${escapeHtml(m.name)} earns <b>${m.mpd} mpd</b> in Kris+ miles when you pay in the Kris+ app, about <b>+${fmtNum(extra)} mi</b> on S$${fmtAuto(amt)}, ${state.isKrisPlusMode ? 'on top of the card miles shown above.' : 'on top of your card\'s own miles.'}${also}
+    ${state.isKrisPlusMode ? '' : `<div class="kp-sub">Paying in the app counts as an in-app wallet payment, so some cards' bonus does not apply (Citi and UOB bonus cards are the usual casualties). <button type="button" class="btn-backup kp-btn">Show cards in Kris+ mode</button></div>`}
+    <div class="kp-sub">Rates from ${escapeHtml(KRISPLUS_META.source)}, as of ${escapeHtml(KRISPLUS_META.asOf)}. They change often, so check the Kris+ app before you rely on one.</div>`;
+  area.appendChild(div);
+  div.querySelector('.kp-btn')?.addEventListener('click', () => { const sw = document.getElementById('krisPlusSwitch'); if (sw) { sw.checked = true; sw.dispatchEvent(new Event('change', { bubbles: true })); } });
+}
+
 function renderRecommendation() {
+  renderRecommendationCore();
+  appendKrisPlusNote();
+}
+
+function renderRecommendationCore() {
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;

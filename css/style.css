@@ -714,3 +714,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .st-sub { font-size:0.72rem; color:#94a3b8; }
 .st-warn { color:var(--warning); }
 .st-choice { font-size:0.8rem; padding:8px; }
+
+/* Kris+ earn note in the recommender */
+.kp-note { margin-top: 10px; font-size: 0.78rem; color: #cbd5e1; background: rgba(0, 180, 216, 0.08); padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--kris-cyan); line-height: 1.45; }
+.kp-note .kp-sub { margin-top: 6px; font-size: 0.72rem; color: #94a3b8; }
+.kp-note .kp-btn { display: inline-block; margin-top: 6px; padding: 6px 10px; font-size: 0.74rem; }

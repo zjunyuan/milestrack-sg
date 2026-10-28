@@ -269,3 +269,9 @@ If the app cannot start, you now see a panel instead of a blank page: the app ve
 ## 🍎 Safari-safe service worker (v1.20.5)
 
 The v1.20.2 network-first service worker rebuilt navigation requests, which iPhone Safari can reject, leaving the page loading forever. Navigations are now fetched as they are, other app files use a no-cache request, a slow network (8s) falls back to the cached copy, and any failure ends in a plain fetch so a page is never left without a response.
+
+## 🛍️ Kris+ merchants in the recommender (v1.21.0)
+
+When the merchant you type in the recommender is on the Kris+ earning list, a cyan note appears under the result: the merchant's Kris+ earn rate, the extra Kris+ miles on your amount (for example Krispy Kreme, 3 mpd, S$50 = about +150 mi, on top of the card's own miles), and a button to see the cards in Kris+ mode. If several outlets match (Paradise, TungLok, JUMBO) the best is shown with the others listed.
+
+**Data source:** `js/krisplus-merchants.js` holds 631 Singapore merchants (Dining 344, Retail 182, Activities 22, Services 50, Wellness 33) copied from Mainly Miles' "Complete list of all Kris+ earning merchants", Sep 2026 edition, published 24 Sep 2026: https://mainlymiles.com/2026/09/24/latest-kris-plus-earn-merchants-sep-2026/. That is a third-party list (Mainly Miles updates it at least monthly), not an official Kris+ list, and rates change often, so the note shows the source and date and tells you to check the app. Pelago was 7 mpd until 30 Sep 2026 and is stored at its normal 3 mpd. To refresh, paste the newest edition's tables into `KRISPLUS_RAW` and update `KRISPLUS_META`. No Firestore rules changed.
