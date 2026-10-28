@@ -1,5 +1,5 @@
 import { fmtNum, fmtAuto } from "./format.js";
-import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, checkShellMerchantTrigger, cardThumbHtml } from "./ui.js";
 import {
@@ -238,6 +238,14 @@ function renderRecommendationCore() {
   }
 
   let candidateList = state.isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
+
+  // DBS yuu's 10 mpd is for yuu partner brands only, but the category rules list it for the whole MCC (supermarkets, pharmacies, transit, taxis).
+  // When a specific merchant is picked and it is not a yuu partner, leave yuu out so it is not recommended at 10 mpd.
+  const namedMerchant = (resolvedMcc && resolvedMcc.retailer && resolvedMcc.retailer.name) || (resolvedMcc && resolvedMcc.krisMerchant) || '';
+  if (namedMerchant && candidateList.some(c => c.id === 'dbs-yuu') && !detectYuuMerchant(namedMerchant)) {
+    candidateList = candidateList.filter(c => c.id !== 'dbs-yuu');
+    mccData.notes = `${String(mccData.notes || '').replace(/yuu Outlets earn.*?merchants\)\.\s*/i, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} is not a yuu partner brand (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+, Anywheel). Type just the MCC to see yuu in the general category list.`;
+  }
   
   if (state.isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
     candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];

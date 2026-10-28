@@ -291,3 +291,7 @@ Typing or picking a Kris+ merchant that is not in the retailer list (for example
 ## 🔤 Kris+ merchants in the search dropdown (v1.22.2)
 
 Typing in the recommender now suggests Kris+ merchants as well as the curated retailers, so "lenu" offers LeNu Chef Wai's Noodle Bar just like "paris" offers Paris Baguette. Kris+ suggestions show their usual category and a cyan "Kris+ N mpd" tag; picking one fills the box and ranks cards on the assumed category MCC (see v1.22.1). Merchants already in the retailer list are not shown twice. No Firestore rules changed.
+
+## 🚫 DBS yuu only for yuu partner brands (v1.22.3)
+
+Picking a specific merchant such as Sheng Siong used to rank the DBS yuu card first at 10 mpd, because the category rules (supermarkets, pharmacies, transit, taxis) list yuu for the whole MCC. Now, when you pick a named merchant that is not a yuu partner (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+, Anywheel), yuu is left out and a note explains why. Typing just a category or MCC code still lists yuu as before. No Firestore rules changed.
