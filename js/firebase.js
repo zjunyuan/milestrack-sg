@@ -163,6 +163,8 @@ export function subscribeToCloudData() {
       const data = docSnap.data();
       if (data.citiApprovalDate) state.citiApprovalDate = data.citiApprovalDate;
       if (data.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...data.uobRenewals };
+      if (Number.isFinite(Number(data.uobStatementDay)) && Number(data.uobStatementDay) >= 1) state.uobStatementDay = Math.min(31, Number(data.uobStatementDay));
+      state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
       if (data.enabledCards && Array.isArray(data.enabledCards)) {
         state.enabledCardIds = data.enabledCards;
       }
@@ -235,6 +237,11 @@ export async function updateVaultDoc(targetVaultKey, vaultPayload) {
 
 export async function updateSettingsDoc(targetVaultKey, settingsPayload) {
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), settingsPayload);
+}
+
+// Writes only the given fields, leaving the rest of the settings document alone (used for fee alert dismissals).
+export async function mergeSettingsDoc(targetVaultKey, partial) {
+  await setDoc(doc(db, "milestrack_settings", targetVaultKey), partial, { merge: true });
 }
 
 export async function saveMerchantOverride(slug, data) {

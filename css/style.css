@@ -865,3 +865,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .rec-options-badge.is-set { color:var(--gold, #fbbf24); font-weight:600; }
 .rec-options[open] > summary { margin-bottom:8px; }
 .rec-options > .rec-pref-row { margin-bottom:8px; }
+
+/* Annual fee alert buttons (v1.28.0) */
+.fee-alert-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+.fee-btn { border:1px solid rgba(239,120,110,0.4); background:transparent; color:#f2c4bf; padding:7px 12px; border-radius:10px; font-size:0.78rem; font-weight:600; cursor:pointer; }
+.fee-btn-primary { background:rgba(239,120,110,0.18); color:#ffe3df; }

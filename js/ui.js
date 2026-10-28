@@ -14,6 +14,7 @@ import {
   normalizeVault
 } from "./config.js";
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
+import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
@@ -22,7 +23,8 @@ import {
   saveTxToFirestore, 
   deleteTxFromFirestore, 
   updateVaultDoc, 
-  updateSettingsDoc 
+  updateSettingsDoc,
+  mergeSettingsDoc
 } from "./firebase.js";
 import { 
   calcEarnedMiles, 
@@ -528,33 +530,74 @@ export function checkUobFeeDefense() {
   if (!container) return;
   container.innerHTML = '';
   const now = new Date();
-  const currentYear = now.getFullYear();
 
   const uobTargets = [
-    { name: "UOB Lady's Solitaire", key: 'solitaire', pts: 10000, fee: '$414.20', miles: '20,000' },
-    { name: "UOB Visa Signature", key: 'visaSig', pts: 6500, fee: '$218.00', miles: '13,000' },
-    { name: "UOB Preferred Visa", key: 'ppv', pts: 6500, fee: '$196.20', miles: '13,000' },
-    { name: "UOB PRVI Miles", key: 'prvi', pts: 6500, fee: '$261.60', miles: '13,000' }
+    { name: "UOB Lady's Solitaire", key: 'solitaire', fee: '$414.20' },
+    { name: "UOB Visa Signature", key: 'visaSig', fee: '$218.00' },
+    { name: "UOB Preferred Visa", key: 'ppv', fee: '$196.20' },
+    { name: "UOB PRVI Miles", key: 'prvi', fee: '$261.60' }
   ];
 
   uobTargets.forEach(card => {
-    const dateVal = state.uobRenewals[card.key];
-    if (!dateVal) return;
-    const renewalMonth = parseInt(dateVal.split('-')[1], 10) - 1;
-    let nextRenewal = new Date(currentYear, renewalMonth, 1);
-    if (nextRenewal < now) nextRenewal = new Date(currentYear + 1, renewalMonth, 1);
-    const diffDays = Math.ceil((nextRenewal - now) / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 45 && diffDays >= 0) {
-      container.innerHTML += `
-        <div class="fee-alert-card${diffDays <= 14 ? ' is-soon' : ''}">
-          <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:19px;">event_repeat</span> UOB Auto-Deduction Alert: ${card.name}</div>
-          <div class="fee-alert-desc">Renewal in <b>${diffDays} days</b>. UOB will automatically deduct <b>${fmtNum(card.pts)} UNI$ (${card.miles} miles)</b> for ${card.fee} fee.</div>
-        </div>
-      `;
+    const w = feeAlertWindow(state.uobRenewals[card.key], state.uobStatementDay, now);
+    if (!w) return;
+    const rec = (state.feeAlerts || {})[card.key];
+    if (rec && rec.cycle === w.cycle) {
+      if (rec.status === 'requested') return;
+      if (rec.status === 'snoozed' && Number(rec.until) > now.getTime()) return;
     }
+    const since = Math.max(0, Math.floor((now - w.start) / 86400000));
+    const stmt = w.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    container.innerHTML += `
+      <div class="fee-alert-card${since >= 7 ? ' is-soon' : ''}" data-fee-key="${card.key}" data-fee-cycle="${w.cycle}">
+        <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:19px;">receipt_long</span> Annual fee on your statement: ${escapeHtml(card.name)}</div>
+        <div class="fee-alert-desc">The ${card.fee} fee is on your ${stmt} statement. Ask UOB to reverse it.</div>
+        <div class="fee-alert-actions">
+          <button type="button" class="fee-btn fee-btn-primary" data-fee-action="requested">I've requested a reversal</button>
+          <button type="button" class="fee-btn" data-fee-action="snooze">Remind me in a week</button>
+        </div>
+      </div>
+    `;
   });
 }
+
+// The window an annual fee alert is live: from the statement day of the month after the renewal month, until the next statement day.
+// renewalYm is "YYYY-MM" (only the month counts, it repeats every year). Returns { start, end, cycle } or null.
+export function feeAlertWindow(renewalYm, statementDay, now = new Date()) {
+  const m = parseInt(String(renewalYm || '').split('-')[1], 10);
+  if (!m) return null;
+  const day = Math.min(31, Math.max(1, Number(statementDay) || 23));
+  const at = (y, mon) => new Date(y, mon, Math.min(day, new Date(y, mon + 1, 0).getDate()));   // clamp to month length
+  for (const y of [now.getFullYear() - 1, now.getFullYear()]) {
+    const start = at(y, m);          // month index m = the month after the renewal month (renewal month is m - 1)
+    const end = at(y, m + 1);
+    if (now >= start && now < end) return { start, end, cycle: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}` };
+  }
+  return null;
+}
+
+// Saves a dismissal or snooze for one card's alert, shared across the household's devices.
+async function recordFeeAlert(key, cycle, status) {
+  const rec = status === 'snoozed' ? { cycle, status, until: Date.now() + 7 * 86400000 } : { cycle, status };
+  const prev = state.feeAlerts || {};
+  state.feeAlerts = { ...prev, [key]: rec };
+  checkUobFeeDefense();
+  try {
+    await mergeSettingsDoc(state.myVaultKey, { feeAlerts: { [key]: rec } });
+  } catch (e) {
+    state.feeAlerts = prev; checkUobFeeDefense();
+    console.error('Fee alert save failed:', e);
+    alert('Could not save that: ' + e.message);
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('[data-fee-action]');
+  if (!btn) return;
+  const card = btn.closest('[data-fee-key]');
+  if (!card) return;
+  recordFeeAlert(card.dataset.feeKey, card.dataset.feeCycle, btn.dataset.feeAction === 'requested' ? 'requested' : 'snoozed');
+});
 
 export function renderExpiryRadar() {
   const container = document.getElementById('radarContainer');
@@ -1027,6 +1070,7 @@ export function openSettingsModal() {
   setVal('uobPrviRenewalInput', state.uobRenewals.prvi);
   setVal('kfUobRenewalInput', state.uobRenewals.kf);
   setVal('citiApprovalInput', state.citiApprovalDate);
+  setVal('uobStatementDayInput', state.uobStatementDay);
   const vs = ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'));
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
   setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
@@ -1053,6 +1097,8 @@ export async function saveSettings() {
   const payload = {
     enabledCards,
     citiApprovalDate: val('citiApprovalInput') || state.citiApprovalDate,
+    uobStatementDay: clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23),
+    feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
     uobRenewals: {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
@@ -1175,6 +1221,8 @@ export async function importJSONBackup(file) {
       enabledCards: settings.enabledCards?.length ? settings.enabledCards : state.enabledCardIds,
       citiApprovalDate: settings.citiApprovalDate || state.citiApprovalDate,
       uobRenewals: { ...state.uobRenewals, ...(settings.uobRenewals || {}) },
+      uobStatementDay: state.uobStatementDay || 23,
+      feeAlerts: state.feeAlerts || {},
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
         citi: Number(settings.cutoffDays?.citi) || 15
