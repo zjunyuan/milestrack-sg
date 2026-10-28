@@ -249,6 +249,7 @@ export function renderCards() {
 
   onCardSelectChange();
   runRecommendation();
+  window.dispatchEvent(new Event('cards-rendered'));
 }
 
 export function openCardDetailModal(cardId) {

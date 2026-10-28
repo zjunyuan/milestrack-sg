@@ -679,3 +679,20 @@ input:checked + .slider:before { transform: translateX(22px); }
 .unlock-note { font-size: 0.74rem; color: var(--warning); margin-top: 4px; line-height: 1.4; }
 .unlock-note.unlock-ok { color: var(--accent); }
 .unlock-pending { font-size: 0.68rem; font-weight: 600; color: var(--warning); white-space: nowrap; }
+
+/* v1.19.0: unspent 4 mpd banner and HeyMax top-up sheet */
+.hm-banner { display:flex; gap:12px; align-items:center; width:100%; text-align:left; background:rgba(251,191,36,0.10); border:1px solid rgba(251,191,36,0.35); color:#fff; border-radius:16px; padding:12px 14px; margin-bottom:14px; cursor:pointer; font:inherit; }
+.hm-banner-icon { font-size:1.4rem; }
+.hm-banner-text { display:flex; flex-direction:column; gap:2px; font-size:0.88rem; }
+.hm-banner-text small { color:#cbd5e1; font-size:0.74rem; }
+.hm-rows { display:flex; flex-direction:column; gap:8px; }
+.hm-row { display:flex; gap:10px; align-items:flex-start; background:var(--surface-variant); border-radius:14px; padding:10px; border:1px solid transparent; }
+.hm-row.hm-urgent { border-color:rgba(251,191,36,0.45); }
+.hm-row-main { flex:1; font-size:0.85rem; }
+.hm-sub { font-size:0.72rem; color:#94a3b8; margin-top:2px; }
+.hm-warn { color:var(--warning); }
+.hm-miles { font-weight:700; color:var(--accent); white-space:nowrap; font-size:0.85rem; }
+.hm-note { font-size:0.72rem; color:#94a3b8; line-height:1.45; }
+.hm-chips { display:flex; flex-wrap:wrap; gap:6px; max-height:180px; overflow-y:auto; }
+.hm-chip { background:var(--surface-variant); border-radius:999px; padding:4px 10px; font-size:0.74rem; }
+.hm-chip small { color:var(--accent); }

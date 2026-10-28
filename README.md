@@ -214,3 +214,10 @@ The Edit Points Balances sheet also failed to save on such a vault (nothing happ
 ## 🔓 Minimum-Spend Unlock Notes (v1.18.0)
 
 When a recommended card's bonus rate only applies after a monthly minimum (UOB Visa Signature S$1,000, DBS yuu S$800, Maybank foreign-currency tiers), the recommendation no longer shows the full bonus as if it were already earned. Each affected row now says how much more to charge on that card before the cycle ends ("Charge S$267 more by 18 Nov (21d left)"), shows the miles you earn now at the base rate, and lists the extra miles that unlock once the minimum is met. The split header totals the miles now and the miles pending. Banks credit the bonus on the whole cycle's spend once the minimum is met, so a locked charge is pending, not lost. The note disappears once your logged spend plus the charge reaches the minimum.
+
+
+## ⏳ Use Your Unspent 4 mpd (v1.19.0)
+
+When a card's cycle has 7 days or fewer left and at least S$100 of bonus room is unspent, a banner at the top of the cards section says how much is about to expire and what it is worth in miles. Tapping it (or "💡 Use unspent 4 mpd" at any time) opens a sheet listing each card's remaining room, its cycle end date, the miles at stake, and whether filling it also reaches a minimum spend (UOB Visa Signature S$1,000). "Plan with the recommender" fills MCC 5311 (online) and the total so the waterfall split gives the Log Part buttons.
+
+The idea: HeyMax gift vouchers code as MCC 5311 (Department Stores), which most bonus cards whitelist, so buying a voucher for a brand you really use is a way to spend the room before it resets. The sheet lists the HeyMax brands (about 80, Airalo eSIMs grouped) with their Max Miles per S$1, searchable. The MCC claim comes from The Milelion (May 2025) and the brand list was read from HeyMax on 28 Oct 2026, so both can go stale. DBS Woman's World is flagged because readers report it no longer works on HeyMax.
