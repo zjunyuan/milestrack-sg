@@ -896,3 +896,5 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .rec-eg-note { font-size:0.82rem; line-height:1.4; color:#e2e8f0; background:rgba(158,202,255,0.10); border-left:3px solid var(--primary); padding:9px 12px; border-radius:8px; }
+
+.rec-result:empty { display:none; }

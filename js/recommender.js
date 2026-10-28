@@ -239,15 +239,13 @@ function renderRecommendationCore() {
   const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : ((resolvedMcc && resolvedMcc.krisMerchant) || (mccData && mccData.name));
 
   if (!mccData) {
-    resultArea.innerHTML = `
-      <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">
-        ${state.isKrisPlusMode
+    const hint = `${state.isKrisPlusMode
           ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
           : (state.isOverseasMode 
             ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-            : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).'))}
-      </div>
-    `;
+            : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : ''))}`;
+    // No hint when nothing is typed: the box stays empty (and hidden) until there is something to say.
+    resultArea.innerHTML = hint.trim() ? `<div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${hint}</div>` : '';
     return;
   }
 
