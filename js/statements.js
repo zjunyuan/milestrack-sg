@@ -337,6 +337,8 @@ export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   const n = (hint.name || "").toLowerCase();
   const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";
   if (/maybank/.test(n)) return /horizon/.test(n) ? pick("mb-horizon-vs") : (/world/.test(n) ? pick("mb-world-mc") : "");
+  if (/citi/.test(n)) return pick("citi-rewards");
+  if (/ocbc/.test(n)) return pick("ocbc-rewards");
   if (/vantage|visa platinum/.test(n)) return pick("dbs-vantage");
   if (/altitude/.test(n)) return pick("dbs-altitude");
   if (/yuu/.test(n)) return pick("dbs-yuu");

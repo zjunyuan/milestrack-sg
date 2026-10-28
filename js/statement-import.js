@@ -232,9 +232,17 @@ async function applyImport() {
   }
 }
 
-function afterRows(rows) {
+// Exports with no card name in them: the bank's default file name gives it away (OCBC "TransactionHistory…", Citi "ACCT_…").
+function nameFromFile(fn) {
+  if (/^ACCT_\d+/i.test(fn)) return "Citi Rewards";
+  if (/^TransactionHistory/i.test(fn)) return "OCBC Rewards";
+  return "";
+}
+function afterRows(rows, fileName = "") {
   S.rows = rows;
   S.hint = detectCardHint(S.rows);
+  const fn = nameFromFile(fileName);
+  if (fn && (!S.hint || !S.hint.name)) S.hint = { name: fn, last4: S.hint ? S.hint.last4 : "" };
   const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered());
   if (guess) { $("stCard").value = guess; S.card = ALL_MASTER_CARDS.find(c => c.id === guess); }
   const fam = familyOf(S.card.id);
@@ -245,7 +253,9 @@ function afterRows(rows) {
   const found = detectLayout(S.rows) || guessLayoutByContent(S.rows);
   S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy"; S.since = ""; S.flip = false;
   const probe = buildLines(S.rows, S.headerRow, S.cols, { order: S.order });
-  S.flip = probe.length >= 2 && probe.filter(l => l.amt < 0).length > probe.length * 0.6;   // spend shown as negative numbers
+  // Payments, transfers and fees sit on the opposite side of spend, so leave them out when judging which sign means spend.
+  const spendish = probe.filter(l => !l.fee && !/visa direct|payment|giro|fund transfer|moneysend|refund|rebate|cashback/i.test(l.desc));
+  S.flip = spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
   renderMapping(); recompute();
 }
 
@@ -260,7 +270,7 @@ async function onFile(file) {
     }
     if (/\.xlsx$/i.test(file.name)) throw new Error("This is an .xlsx file. Save it as CSV (or .xls) from Excel and try again.");
     if (/\.xls$/i.test(file.name)) return afterRows(readXls(await file.arrayBuffer()));
-    afterRows(parseCsv(await file.text()));
+    afterRows(parseCsv(await file.text()), file.name);
   } catch (err) {
     console.error("Statement read failed", err);
     $("stmtFileNote").style.display = "block";
