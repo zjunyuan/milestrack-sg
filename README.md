@@ -223,3 +223,25 @@ When a card's cycle has 7 days or fewer left and at least S$100 of bonus room is
 The idea: HeyMax gift vouchers code as MCC 5311 (Department Stores), which most bonus cards whitelist, so buying a voucher for a brand you really use is a way to spend the room before it resets. The sheet lists the HeyMax brands (about 80, Airalo eSIMs grouped) with their Max Miles per S$1, searchable, and tagged multi-use or single-use (multi-use vouchers can be spent down over several visits, so they suit an exact top-up amount; a "multi-use only" filter is included). The MCC claim comes from The Milelion (May 2025) and the brand list was read from HeyMax on 28 Oct 2026, so both can go stale. DBS Woman's World is counted but carries a warning, because readers report it no longer works on HeyMax.
 
 HeyMax stock changes and a voucher can disappear from the site or app, so tap a brand in the list to mark it out of stock (dimmed, moved to the bottom, saved on this device; "Reset" clears it).
+
+
+## 📥 Statement Import (v1.20.0)
+
+Statements often come out before the month ends. "Import a bank statement" (above the ledger, and in Settings) loads a CSV, Excel .xls or PDF statement in your browser (it is not uploaded), asks which card it belongs to, finds the Date, Description and Amount columns itself (you can change them, including separate Debit/Credit columns and day/month vs month/day dates), then shows every line before anything is saved:
+
+- **New**: not in your list yet. Ticked by default, untick to skip.
+- **Already in your list**: same card, same amount and a date within 3 days. Left alone. One logged purchase can only match one statement line, so two identical coffees stay two lines.
+- **Amount differs**: looks like the same purchase (close date and similar name, or close amount) but the amount disagrees. You choose: use the statement amount (your original is kept as `amtOriginal`), keep yours, or add it as a separate purchase.
+- **Refunds and payments**: skipped, the app tracks spend.
+- **Logged but not on this statement**: shown for information and left untouched (it may not have posted yet, or be on the wrong card).
+
+Importing the same file twice does nothing, because imported lines carry a fingerprint. Miles on imported lines are estimates from the card's rules and the merchant name (marked `estimatedMiles`); bank points balances are only changed if you tick the box. No Firestore rules changed. The recent-transactions query now loads up to 1,000 rows (was 200) so big imports stay visible.
+
+DBS card CSVs (Transaction Date, Description, Debit Amount, Credit Amount, Transaction Status) are recognised as they come: the card is picked from the line at the top of the file (and remembered by its last four digits on this device), "Pending" lines are flagged because their amounts can still change, foreign-currency lines show the original amount, and merchant text like "SHENGSIONG@TAMPCTRL506 SINGAPORE SGP" is cleaned and matched to a known brand ("Sheng Siong") so it lines up with what you log by hand. The original statement text is kept on each imported transaction.
+
+**More formats**
+- **UOB `.xls`** (the "CC_TXN_History" download) is read directly. The card is detected from the account type and number, pending lines and foreign amounts are flagged, and the bank reference number is used so re-importing never duplicates. Visa Signature foreign-currency lines go to the FCY earning entry. UOB PPV / Lady's Solitaire have separate entries per channel or category, which a statement can't tell apart, so choose the entry you want and all lines go to it. Newer `.xlsx` files: save as CSV first.
+- **PDF** text statements (e.g. Maybank World Mastercard) are read in the browser with pdf.js, loaded from a CDN the first time (so it needs a connection). Password-protected PDFs ask for the password. Scanned images are not supported.
+- **Files with no header row**, or where spend is negative, are handled: columns are guessed from the content and signs are flipped automatically (there is a checkbox to override).
+- Fees (annual, late, currency conversion) are listed but skipped by default, since they earn no miles and don't count toward minimum spend. A "Only lines from" date lets you skip what you already logged.
+- OCBC (`TransactionHistory…csv`) and Citi (`ACCT_…csv`) exports carry no card name, so the bank is guessed from the default file name (OCBC Rewards / Citi Rewards) and the last four digits are remembered after you confirm. When judging whether spend is negative, payments and transfers are ignored.

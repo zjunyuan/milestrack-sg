@@ -199,7 +199,7 @@ export function subscribeToCloudData() {
   const txQuery = query(
     collection(db, "milestrack_txns"), 
     where("owner", "==", state.myVaultKey),
-    limit(200)
+    limit(1000)
   );
   
   onSnapshot(txQuery, (querySnapshot) => {

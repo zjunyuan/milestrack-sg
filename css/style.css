@@ -701,3 +701,16 @@ input:checked + .slider:before { transform: translateX(22px); }
 .hm-chip.hm-multi em { color:var(--accent); }
 .hm-chip { cursor:pointer; }
 .hm-chip.hm-out { opacity:0.5; text-decoration:line-through; }
+
+/* v1.20.0: statement import */
+.st-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.st-col { display:flex; flex-direction:column; gap:4px; font-size:0.75rem; color:#94a3b8; }
+.st-summary { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:0.8rem; margin:4px 0; }
+.st-group { background:var(--surface-variant); border-radius:14px; padding:8px 10px; margin-top:8px; }
+.st-group summary { cursor:pointer; font-size:0.85rem; font-weight:600; }
+.st-line { padding:8px 0; border-top:1px solid var(--outline); display:flex; flex-direction:column; gap:4px; }
+.st-line-main { display:flex; justify-content:space-between; gap:10px; font-size:0.85rem; }
+.st-amt { font-weight:700; white-space:nowrap; }
+.st-sub { font-size:0.72rem; color:#94a3b8; }
+.st-warn { color:var(--warning); }
+.st-choice { font-size:0.8rem; padding:8px; }

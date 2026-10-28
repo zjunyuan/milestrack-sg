@@ -12,6 +12,7 @@ import {
 } from "./recommender.js";
 import { initRetailerSuggest } from "./merchants.js";
 import { initHeymax } from "./heymax.js";
+import { initStatementImport } from "./statement-import.js";
 import { 
   renderPresets, 
   renderCards, 
@@ -247,6 +248,7 @@ document.getElementById('btnClearMcc')?.addEventListener('click', () => {
 
 initRetailerSuggest();
 initHeymax();
+initStatementImport();
 document.getElementById('recAmount')?.addEventListener('input', runRecommendation);
 document.getElementById('contactlessSwitch')?.addEventListener('change', runRecommendation);
 document.getElementById('cardSelect')?.addEventListener('change', onCardSelectChange);
