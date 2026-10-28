@@ -8,8 +8,10 @@ import {
   ALL_VAULT_KEYS,
   VAULT_LABELS,
   APP_VERSION,
-  DEFAULT_VAULT
+  DEFAULT_VAULT,
+  MCC_DATABASE
 } from "./config.js";
+import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { state } from "./state.js";
 import { 
   saveTxToFirestore, 
@@ -108,6 +110,58 @@ export function quickLogPreset(presetId) {
   openModal();
 }
 
+// Card artwork at a given size class: "" (list, 96x61), "card-thumb-rec" (recommendation, 128x81), "card-thumb-sm" (64x40).
+// Falls back to a themed block with the bank name if the picture is missing or fails to load.
+export function cardThumbHtml(card, size = "") {
+  const cls = `card-thumb ${size}`.trim();
+  const fallback = `<div class="${cls} ${card.themeClass || 'thumb-uob'}"${card.image ? ' style="display:none;"' : ''}><div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div></div>`;
+  if (!card.image) return fallback;
+  return `<img src="${card.image}" class="${cls}" style="object-fit:cover; padding:0;" alt="${card.name}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">${fallback}`;
+}
+
+const money0 = (n) => 'S$' + Math.round(n).toLocaleString('en-SG');
+
+// "Earning profile & rules" panel in the card detail sheet.
+export function earningProfileHtml(card) {
+  const pill = (t, warn) => `<span class="rule-pill ${warn ? 'rule-pill-warn' : ''}">${t}</span>`;
+  const pills = [];
+  const rule = card.tierRule;
+  if (rule && rule.kind === 'monthly') {
+    pills.push(pill(`${card.baseMpd} mpd base`));
+    rule.steps.forEach(st => pills.push(pill(`${money0(st.at)}/month spend → ${st.mpd} mpd`)));
+  } else if (rule && rule.kind === 'annual-sia') {
+    pills.push(pill(`${card.baseMpd} mpd base`));
+    pills.push(pill(`3 mpd on SIA Group, Kris+ and Pelago`));
+    pills.push(pill(`${money0(rule.at)} SIA Group spend per membership year → ${rule.mpd} mpd (credited after the year)`, true));
+  } else {
+    pills.push(pill(`<b>${card.bonusMpd} mpd</b> bonus`));
+    pills.push(pill(`${card.baseMpd} mpd base`));
+  }
+  const capped = card.monthlyCap < 999999;
+  pills.push(pill(capped ? `${money0(card.monthlyCap)} bonus cap per ${card.cycleType === 'statement' ? 'statement cycle' : 'month'}` : 'No bonus cap'));
+  if (card.minSpend > 0 && !rule) pills.push(pill(`Minimum ${money0(card.minSpend)} spend to unlock`, true));
+  const channel = card.channelMode === 'online' ? 'Online spend only' : card.channelMode === 'inperson' ? 'In-person only' : 'Online and in-person';
+  pills.push(pill(channel));
+  if (card.isContactlessOnly) pills.push(pill('Contactless / mobile wallet only', true));
+  if (card.inPersonNeedsContactless) pills.push(pill('In person only via contactless', true));
+  pills.push(pill(card.strategyType === 'blacklist' ? 'Earns on any category except the bank\'s exclusions' : 'Earns only on listed categories'));
+  const today = new Date().toLocaleDateString('en-CA');
+  (card.rateSchedule || []).filter(r => r.from > today).forEach(r => {
+    const d = new Date(r.from + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    pills.push(pill(`Rate changes on ${d}: ${r.baseMpd} mpd`, true));
+  });
+
+  let cats = '';
+  if (card.strategyType === 'whitelist') {
+    const names = Object.keys(MCC_DATABASE)
+      .filter(code => (getBuiltinMccEntry(code)?.candidatesLocal || []).some(c => c.id === card.id && c.baseRate > card.baseMpd))
+      .map(code => shortCategory(MCC_DATABASE[code].name));
+    const unique = [...new Set(names)];
+    if (unique.length) cats = `<div class="rule-cats"><b>Bonus categories:</b> ${unique.slice(0, 12).join(', ')}${unique.length > 12 ? ` and ${unique.length - 12} more` : ''}</div>`;
+  }
+  return `<div class="rule-pill-container">${pills.join('')}</div>${card.hint ? `<div class="rule-cats">${card.hint}</div>` : ''}${cats}`;
+}
+
 export function renderCards() {
   const container = document.getElementById('cardsContainer');
   const select = document.getElementById('cardSelect');
@@ -160,10 +214,7 @@ export function renderCards() {
       statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${Math.max(0, 800 - currentSpend).toFixed(0)} min left`;
     }
 
-    const thumbHtml = card.image
-      ? `<img src="${card.image}" class="card-thumb" style="object-fit:cover; padding:0;" alt="${card.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-         <div class="card-thumb ${card.themeClass || 'thumb-uob'}" style="display:none;"><div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div></div>`
-      : `<div class="card-thumb ${card.themeClass || 'thumb-uob'}"><div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div></div>`;
+    const thumbHtml = cardThumbHtml(card);
 
     const cardEl = document.createElement('div');
     cardEl.className = `credit-card ${isStatement ? 'statement-cycle' : ''}`;
@@ -219,6 +270,8 @@ export function openCardDetailModal(cardId) {
     thumbEl.innerHTML = `<div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div>`;
   }
 
+  const rulesBox = document.getElementById('modalCardRules');
+  if (rulesBox) rulesBox.outerHTML = `<div id="modalCardRules">${earningProfileHtml(card)}</div>`;
   const tierAlert = document.getElementById('modalCardAlertArea');
   if (tierAlert) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });

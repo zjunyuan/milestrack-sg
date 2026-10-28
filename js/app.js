@@ -60,7 +60,7 @@ function onAuthSuccess(user) {
 
   // Household admin sees household titles; everyone else sees "My ..."
   const isHousehold = state.myVaultKey === "primary";
-  document.getElementById('warChestTitle').innerText = isHousehold ? "Household Mileage War Chest" : "My Personal Mileage War Chest";
+  document.getElementById('warChestTitle').innerText = isHousehold ? "Zhangs Total Miles" : "My Personal Mileage War Chest";
   document.getElementById('cardBonusTitle').innerText = isHousehold ? "Household Monthly Bonus Caps" : "My Monthly Bonus Caps";
   document.getElementById('vaultSectionTitle').innerText = isHousehold ? "Household Bank Points Vault" : "My Bank Points Vault";
 

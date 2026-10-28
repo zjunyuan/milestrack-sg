@@ -368,9 +368,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .card-header-left { display: flex; align-items: center; gap: 12px; }
 
 .card-thumb { 
-  width: 44px; 
-  height: 28px; 
-  border-radius: 5px; 
+  width: 96px; 
+  height: 61px; 
+  border-radius: 8px; 
   flex-shrink: 0; 
   display: flex; 
   flex-direction: column; 
@@ -381,8 +381,8 @@ input:checked + .slider:before { transform: translateX(22px); }
   position: relative;
   overflow: hidden;
 }
-.thumb-chip { width: 6px; height: 5px; background: #fbbf24; border-radius: 1.5px; opacity: 0.85; }
-.thumb-bank { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; align-self: flex-end; line-height: 1; }
+.thumb-chip { width: 12px; height: 9px; background: #fbbf24; border-radius: 1.5px; opacity: 0.85; }
+.thumb-bank { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; align-self: flex-end; line-height: 1; }
 
 .thumb-uob { background: linear-gradient(135deg, #091a2e 0%, #002d62 100%); color: #60a5fa; }
 .thumb-dbs { background: linear-gradient(135deg, #2b1114 0%, #8b111d 100%); color: #fca5a5; }
@@ -459,7 +459,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .yuu-partner-alert a { color: var(--gold); font-weight: 700; text-decoration: underline; }
 
 .card-detail-header { display: flex; align-items: center; gap: 14px; }
-.card-detail-thumb { width: 56px; height: 35px; border-radius: 6px; padding: 4px 6px; }
+.card-detail-thumb { width: 140px; height: 88px; border-radius: 10px; padding: 6px 8px; }
 .card-detail-title { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.25; }
 .card-detail-subtitle { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
 
@@ -661,3 +661,16 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .rs-note { padding: 8px 10px; font-size: 0.75rem; color: var(--warning); }
 .mcc-input-wrapper.has-selection input { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* Card artwork sizes (cards are 85.6 x 54 mm, ratio 1.586): list 96x61, recommendation 128x81, waterfall step 64x40, detail sheet 140x88 */
+.card-thumb.card-thumb-rec { width: 128px; height: 81px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.55); }
+.card-thumb.card-thumb-sm { width: 64px; height: 40px; border-radius: 6px; }
+.rec-winner-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cascade-card { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rule-cats { font-size: 0.78rem; color: #cbd5e1; line-height: 1.4; margin-top: 6px; }
+.card-header-left { min-width: 0; }
+@media (max-width: 420px) {
+  .card-thumb { width: 80px; height: 51px; }
+  .card-thumb.card-thumb-rec { width: 104px; height: 66px; }
+  .card-detail-thumb { width: 112px; height: 71px; }
+}
