@@ -143,3 +143,17 @@ Cards whose bonus needs a minimum spend show progress to it instead of an "Uncap
 - A recommendation that names a card whose tier is not unlocked yet gets a warning line.
 - Rules live in each card's `tierRule` in `js/config.js`; the logic is in `js/tiers.js`.
 - Limit: spend is totalled from what you log on the card, so Maybank's foreign-currency and air-ticket conditions are not separated out.
+
+
+## 👜 Luxury Brands (v1.14.1)
+
+Added to the retailer lookup, all at medium confidence (MCCs are community-reported on CheckMCC, not bank-confirmed):
+
+- **5631:** Celine, Louis Vuitton.
+- **5691:** Chanel (fashion & bags), Dior (fashion & bags), Hermès, Gucci, Prada.
+- **5944 (high confidence):** Cartier, Tiffany & Co, Van Cleef & Arpels, Bvlgari, Chaumet, Chopard.
+- **5944 (medium):** Rolex, and Chanel Beauty (beauty counter).
+- **5977:** Dior Beauty (beauty counter).
+- Typing "chanel" or "dior" resolves to the fashion boutique; use "Chanel Beauty" / "Dior Beauty" for makeup and fragrance counters. Fix any wrong code with **✎ Wrong category?**; the real MCC on your card statement is the best source.
+- **Household-set (medium):** Saint Laurent 5699, Bottega Veneta 5699, Balenciaga 5691, Givenchy 5631.
+- **Low confidence (educated guesses, no source found; they show a warning):** fashion houses at 5691 (Burberry, Fendi, Loewe, Valentino, Versace, Dolce & Gabbana, Miu Miu, Balmain, Moncler, Max Mara, Armani, Lanvin, Alexander McQueen, Stella McCartney, Off-White, Golden Goose, Brunello Cucinelli, Berluti, Tom Ford, Ralph Lauren, Hugo Boss, Dunhill); bag labels at 5631 (Coach, Michael Kors, Kate Spade, Tory Burch, Longchamp, Furla, Mulberry, Delvaux); shoes at 5661 (Ferragamo, Jimmy Choo, Christian Louboutin); luggage and leather at 5948 (Goyard, Rimowa, Tumi, Montblanc); watches and jewellery at 5944 (Omega, Patek Philippe, Audemars Piguet, Richard Mille, TAG Heuer, Tudor, IWC, Breitling, Jaeger-LeCoultre, Vacheron Constantin, Longines, Seiko, Mikimoto, Boucheron, Graff, Harry Winston, Piaget); beauty at 5977 (La Mer, Aesop).
