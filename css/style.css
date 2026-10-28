@@ -719,3 +719,12 @@ input:checked + .slider:before { transform: translateX(22px); }
 .kp-note { margin-top: 10px; font-size: 0.78rem; color: #cbd5e1; background: rgba(0, 180, 216, 0.08); padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--kris-cyan); line-height: 1.45; }
 .kp-note .kp-sub { margin-top: 6px; font-size: 0.72rem; color: #94a3b8; }
 .kp-note .kp-btn { display: inline-block; margin-top: 6px; padding: 6px 10px; font-size: 0.74rem; }
+
+/* Kris+ merchant browser */
+.kp-browse-btn { width: 100%; margin: 4px 0 8px; }
+.kp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px; }
+.kp-chip { border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #cbd5e1; border-radius: 999px; padding: 6px 12px; font-size: 0.78rem; cursor: pointer; }
+.kp-chip.on { background: rgba(0,180,216,0.2); border-color: var(--kris-cyan); color: #fff; }
+.kp-count { font-size: 0.72rem; color: #94a3b8; margin: 4px 0 8px; }
+.kp-row { width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; align-items: center; }
+.kp-rate { font-weight: 700; color: var(--kris-cyan); white-space: nowrap; font-size: 0.85rem; }
