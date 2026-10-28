@@ -157,3 +157,12 @@ Added to the retailer lookup, all at medium confidence (MCCs are community-repor
 - Typing "chanel" or "dior" resolves to the fashion boutique; use "Chanel Beauty" / "Dior Beauty" for makeup and fragrance counters. Fix any wrong code with **✎ Wrong category?**; the real MCC on your card statement is the best source.
 - **Household-set (medium):** Saint Laurent 5699, Bottega Veneta 5699, Balenciaga 5691, Givenchy 5631.
 - **Low confidence (educated guesses, no source found; they show a warning):** fashion houses at 5691 (Burberry, Fendi, Loewe, Valentino, Versace, Dolce & Gabbana, Miu Miu, Balmain, Moncler, Max Mara, Armani, Lanvin, Alexander McQueen, Stella McCartney, Off-White, Golden Goose, Brunello Cucinelli, Berluti, Tom Ford, Ralph Lauren, Hugo Boss, Dunhill); bag labels at 5631 (Coach, Michael Kors, Kate Spade, Tory Burch, Longchamp, Furla, Mulberry, Delvaux); shoes at 5661 (Ferragamo, Jimmy Choo, Christian Louboutin); luggage and leather at 5948 (Goyard, Rimowa, Tumi, Montblanc); watches and jewellery at 5944 (Omega, Patek Philippe, Audemars Piguet, Richard Mille, TAG Heuer, Tudor, IWC, Breitling, Jaeger-LeCoultre, Vacheron Constantin, Longines, Seiko, Mikimoto, Boucheron, Graff, Harry Winston, Piaget); beauty at 5977 (La Mer, Aesop).
+
+
+## 👟 Shoe Retailers (v1.14.2)
+
+All medium confidence, set by the household (not bank-confirmed).
+
+- **5655 (sports apparel and footwear):** Nike and Adidas (moved from 5651), Puma, New Balance, Asics, Under Armour, Reebok, Fila, Saucony, Hoka, On Running, Mizuno, Onitsuka Tiger, Salomon. 5661 and 5941 are offered as alternatives.
+- **5661 (shoe stores):** Vincci, Bata, Hush Puppies, Skechers, Clarks, Crocs, Birkenstock, Dr. Martens, Havaianas, Ecco, Geox, Rockport, Camper, Aldo, Steve Madden, Call It Spring, Ugg, Timberland, Converse, Vans, Foot Locker, Sneakers Mania, Limited Edt, Allbirds, Bata Kids, Clarks Kids, Pazzion, plus Charles & Keith and Pedro from before.
+- 5655 and 5661 earn the same on our modelled cards; 5941 (sporting goods) differs only for HSBC Revolution, which excludes it.
