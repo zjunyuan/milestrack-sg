@@ -162,7 +162,6 @@ document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async
 });
 
 document.getElementById('btnOpenVaultBalances')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
-document.getElementById('btnSummaryUpdateVault')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
 
 document.getElementById('btnTabCards')?.addEventListener('click', () => switchTab('cards'));
 document.getElementById('btnTabCategory')?.addEventListener('click', () => switchTab('category'));
@@ -293,7 +292,6 @@ document.getElementById('txFilterCardSelect')?.addEventListener('change', (e) =>
 });
 
 // Archive Modal Listeners
-document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', () => switchTab('history'));
 document.getElementById('archiveMonthSelect')?.addEventListener('change', () => { renderArchiveData(); renderTransactions(); });
 document.getElementById('btnExportArchiveCSV')?.addEventListener('click', exportArchiveMonthCSV);
 
