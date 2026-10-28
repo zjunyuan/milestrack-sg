@@ -329,8 +329,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .btn-apply-rec { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; align-self: flex-start; margin-top: 4px; }
 
-.fee-alert-card { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-.fee-alert-title { font-weight: 700; font-size: 0.9rem; color: var(--danger); display: flex; align-items: center; gap: 6px; }
+.fee-alert-card { background: rgba(239, 120, 110, 0.07); border: 1px solid rgba(239, 120, 110, 0.28); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.fee-alert-title { font-weight: 600; font-size: 0.88rem; color: #f2aaa3; display: flex; align-items: center; gap: 6px; }
 .fee-alert-desc { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
 
 .category-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
@@ -805,3 +805,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .set-footer[hidden], [data-panel][hidden] { display:none !important; }
 .wal-body[hidden] { display:none !important; }
 .settings-sheet { min-height:min(640px, 78vh); }
+
+/* Annual fee alert: calm until the renewal is two weeks away (v1.25.1) */
+.fee-alert-card.is-soon { background: rgba(239, 100, 90, 0.11); border-color: rgba(239, 100, 90, 0.45); }
+.fee-alert-card.is-soon .fee-alert-title { color: #f58f86; }
