@@ -261,3 +261,7 @@ The service worker used to trust the browser's HTTP cache when it downloaded a n
 ## 🩹 Self-healing updates (v1.20.3)
 
 A phone left with a blank screen by a half-applied update no longer needs its site data cleared by hand. Two safety nets: (1) when a new service worker takes over it reloads every open page onto the fresh files; (2) `index.html` runs a small watchdog, and if the app has not started after 6 seconds it deletes the cached app files, unregisters the service worker and reloads, once per tab session, so it cannot loop. Your data is in Firebase and is not affected. A device that is blank today fixes itself the next time it opens the site with a connection (it may take a few seconds and one automatic reload).
+
+## 🧯 On-screen error panel (v1.20.4)
+
+If the app cannot start, you now see a panel instead of a blank page: the app version, whether you are online, the service worker state, the browser, and the errors the page captured, with **Reset app files and reload** (clears cached app files only, never your data) and **Copy details**. It appears after the automatic recovery from v1.20.3 has already been tried once. Add `?debug` to the address (for example `https://your-site/?debug`) to open the same panel on a working app.
