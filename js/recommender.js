@@ -1,3 +1,4 @@
+import { fmtNum, fmtAuto } from "./format.js";
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, checkShellMerchantTrigger, cardThumbHtml } from "./ui.js";
@@ -271,7 +272,7 @@ function renderRecommendation() {
 
       if (isUncapped || availableCap >= amt) {
         totalEarnedMiles = calcEarnedMiles(card, amt, effectiveBonusRate);
-        breakdownDesc = `${effectiveBonusRate} mpd on full $${amt.toLocaleString()}`;
+        breakdownDesc = `${effectiveBonusRate} mpd on full $${fmtAuto(amt)}`;
       } else {
         const bonusPart = availableCap;
         const overflowPart = amt - bonusPart;
@@ -281,7 +282,7 @@ function renderRecommendation() {
         totalEarnedMiles = bonusMiles + baseMiles;
         
         const blendedMpd = (totalEarnedMiles / amt).toFixed(2);
-        breakdownDesc = `$${bonusPart.toFixed(0)} @ ${effectiveBonusRate} mpd + $${overflowPart.toFixed(0)} @ ${card.baseMpd} mpd (${blendedMpd} blended mpd)`;
+        breakdownDesc = `$${fmtNum(bonusPart, 0)} @ ${effectiveBonusRate} mpd + $${fmtNum(overflowPart, 0)} @ ${card.baseMpd} mpd (${blendedMpd} blended mpd)`;
       }
 
       return {
@@ -299,12 +300,12 @@ function renderRecommendation() {
     resultArea.innerHTML = `
       <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
         <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [💳 Single Card Swipe Mode]<br>
-        Evaluating best single card for full payment of <b>$${amt.toLocaleString()}</b> without splitting.
+        Evaluating best single card for full payment of <b>$${fmtAuto(amt)}</b> without splitting.
       </div>
 
       <div class="rec-winner-title">
         <span class="rec-winner-name">${cardThumbHtml(winner.card, 'card-thumb-rec')}<span>⭐ <b>${winner.card.name}</b></span></span>
-        <span style="color:var(--accent); font-weight:700;">+${Math.round(winner.totalMiles).toLocaleString()} mi (${winner.effectiveRate} mpd)</span>
+        <span style="color:var(--accent); font-weight:700;">+${fmtNum(Math.round(winner.totalMiles))} mi (${winner.effectiveRate} mpd)</span>
       </div>
       <div class="rec-winner-meta">
         ${winner.breakdownDesc}
@@ -313,12 +314,12 @@ function renderRecommendation() {
 
       ${runnerUp ? `
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
-          🥈 Alternative: <b>${runnerUp.card.name}</b> (+${Math.round(runnerUp.totalMiles).toLocaleString()} mi • ${runnerUp.effectiveRate} mpd)
+          🥈 Alternative: <b>${runnerUp.card.name}</b> (+${fmtNum(Math.round(runnerUp.totalMiles))} mi • ${runnerUp.effectiveRate} mpd)
         </div>
       ` : ''}
 
       <button class="btn-apply-rec" id="btnApplySingleSwipeRec">
-        Log Full $${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} on ${winner.card.name}
+        Log Full $${fmtNum(amt, 2)} on ${winner.card.name}
       </button>
     `;
 
@@ -441,17 +442,17 @@ function renderRecommendation() {
             <div class="cascade-card">
               ${cardThumbHtml(step.card, 'card-thumb-sm')}
               <div>
-                ${icon} <b>${step.card.name}</b>: Charge <b>$${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                ${icon} <b>${step.card.name}</b>: Charge <b>$${fmtNum(step.amount, 2)}</b>
                 <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
               </div>
             </div>
-            <span style="color:var(--accent); font-weight:700;">+${Math.round(step.miles).toLocaleString()} mi</span>
+            <span style="color:var(--accent); font-weight:700;">+${fmtNum(Math.round(step.miles))} mi</span>
           </div>
         `;
 
         buttonsHtml += `
           <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})">
-            Log Part ${idx + 1} ($${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+            Log Part ${idx + 1} ($${fmtNum(step.amount, 2)})
           </button>
         `;
       });
@@ -465,7 +466,7 @@ function renderRecommendation() {
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            Smart Waterfall Split: Earn ${Math.round(totalCombinedMiles).toLocaleString()} miles across ${allocationSteps.length} cards
+            Smart Waterfall Split: Earn ${fmtNum(Math.round(totalCombinedMiles))} miles across ${allocationSteps.length} cards
           </div>
           ${stepsHtml}
         </div>
@@ -495,7 +496,7 @@ function renderRecommendation() {
     const remainder = amt % 5;
     if (remainder > 0.01) {
       const trueMpd = (calculatedMiles / amt).toFixed(2);
-      roundingWarning = `S$5 rounding drop: S$${remainder.toFixed(2)} gets 0 pts (Real: ${trueMpd} mpd)`;
+      roundingWarning = `S$5 rounding drop: S$${fmtNum(remainder, 2)} gets 0 pts (Real: ${trueMpd} mpd)`;
     }
   }
 
@@ -510,14 +511,14 @@ function renderRecommendation() {
     ${isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : ''}
     <div class="rec-winner-title">
       <span class="rec-winner-name">${cardThumbHtml(singleCard.card, 'card-thumb-rec')}<span>⭐ <b>${singleCard.card.name}</b></span></span>
-      <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${Math.round(calculatedMiles).toLocaleString()} mi)</span>
+      <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${fmtNum(Math.round(calculatedMiles))} mi)</span>
     </div>
     <div class="rec-winner-meta">
-      ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${singleCard.remainingCap.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> / $${singleCard.card.monthlyCap}`} • Resets in ${singleCard.daysLeft}d
+      ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • Resets in ${singleCard.daysLeft}d
     </div>
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : ''}
-    <button class="btn-apply-rec" id="btnApplySingleRec">Log $${amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with This Card</button>
+    <button class="btn-apply-rec" id="btnApplySingleRec">Log $${fmtNum(amt, 2)} with This Card</button>
   `;
 
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
@@ -911,7 +912,7 @@ export function updateShellNettCalc() {
   if (gross > 0) {
     const nett = (gross * 0.86).toFixed(2);
     btn.innerText = `Apply 14% (Net $${nett})`;
-    status.innerHTML = `Gross $${gross.toFixed(2)} - 14% = <b>Net $${nett}</b> charged`;
+    status.innerHTML = `Gross $${fmtNum(gross, 2)} - 14% = <b>Net $${nett}</b> charged`;
   } else {
     btn.innerText = `Apply 14% Off`;
     status.innerText = `Enter gross pump price from meter to compute nett S$ amount charged.`;
