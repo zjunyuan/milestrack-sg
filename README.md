@@ -257,3 +257,7 @@ Every import is tagged. Open "Import a bank statement" and, if there is a previo
 ## 🛠️ Blank screen after an update (v1.20.2)
 
 The service worker used to trust the browser's HTTP cache when it downloaded a new version, and always served cached app files first. After an update on a phone that could mix old and new script files, which leaves a blank page. Now the new version is fetched fresh (bypassing the HTTP cache), the app's own files are loaded network-first (cache only when offline), and the new worker takes over straight away. If a phone is already stuck on a blank screen, clear the site's data once (Chrome menu, Settings, Site settings, the site, Clear & reset), or open the site in an Incognito tab.
+
+## 🩹 Self-healing updates (v1.20.3)
+
+A phone left with a blank screen by a half-applied update no longer needs its site data cleared by hand. Two safety nets: (1) when a new service worker takes over it reloads every open page onto the fresh files; (2) `index.html` runs a small watchdog, and if the app has not started after 6 seconds it deletes the cached app files, unregisters the service worker and reloads, once per tab session, so it cannot loop. Your data is in Firebase and is not affected. A device that is blank today fixes itself the next time it opens the site with a connection (it may take a few seconds and one automatic reload).

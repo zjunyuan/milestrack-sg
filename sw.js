@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.20.2';
+const CACHE_NAME = 'milestrack-cache-v1.20.3';
 
 const CORE_ASSETS = [
   './',
@@ -79,7 +79,8 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  self.clients.claim();
+  // Pages already open (including a blank one left by a broken update) are reloaded onto the fresh files, no manual clearing needed.
+  event.waitUntil(self.clients.claim().then(() => self.clients.matchAll({ type: 'window' })).then((cs) => Promise.all(cs.map((c) => c.navigate(c.url).catch(() => {})))));
 });
 
 self.addEventListener('message', (event) => {

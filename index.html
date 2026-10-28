@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.20.2</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.20.3</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.20.2</span>
+          <span class="version-tag" id="headerVersionTag">v1.20.3</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -705,6 +705,18 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.20.2"></script>
+  <script>
+    // Self-heal: if the app has not started after 6 seconds (a half-applied update leaves a blank page), wipe the cached app files and the
+    // service worker once and reload. Your data lives in Firebase and is not touched.
+    setTimeout(function () {
+      if (window.__milesBooted) return;
+      try { if (sessionStorage.getItem('mt_recovered')) return; sessionStorage.setItem('mt_recovered', '1'); } catch (e) {}
+      var jobs = [];
+      if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+      if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+      Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+    }, 6000);
+  </script>
+  <script type="module" src="js/app.js?v=1.20.3"></script>
 </body>
 </html>
