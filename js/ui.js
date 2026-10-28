@@ -395,6 +395,8 @@ export function renderTransactions() {
   const filteredTxns = state.transactions.filter(tx => {
     const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
     
+    if (!inHistoryPeriod(tx)) return false;
+
     if (state.txCardFilter !== "ALL" && tx.cardId !== state.txCardFilter) {
       return false;
     }
@@ -411,11 +413,10 @@ export function renderTransactions() {
   });
 
   if (badge) {
-    if (queryClean || state.txCardFilter !== "ALL") {
-      badge.innerText = `${filteredTxns.length} of ${state.transactions.length} shown`;
-    } else {
-      badge.innerText = `${state.transactions.length} recorded`;
-    }
+    const inPeriod = state.transactions.filter(inHistoryPeriod).length;
+    badge.innerText = (queryClean || state.txCardFilter !== "ALL")
+      ? `${filteredTxns.length} of ${inPeriod} shown`
+      : `${inPeriod} recorded`;
   }
 
   if (filteredTxns.length === 0) {
@@ -838,23 +839,31 @@ export function getAvailableArchiveMonths() {
   return options;
 }
 
-export function openArchiveModal() {
+export function refreshHistory() {
   const select = document.getElementById('archiveMonthSelect');
   if (!select) return;
-
-  const cycleOptions = getAvailableArchiveMonths();
-  select.innerHTML = '';
-
-  cycleOptions.forEach(opt => {
-    select.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
-  });
-
+  const now = new Date();
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const prev = select.value;
+  const options = getAvailableArchiveMonths();
+  select.innerHTML = options
+    .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+    .join('');
+  const keep = options.some(o => o.value === prev) ? prev : currentKey;
+  select.value = keep;
   renderArchiveData();
-  document.getElementById('archiveModalOverlay')?.classList.add('open');
+  renderTransactions();
 }
 
-export function closeArchiveModal() {
-  document.getElementById('archiveModalOverlay')?.classList.remove('open');
+/** True when tx falls in the History period picked in #archiveMonthSelect. */
+function inHistoryPeriod(tx) {
+  const key = document.getElementById('archiveMonthSelect')?.value;
+  if (!key) return true;
+  if (!tx.timestamp) return false;
+  const d = new Date(tx.timestamp);
+  if (key.startsWith('YEAR-')) return d.getFullYear() === parseInt(key.slice(5), 10);
+  const [y, m] = key.split('-').map(Number);
+  return d.getFullYear() === y && (d.getMonth() + 1) === m;
 }
 
 export function renderArchiveData() {
@@ -1386,31 +1395,21 @@ export function updateReconcileDelta(appSpend) {
 }
 
 export function switchTab(tabName) {
-  if (window.innerWidth >= 900) return;
-  const cardsTab = document.getElementById('tabContentCards');
-  const categoryTab = document.getElementById('tabContentCategory');
-  const vaultTab = document.getElementById('tabContentVault');
-
-  const btnCards = document.getElementById('btnTabCards');
-  const btnCategory = document.getElementById('btnTabCategory');
-  const btnVault = document.getElementById('btnTabVault');
-
-  cardsTab.style.display = 'none';
-  categoryTab.style.display = 'none';
-  vaultTab.style.display = 'none';
-
-  btnCards?.classList.remove('active');
-  btnCategory?.classList.remove('active');
-  btnVault?.classList.remove('active');
-
-  if (tabName === 'cards') {
-    cardsTab.style.display = 'flex';
-    btnCards?.classList.add('active');
-  } else if (tabName === 'category') {
-    categoryTab.style.display = 'flex';
-    btnCategory?.classList.add('active');
-  } else {
-    vaultTab.style.display = 'flex';
-    btnVault?.classList.add('active');
+  if (window.innerWidth >= 900) {
+    if (tabName === 'history') document.getElementById('tabContentHistory')?.scrollIntoView({ behavior: 'smooth' });
+    return;
   }
+  const tabs = {
+    cards: ['tabContentCards', 'btnTabCards'],
+    category: ['tabContentCategory', 'btnTabCategory'],
+    vault: ['tabContentVault', 'btnTabVault'],
+    history: ['tabContentHistory', 'btnTabHistory']
+  };
+  const target = tabs[tabName] ? tabName : 'vault';
+  Object.entries(tabs).forEach(([name, [contentId, btnId]]) => {
+    const el = document.getElementById(contentId);
+    const btn = document.getElementById(btnId);
+    if (el) el.style.display = name === target ? 'flex' : 'none';
+    btn?.classList.toggle('active', name === target);
+  });
 }

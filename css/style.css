@@ -854,3 +854,13 @@ input:checked + .slider:before { transform: translateX(22px); }
 .rec-eg-note { font-size:0.82rem; line-height:1.4; color:#e2e8f0; background:rgba(158,202,255,0.10); border-left:3px solid var(--primary); padding:9px 12px; border-radius:8px; }
 
 .rec-result:empty { display:none; }
+
+/* History tab */
+.history-cards { background: var(--surface); border-radius: 14px; padding: 10px 14px; }
+.history-cards > summary { cursor: pointer; font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; list-style: none; }
+.history-cards > summary::-webkit-details-marker { display: none; }
+.history-cards > summary::after { content: '▾'; float: right; }
+.history-cards[open] > summary::after { content: '▴'; }
+@media (min-width: 900px) {
+  #tabContentHistory { grid-column: 1 / -1; }
+}
