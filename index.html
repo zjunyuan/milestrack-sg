@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.19.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.20.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.19.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.20.0</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -183,6 +183,9 @@
             </select>
           </div>
 
+          <button type="button" class="btn-backup" id="btnOpenStatementImport2" style="width:100%; margin-bottom:10px;">
+            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement (CSV)
+          </button>
           <div id="txList"></div>
         </div>
       </div>
@@ -439,6 +442,25 @@
     </div>
   </div>
 
+  <!-- MODAL: STATEMENT IMPORT -->
+  <div class="modal-overlay" id="stmtOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Import a bank statement</h2>
+        <span class="material-symbols-outlined" id="btnCloseStatement" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.78rem; color:#94a3b8;">Works with a statement downloaded before the month ends. The file is read on your device and is not uploaded; only the lines you choose to import are saved. New lines are added, lines already in your list are left alone, and lines whose amount disagrees are shown for you to decide.</p>
+      <label class="st-col"><span>Card on the statement</span><select id="stCard" class="form-control"></select></label>
+      <label class="st-col"><span>Statement file (CSV)</span><input type="file" id="stFile" accept=".csv,text/csv,.pdf,application/pdf" class="form-control"></label>
+      <div id="stmtPdfNote" class="hm-note" style="display:none;">📄 PDF statements aren't supported yet. If your bank's online banking offers a CSV or Excel download of the same statement, use that one.</div>
+      <div id="stmtMapping"></div>
+      <div id="stmtReview"></div>
+      <label class="hm-note" style="display:flex; gap:6px; align-items:flex-start;"><input type="checkbox" id="stAddVault"> Also add the estimated points to my bank points balances (leave off if you have already updated balances from your banking app)</label>
+      <div class="hm-note">Miles on imported lines are estimates from the card's rules and the merchant name. Edit a line afterwards if the bank credited differently.</div>
+      <button class="btn-submit" id="btnStmtApply" disabled>Choose a file</button>
+    </div>
+  </div>
+
   <!-- MODAL: HEYMAX TOP-UP -->
   <div class="modal-overlay" id="heymaxOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -501,6 +523,9 @@
           <span class="material-symbols-outlined" style="font-size:18px;">upload</span> Restore from JSON Backup
         </button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+        <button class="btn-backup" id="btnOpenStatementImport" style="width:100%; margin-top:10px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement (CSV)
+        </button>
       </div>
 
       <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
@@ -676,6 +701,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.19.0"></script>
+  <script type="module" src="js/app.js?v=1.20.0"></script>
 </body>
 </html>

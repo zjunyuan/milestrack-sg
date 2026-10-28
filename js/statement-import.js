@@ -1,0 +1,229 @@
+// Statement import (CSV): pick a card, load the file in the browser, confirm the columns, review each line, then save.
+// Nothing leaves the device except the transactions the user chooses to import.
+import { state } from "./state.js";
+import { ALL_MASTER_CARDS } from "./config.js";
+import { saveTxToFirestore, updateVaultDoc } from "./firebase.js";
+import { calcEarnedMiles } from "./recommender.js";
+import { getMccEntry } from "./mcc.js";
+import { findRetailerForInput, escapeHtml } from "./retailers.js";
+import { fmtNum } from "./format.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey } from "./statements.js";
+
+const S = { card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
+
+const $ = id => document.getElementById(id);
+const money = n => "S$" + fmtNum(n, 2);
+const dateLabel = ts => new Date(ts).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
+
+function cycleBucket(card, ts) {
+  const d = new Date(ts);
+  if (card.cycleType === "uncapped") return String(d.getFullYear());
+  if (card.cycleType === "statement") {
+    const cut = card.cutoffDay || 15;
+    const m = d.getDate() >= cut ? d.getMonth() : d.getMonth() - 1;
+    return new Date(d.getFullYear(), m, 1).toISOString().slice(0, 7);
+  }
+  return dayKey(ts).slice(0, 7);
+}
+
+// Miles for an imported line are an estimate: bonus rate when the brand's MCC lists this card and the cycle's cap has room, else base.
+function estimateTx(card, line, spentInBucket) {
+  let rate = card.baseMpd, bonus = false;
+  const retailer = findRetailerForInput(line.desc, state.merchantOverrides);
+  const entry = retailer && getMccEntry(retailer.mcc);
+  const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
+  const room = card.monthlyCap >= 999999 || spentInBucket + line.amt <= card.monthlyCap;
+  if (cand && room) { rate = cand.baseRate; bonus = true; }
+  const miles = calcEarnedMiles(card, line.amt, rate);
+  const ratio = state.myVault[card.vaultKey]?.ratio || 1;
+  return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: bonus ? "bonus" : "base" };
+}
+
+function colSelect(id, label, value, allowNone = true) {
+  const width = Math.max(0, ...S.rows.slice(0, 40).map(r => r.length));
+  const hdr = S.headerRow >= 0 ? S.rows[S.headerRow] : [];
+  const opts = [];
+  if (allowNone) opts.push(`<option value="-1" ${value < 0 ? "selected" : ""}>(none)</option>`);
+  for (let c = 0; c < width; c++) opts.push(`<option value="${c}" ${value === c ? "selected" : ""}>${escapeHtml(hdr[c] || "Column " + (c + 1))}</option>`);
+  return `<label class="st-col"><span>${label}</span><select id="${id}" class="form-control">${opts.join("")}</select></label>`;
+}
+
+function renderMapping() {
+  $("stmtMapping").innerHTML = `
+    <div class="st-grid">
+      ${colSelect("stColDate", "Date", S.cols.date, false)}
+      ${colSelect("stColDesc", "Description", S.cols.desc)}
+      ${colSelect("stColAmt", "Amount", S.cols.amount)}
+      ${colSelect("stColDebit", "Debit (if separate)", S.cols.debit)}
+      ${colSelect("stColCredit", "Credit (if separate)", S.cols.credit)}
+      <label class="st-col"><span>Dates are</span><select id="stOrder" class="form-control">
+        <option value="dmy" ${S.order === "dmy" ? "selected" : ""}>Day / Month</option><option value="mdy" ${S.order === "mdy" ? "selected" : ""}>Month / Day</option></select></label>
+    </div>`;
+  for (const id of ["stColDate", "stColDesc", "stColAmt", "stColDebit", "stColCredit", "stOrder"]) $(id).addEventListener("change", () => { readMapping(); recompute(); });
+}
+
+function readMapping() {
+  const v = id => parseInt($(id).value, 10);
+  S.cols = { date: v("stColDate"), desc: v("stColDesc"), amount: v("stColAmt"), debit: v("stColDebit"), credit: v("stColCredit") };
+  S.order = $("stOrder").value;
+}
+
+function recompute() {
+  const lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order });
+  const existing = state.transactions.filter(t => t.cardId === S.card.id);
+  const m = matchLines(lines, existing, { cardId: S.card.id });
+  S.results = m.results; S.missing = m.missing; S.choice = {};
+  m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? "add" : r.status === "differs" ? "statement" : "skip"; });
+  renderReview();
+}
+
+function rowHtml(r, i) {
+  const l = r.line;
+  const head = `<div class="st-line-main"><b>${escapeHtml(l.desc)}</b><span class="st-amt">${money(Math.abs(l.amt))}${l.amt < 0 ? " CR" : ""}</span></div>
+    <div class="st-sub">${dateLabel(l.ts)}${r.repeatTotal > 1 ? ` · appears ${r.repeatTotal}× on the statement (each kept as its own purchase)` : ""}</div>`;
+  if (r.status === "differs") {
+    return `<div class="st-line st-differs">${head}
+      <div class="st-sub st-warn">⚠️ ${escapeHtml(r.reason)} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)})</div>
+      <select class="form-control st-choice" data-i="${i}">
+        <option value="statement">Use the statement amount (${money(l.amt)})</option>
+        <option value="keep">Keep my amount (${money(Number(r.existing.amt))})</option>
+        <option value="new">Add as a separate purchase</option>
+      </select></div>`;
+  }
+  if (r.status === "new") {
+    return `<div class="st-line st-new">${head}
+      <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" checked> Add to my list</label></div>`;
+  }
+  return `<div class="st-line">${head}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
+}
+
+function renderReview() {
+  const box = $("stmtReview");
+  const n = summarize(S.results);
+  if (!S.results.length) {
+    box.innerHTML = `<p class="hm-note">No transactions found with these columns. Check the Date and Amount columns above, or the date order.</p>`;
+    $("btnStmtApply").disabled = true; return;
+  }
+  const group = (status, title, open = false) => {
+    const items = S.results.map((r, i) => r.status === status ? rowHtml(r, i) : "").join("");
+    return items ? `<details class="st-group" ${open ? "open" : ""}><summary>${title}</summary>${items}</details>` : "";
+  };
+  box.innerHTML = `
+    <div class="st-summary">
+      <span><b>${n.new}</b> new</span><span><b>${n.differs}</b> differ</span><span><b>${n.matched}</b> already logged</span><span><b>${n.credit}</b> credits skipped</span>
+    </div>
+    ${group("differs", "⚠️ Amount differs: you decide", true)}
+    ${group("new", "➕ New: not in your list yet", true)}
+    ${group("matched", "✅ Already in your list")}
+    ${group("credit", "↩️ Refunds and payments (skipped)")}
+    ${S.missing.length ? `<details class="st-group"><summary>🕓 Logged by you, not on this statement (${S.missing.length})</summary>
+      ${S.missing.map(t => `<div class="st-line"><div class="st-line-main"><b>${escapeHtml(t.desc)}</b><span class="st-amt">${money(Number(t.amt))}</span></div><div class="st-sub">${dateLabel(t.timestamp)}. Possibly not posted yet, or logged on the wrong card. Left untouched.</div></div>`).join("")}</details>` : ""}`;
+  box.querySelectorAll(".st-add").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.checked ? "add" : "skip"; updateApplyLabel(); }));
+  box.querySelectorAll(".st-choice").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.value; updateApplyLabel(); }));
+  updateApplyLabel();
+}
+
+function plan() {
+  let add = 0, update = 0;
+  S.results.forEach((r, i) => {
+    const c = S.choice[i];
+    if (r.status === "new" && c === "add") add++;
+    if (r.status === "differs") { if (c === "statement") update++; else if (c === "new") add++; }
+  });
+  return { add, update };
+}
+function updateApplyLabel() {
+  const p = plan();
+  const btn = $("btnStmtApply");
+  btn.disabled = p.add + p.update === 0;
+  btn.textContent = p.add + p.update === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}`;
+}
+
+async function applyImport() {
+  const card = S.card, btn = $("btnStmtApply");
+  const addVault = $("stAddVault").checked;
+  const p = plan();
+  if (!confirm(`Add ${p.add} and update ${p.update} transaction${p.add + p.update === 1 ? "" : "s"} on ${card.name}?`)) return;
+  btn.disabled = true;
+  const bucketSpend = {};
+  for (const t of state.transactions.filter(t => t.cardId === card.id)) { const b = cycleBucket(card, t.timestamp); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
+  let done = 0, rawDelta = 0, seq = 0;
+  const base = Date.now();
+  try {
+    const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
+    for (const i of order) {
+      const r = S.results[i], c = S.choice[i], l = r.line;
+      const makeNew = (r.status === "new" && c === "add") || (r.status === "differs" && c === "new");
+      if (makeNew) {
+        const bucket = cycleBucket(card, l.ts);
+        const est = estimateTx(card, l, bucketSpend[bucket] || 0);
+        bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
+        const id = String(base + (seq++));
+        await saveTxToFirestore(id, {
+          id, owner: state.myVaultKey, timestamp: l.ts, desc: l.desc, amt: l.amt, cardId: card.id,
+          bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
+          date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
+          source: "statement", estimatedMiles: true, stmtKey: r.key
+        });
+        rawDelta += est.earnedRawPoints; done++;
+      } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
+        const old = { ...r.existing }; delete old.firestoreId;
+        if (c === "keep") { await saveTxToFirestore(old.id, { ...old, stmtKey: r.key, stmtNote: `Statement said S$${l.amt.toFixed(2)}` }); continue; }
+        const rate = old.bonusCategory === "bonus" ? card.bonusMpd : card.baseMpd;
+        const miles = calcEarnedMiles(card, l.amt, rate);
+        const ratio = state.myVault[card.vaultKey]?.ratio || 1;
+        const raw = Math.round(miles / ratio);
+        rawDelta += raw - (Number(old.earnedRawPoints) || 0);
+        await saveTxToFirestore(old.id, { ...old, amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
+        done++;
+      }
+    }
+    if (addVault && rawDelta && state.myVault[card.vaultKey]) {
+      state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) + rawDelta);
+      await updateVaultDoc(state.myVaultKey, state.myVault);
+    }
+    closeStatementSheet();
+    alert(`Imported ${done} transaction${done === 1 ? "" : "s"}.${addVault ? "" : " Your bank points balances were not changed."}`);
+  } catch (err) {
+    console.error("Statement import failed", err);
+    alert(`Import stopped after ${done} of ${p.add + p.update}: ${err?.message || err}. Re-run the same file: lines already imported are recognised and skipped.`);
+    btn.disabled = false;
+  }
+}
+
+async function onFile(file) {
+  if (!file) return;
+  S.fileName = file.name;
+  $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+    $("stmtPdfNote").style.display = "block";
+    $("btnStmtApply").disabled = true; return;
+  }
+  const text = await file.text();
+  S.rows = parseCsv(text);
+  const found = detectLayout(S.rows) || guessLayoutByContent(S.rows);
+  S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy";
+  renderMapping(); recompute();
+}
+
+export function openStatementSheet() {
+  const sel = $("stCard");
+  const cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
+  sel.innerHTML = cards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+  S.card = cards[0] || null;
+  $("stFile").value = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
+  $("btnStmtApply").disabled = true; $("btnStmtApply").textContent = "Choose a file";
+  $("stmtOverlay")?.classList.add("open");
+}
+export function closeStatementSheet() { $("stmtOverlay")?.classList.remove("open"); }
+
+export function initStatementImport() {
+  for (const id of ["btnOpenStatementImport", "btnOpenStatementImport2"]) {
+    $(id)?.addEventListener("click", () => { $("settingsOverlay")?.classList.remove("open"); openStatementSheet(); });
+  }
+  $("btnCloseStatement")?.addEventListener("click", closeStatementSheet);
+  $("stmtOverlay")?.addEventListener("click", e => { if (e.target.id === "stmtOverlay") closeStatementSheet(); });
+  $("stCard")?.addEventListener("change", e => { S.card = ALL_MASTER_CARDS.find(c => c.id === e.target.value); if (S.rows.length) recompute(); });
+  $("stFile")?.addEventListener("change", e => onFile(e.target.files[0]));
+  $("btnStmtApply")?.addEventListener("click", applyImport);
+}
