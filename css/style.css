@@ -699,3 +699,5 @@ input:checked + .slider:before { transform: translateX(22px); }
 .hm-chip em { font-style:normal; font-size:0.62rem; color:#94a3b8; margin-left:6px; }
 .hm-chip.hm-multi { border:1px solid rgba(52,211,153,0.5); }
 .hm-chip.hm-multi em { color:var(--accent); }
+.hm-chip { cursor:pointer; }
+.hm-chip.hm-out { opacity:0.5; text-decoration:line-through; }

@@ -85,13 +85,22 @@ function currentRows() {
   return headroomRows({ cards: state.cards, candidates: entry && entry.candidatesLocal, enabledIds: state.enabledCardIds });
 }
 
+// Stock changes on HeyMax and the app cannot see it, so the user marks brands that are out of stock right now.
+// Stored per device (localStorage); the list works the same if storage is unavailable.
+const OUT_KEY = "milestrack_hm_out_of_stock";
+function loadOut() { try { return new Set(JSON.parse(localStorage.getItem(OUT_KEY) || "[]")); } catch { return new Set(); } }
+function saveOut(set) { try { localStorage.setItem(OUT_KEY, JSON.stringify([...set])); } catch { /* storage unavailable: the marks last until the sheet closes */ } }
+let outOfStock = loadOut();
+
 function voucherChips(filter = "", multiOnly = false) {
   const q = filter.trim().toLowerCase();
-  const list = HEYMAX_VOUCHERS.filter(v => (!q || v[0].toLowerCase().includes(q)) && (!multiOnly || MULTI_USE.has(v[0])));
+  const list = HEYMAX_VOUCHERS.filter(v => (!q || v[0].toLowerCase().includes(q)) && (!multiOnly || MULTI_USE.has(v[0])))
+    .sort((a, b) => (outOfStock.has(a[0]) ? 1 : 0) - (outOfStock.has(b[0]) ? 1 : 0));   // out of stock sinks to the bottom (stable sort keeps the rate order)
   if (!list.length) return `<span style="font-size:0.75rem; color:#94a3b8;">No match. The list changes; check HeyMax.</span>`;
   return list.map(([name, rate, tag]) => {
     const u = useType(name);
-    return `<span class="hm-chip ${u === "multi" ? "hm-multi" : ""}">${escapeHtml(name)} <small>${tag === "upto" ? "up to " : ""}${rate} Max Miles/$${tag === "store" ? " · in-store" : ""}</small>${u ? `<em>${u === "multi" ? "multi-use" : "single-use"}</em>` : ""}</span>`;
+    const out = outOfStock.has(name);
+    return `<span class="hm-chip ${u === "multi" ? "hm-multi" : ""} ${out ? "hm-out" : ""}" data-name="${escapeHtml(name)}" role="button" tabindex="0" title="Tap to mark ${out ? "back in stock" : "out of stock"}">${out ? "🚫 " : ""}${escapeHtml(name)} <small>${tag === "upto" ? "up to " : ""}${rate} Max Miles/$${tag === "store" ? " · in-store" : ""}${out ? " · out of stock" : ""}</small>${u ? `<em>${u === "multi" ? "multi-use" : "single-use"}</em>` : ""}</span>`;
   }).join("");
 }
 
@@ -139,8 +148,9 @@ export function openHeymaxSheet() {
     <div class="hm-note"><b>Multi-use</b> vouchers can be spent down over several visits, so they suit an exact top-up amount: ${[...MULTI_USE].join(", ")}. <b>Single-use</b> ones must be redeemed in one go, so only buy those for something you'll spend in full.</div>
     <input type="text" id="heymaxSearch" class="form-control" placeholder="Search brands, e.g. FairPrice, Grab" autocomplete="off">
     <label class="hm-note" style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="heymaxMulti"> Show multi-use only</label>
+    <div class="hm-note">📦 Stock changes, and a voucher can vanish from the HeyMax site or app. <b>Tap a brand here to mark it out of stock</b> (saved on this device). <span id="btnHeymaxResetStock" style="color:var(--primary); cursor:pointer;">Reset</span></div>
     <div class="hm-chips" id="heymaxChips">${voucherChips()}</div>
-    <div class="hm-note">⚠️ Only worth it if you'll really spend at these brands. Check each voucher's expiry, fees and any refund rules. HeyMax adds its own Max Miles on top of your card miles. MCC coding and the brand list can change. Last verified: ${HEYMAX_VERIFIED}.</div>`
+    <div class="hm-note">⚠️ Only worth it if you'll really spend at these brands. Check each voucher's expiry, fees and any refund rules. HeyMax adds its own Max Miles on top of your card miles. MCC coding, stock and the brand list can change. Last verified: ${HEYMAX_VERIFIED}.</div>`
     : `<p style="font-size:0.85rem; color:#94a3b8;">No bonus room left on any card that takes MCC ${HEYMAX_MCC} this cycle. Nothing to top up.</p>`;
 
   const refreshChips = () => {
@@ -148,6 +158,15 @@ export function openHeymaxSheet() {
   };
   document.getElementById("heymaxSearch")?.addEventListener("input", refreshChips);
   document.getElementById("heymaxMulti")?.addEventListener("change", refreshChips);
+  document.getElementById("heymaxChips")?.addEventListener("click", e => {
+    const chip = e.target.closest(".hm-chip[data-name]");
+    if (!chip) return;
+    const name = chip.dataset.name;
+    if (outOfStock.has(name)) outOfStock.delete(name); else outOfStock.add(name);
+    saveOut(outOfStock);
+    refreshChips();
+  });
+  document.getElementById("btnHeymaxResetStock")?.addEventListener("click", () => { outOfStock = new Set(); saveOut(outOfStock); refreshChips(); });
   document.getElementById("btnHeymaxPlan")?.addEventListener("click", () => {
     document.getElementById("btnChannelOnline")?.click();
     const amt = document.getElementById("recAmount");
