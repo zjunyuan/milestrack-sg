@@ -245,3 +245,7 @@ DBS card CSVs (Transaction Date, Description, Debit Amount, Credit Amount, Trans
 - **Files with no header row**, or where spend is negative, are handled: columns are guessed from the content and signs are flipped automatically (there is a checkbox to override).
 - Fees (annual, late, currency conversion) are listed but skipped by default, since they earn no miles and don't count toward minimum spend. A "Only lines from" date lets you skip what you already logged.
 - OCBC (`TransactionHistory…csv`) and Citi (`ACCT_…csv`) exports carry no card name, so the bank is guessed from the default file name (OCBC Rewards / Citi Rewards) and the last four digits are remembered after you confirm. When judging whether spend is negative, payments and transfers are ignored.
+
+## ↩️ Undo an import (v1.20.1)
+
+Every import is tagged. Open "Import a bank statement" and, if there is a previous import, a note at the top shows what it did with an **Undo last import** button: the lines it added are deleted, and lines it changed (amount replaced, or "keep mine" notes) are put back as they were. Points balances only move for lines that were counted into them, i.e. if you ticked "add to my bank points balances". Tap it again to step back through earlier imports. You can still delete a single line with the bin icon in Recent Transactions; deleting an imported line no longer takes points off your balance if the import never added them. No Firestore rules changed. Imports made on v1.20.0 carry no tag and can only be deleted line by line.

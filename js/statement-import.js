@@ -2,7 +2,7 @@
 // Nothing leaves the device except the transactions the user chooses to import.
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS } from "./config.js";
-import { saveTxToFirestore, updateVaultDoc } from "./firebase.js";
+import { saveTxToFirestore, updateVaultDoc, deleteTxFromFirestore } from "./firebase.js";
 import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
@@ -177,6 +177,57 @@ function updateApplyLabel() {
   btn.textContent = p.add + p.update === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}`;
 }
 
+// Fields an import can change on an existing transaction; undo puts them back.
+const UNDO_FIELDS = ["amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote"];
+
+// The most recent import still in the list: lines it added, and lines it changed.
+export function lastImport() {
+  const tagged = state.transactions.filter(t => t.importId);
+  if (!tagged.length) return null;
+  const latest = tagged.reduce((a, t) => ((t.importedAt || 0) > (a.importedAt || 0) ? t : a), tagged[0]);
+  const rows = tagged.filter(t => t.importId === latest.importId);
+  return { id: latest.importId, at: latest.importedAt || 0, added: rows.filter(t => !t.importUpdated), updated: rows.filter(t => t.importUpdated) };
+}
+
+function refreshUndo() {
+  const box = $("stmtUndo"); if (!box) return;
+  const li = lastImport();
+  if (!li) { box.style.display = "none"; box.innerHTML = ""; return; }
+  const when = new Date(li.at).toLocaleString("en-SG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  box.style.display = "";
+  box.innerHTML = `<span>↩️ Last import (${escapeHtml(when)}): ${li.added.length} added${li.updated.length ? `, ${li.updated.length} changed` : ""}.</span> <button type="button" class="btn-backup" id="btnStmtUndo" style="margin-top:6px;">Undo last import</button>`;
+  $("btnStmtUndo").addEventListener("click", undoLastImport);
+}
+
+// Deletes the lines the last import added and puts back what it changed. Points balances move only for lines that were counted into them.
+async function undoLastImport() {
+  const li = lastImport(); if (!li) return;
+  if (!confirm(`Undo the last import? ${li.added.length} added line${li.added.length === 1 ? "" : "s"} will be deleted${li.updated.length ? ` and ${li.updated.length} changed line${li.updated.length === 1 ? "" : "s"} put back as they were` : ""}.`)) return;
+  const btn = $("btnStmtUndo"); if (btn) btn.disabled = true;
+  const vaultMinus = {};
+  const take = (tx, raw) => { const c = ALL_MASTER_CARDS.find(x => x.id === tx.cardId); if (c && raw) vaultMinus[c.vaultKey] = (vaultMinus[c.vaultKey] || 0) + raw; };
+  try {
+    for (const t of li.updated) {
+      const rec = { ...t }; delete rec.firestoreId;
+      for (const f of [...UNDO_FIELDS, "importId", "importedAt", "importUpdated", "importPrev", "vaultDelta"]) delete rec[f];
+      await saveTxToFirestore(t.id, { ...rec, ...(t.importPrev || {}) });
+      take(t, Number(t.vaultDelta) || 0);
+    }
+    for (const t of li.added) {
+      await deleteTxFromFirestore(t.firestoreId || t.id);
+      if (t.vaultCounted) take(t, Number(t.earnedRawPoints) || 0);
+    }
+    let touched = false;
+    for (const [k, raw] of Object.entries(vaultMinus)) if (state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) - raw); touched = true; }
+    if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
+    alert("Import undone.");
+  } catch (err) {
+    console.error("Undo import failed", err);
+    alert(`Undo stopped part-way: ${err?.message || err}. Tap Undo last import again to finish.`);
+  }
+  refreshUndo();
+}
+
 async function applyImport() {
   const card = S.card, btn = $("btnStmtApply");
   const addVault = $("stAddVault").checked;
@@ -187,6 +238,8 @@ async function applyImport() {
   for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, t.timestamp); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
   let done = 0, rawDelta = 0, seq = 0;
   const base = Date.now();
+  const importId = "imp" + base.toString(36);
+  const stamp = { importId, importedAt: base };
   try {
     const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
     for (const i of order) {
@@ -202,19 +255,21 @@ async function applyImport() {
           id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: tCard.id,
           bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
           date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
-          source: "statement", estimatedMiles: true, stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+          source: "statement", estimatedMiles: true, ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
         });
         rawDelta += est.earnedRawPoints; done++;
       } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
         const old = { ...r.existing }; delete old.firestoreId;
-        if (c === "keep") { await saveTxToFirestore(old.id, { ...old, stmtKey: r.key, stmtNote: `Statement said S$${l.amt.toFixed(2)}` }); continue; }
+        const importPrev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) importPrev[f] = old[f];
+        if (c === "keep") { await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, stmtKey: r.key, stmtNote: `Statement said S$${l.amt.toFixed(2)}` }); continue; }
         const oc = ALL_MASTER_CARDS.find(c => c.id === old.cardId) || card;
         const rate = old.bonusCategory === "bonus" ? oc.bonusMpd : oc.baseMpd;
         const miles = calcEarnedMiles(oc, l.amt, rate);
         const ratio = state.myVault[oc.vaultKey]?.ratio || 1;
         const raw = Math.round(miles / ratio);
-        rawDelta += raw - (Number(old.earnedRawPoints) || 0);
-        await saveTxToFirestore(old.id, { ...old, amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
+        const delta = raw - (Number(old.earnedRawPoints) || 0);
+        rawDelta += delta;
+        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, ...(addVault ? { vaultDelta: delta } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
         done++;
       }
     }
@@ -224,7 +279,7 @@ async function applyImport() {
     }
     if (S.hint && S.hint.last4) { const m = loadRemembered(); m[S.hint.last4] = card.id; saveRemembered(m); }
     closeStatementSheet();
-    alert(`Imported ${done} transaction${done === 1 ? "" : "s"}.${addVault ? "" : " Your bank points balances were not changed."}`);
+    alert(`Imported ${done} transaction${done === 1 ? "" : "s"}.${addVault ? "" : " Your bank points balances were not changed."} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
   } catch (err) {
     console.error("Statement import failed", err);
     alert(`Import stopped after ${done} of ${p.add + p.update}: ${err?.message || err}. Re-run the same file: lines already imported are recognised and skipped.`);
@@ -286,6 +341,7 @@ export function openStatementSheet() {
   S.card = cards[0] || null;
   $("stFile").value = ""; $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
   $("btnStmtApply").disabled = true; $("btnStmtApply").textContent = "Choose a file";
+  refreshUndo();
   $("stmtOverlay")?.classList.add("open");
 }
 export function closeStatementSheet() { $("stmtOverlay")?.classList.remove("open"); }
