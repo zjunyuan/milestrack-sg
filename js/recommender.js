@@ -369,10 +369,7 @@ function renderRecommendationCore() {
         Evaluating best single card for full payment of <b>$${fmtAuto(amt)}</b> without splitting.
       </div>
 
-      <div class="rec-winner-title">
-        <span class="rec-winner-name">${cardThumbHtml(winner.card, 'card-thumb-rec')}<span>⭐ <b>${winner.card.name}</b></span></span>
-        <span style="color:var(--accent); font-weight:700;">+${fmtNum(Math.round(winner.totalMiles))} mi (${winner.effectiveRate} mpd)</span>
-      </div>
+      ${cardTileHtml({ card: winner.card, amount: amt, miles: winner.totalMiles, rate: winner.effectiveRate, label: 'Best single card', btn: 'id="btnApplySingleSwipeRec"' })}
       <div class="rec-winner-meta">
         ${winner.breakdownDesc}
         ${winner.isUncapped ? ' • <span style="color:var(--primary);">Uncapped general spend card</span>' : ' • <span style="color:var(--warning);">Capped card with base overflow</span>'}
@@ -385,9 +382,6 @@ function renderRecommendationCore() {
         </div>
       ` : ''}
 
-      <button class="btn-apply-rec" id="btnApplySingleSwipeRec">
-        Log Full $${fmtNum(amt, 2)} on ${winner.card.name}
-      </button>
     `;
 
     document.getElementById('btnApplySingleSwipeRec')?.addEventListener('click', () => {
@@ -509,34 +503,19 @@ function renderRecommendationCore() {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
       const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
       let stepsHtml = '';
-      let buttonsHtml = '';
-      const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
 
       allocationSteps.forEach((step, idx) => {
-        const icon = numberEmojis[idx] || `${idx + 1}️⃣`;
-        stepsHtml += `
-          <div class="cascade-step">
-            <div class="cascade-card">
-              ${cardThumbHtml(step.card, 'card-thumb-sm')}
-              <div>
-                ${icon} <b>${step.card.name}</b>: Charge <b>$${fmtNum(step.amount, 2)}</b>
-                <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
-                ${postNoteHtml(step.card, step.amount)}
-                ${step.gate && step.gate.locked ? `<div class="unlock-note">⚠️ Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> on this card by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d left) to unlock ${step.gate.unlockMpd} mpd. Until then it earns ${step.card.baseMpd} mpd.</div>` : (step.gate ? `<div class="unlock-note unlock-ok">✅ S$${fmtNum(step.gate.min)} minimum met with this charge</div>` : '')}
-              </div>
-            </div>
-            <span style="text-align:right; font-weight:700;">
-              <span style="color:var(--accent);">+${fmtNum(Math.round(step.miles))} mi</span>
-              ${step.pendingMiles ? `<div class="unlock-pending">+${fmtNum(Math.round(step.pendingMiles))} mi once unlocked</div>` : ''}
-            </span>
-          </div>
-        `;
-
-        buttonsHtml += `
-          <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})">
-            Log Part ${idx + 1} ($${fmtNum(step.amount, 2)})
-          </button>
-        `;
+        const nowRate = step.gate && step.gate.locked ? step.card.baseMpd : step.rate;
+        stepsHtml += cardTileHtml({
+          card: step.card,
+          amount: step.amount,
+          miles: step.miles,
+          rate: nowRate,
+          rateNote: step.gate && step.gate.locked ? ' now' : (step.isBase ? ' general' : ''),
+          rank: idx + 1,
+          btn: `data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
+          chips: stepChipsHtml(step)
+        });
       });
 
       resultArea.innerHTML = `
@@ -544,13 +523,10 @@ function renderRecommendationCore() {
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            Use ${allocationSteps.length} cards · ${fmtNum(Math.round(totalCombinedMiles))} miles
+            Use ${allocationSteps.length} cards · S$${fmtNum(amt, 2)} · ${fmtNum(Math.round(totalCombinedMiles))} miles
           </div>
           ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
           ${stepsHtml}
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          ${buttonsHtml}
         </div>
         ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
         ${moreHtml(mccData, effectiveChannel, '')}
@@ -588,17 +564,8 @@ function renderRecommendationCore() {
   const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • resets in ${singleCard.daysLeft}d`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
-    <div class="rec-hero">
-      ${cardThumbHtml(singleCard.card, 'card-thumb-rec')}
-      <div class="rec-hero-main">
-        <div class="rec-hero-label">Use this card</div>
-        <div class="rec-hero-name">${singleCard.card.name}</div>
-        <div class="rec-hero-charge">Charge <b>S$${fmtNum(amt, 2)}</b></div>
-      </div>
-      <div class="rec-hero-miles">+${fmtNum(Math.round(calculatedMiles))} mi<small>${effectiveMpd} mpd</small></div>
-    </div>
+    ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
     <div class="rec-winner-meta">${spaceLine}</div>
-    <button class="btn-apply-rec" id="btnApplySingleRec">Log $${fmtNum(amt, 2)} with This Card</button>
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${shellHtml}
@@ -608,6 +575,47 @@ function renderRecommendationCore() {
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
     applyRecommendation(singleCard.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${descName}`);
   });
+}
+
+// ---- card tiles (v1.29.0): the card image and the amount to charge lead, miles are secondary ----------------------------------
+// "UOB Visa Signature (Contactless / Petrol)" -> name "UOB Visa Signature", tag "Contactless / Petrol".
+function tileNameParts(name) {
+  const m = /^(.*?)\s*\((.*)\)\s*$/.exec(String(name || ''));
+  return m ? { main: m[1], tag: m[2] } : { main: String(name || ''), tag: '' };
+}
+
+// One tile per card. `btn` is the attribute string for its Log button, `chips` is extra HTML shown under the tile.
+function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rateNote }) {
+  const { main, tag } = tileNameParts(card.name);
+  const rateText = rate === undefined || rate === null || rate === '' ? '' : ` · ${rate} mpd${rateNote || ''}`;
+  return `
+    <div class="card-tile${rank ? '' : ' card-tile-solo'}">
+      <div class="ct-row">
+        <div class="ct-img">${cardThumbHtml(card, 'card-thumb-tile')}${rank ? `<span class="ct-rank">${rank}</span>` : ''}</div>
+        <div class="ct-info">
+          ${label ? `<div class="ct-label">${label}</div>` : ''}
+          <div class="ct-name">${escapeHtml(main)}</div>
+          ${tag ? `<div class="ct-tag">${escapeHtml(tag)}</div>` : ''}
+          <div class="ct-amt-row">
+            <span class="ct-amt">S$${fmtNum(amount, 2)}</span>
+            <button type="button" class="btn-apply-rec ct-log" ${btn}>Log</button>
+          </div>
+          <div class="ct-miles">+${fmtNum(Math.round(miles))} mi${rateText}</div>
+        </div>
+      </div>
+      ${chips || ''}
+    </div>`;
+}
+
+// Chips under a split tile: month-end timing, and whether the minimum spend is unlocked.
+function stepChipsHtml(step) {
+  let out = postNoteHtml(step.card, step.amount);
+  if (step.gate && step.gate.locked) {
+    out += `<div class="ct-chip ct-chip-lock">🔒 Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d) to unlock ${step.gate.unlockMpd} mpd${step.pendingMiles ? ` · +${fmtNum(Math.round(step.pendingMiles))} mi` : ''}</div>`;
+  } else if (step.gate) {
+    out += `<div class="ct-chip ct-chip-ok">✅ S$${fmtNum(step.gate.min)} minimum met with this charge</div>`;
+  }
+  return out;
 }
 
 // One line saying what the result is for ("🏪 Sephora · Cosmetic Stores"). The full rules sit under "Details" at the bottom of the result.
