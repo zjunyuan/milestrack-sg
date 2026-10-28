@@ -171,3 +171,9 @@ All medium confidence, set by the household (not bank-confirmed).
 ## 🛍 UOB Preferred Visa Online Rule (v1.14.3)
 
 UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v3.0, 10 Mar 2026) of eligible online MCCs, so it appears for every qualifying category instead of only the hand-written ones. That adds shoe stores (5661), men's and women's clothing (5691) and many other retail, dining and entertainment codes. It does **not** cover sports apparel (5655), sporting goods (5941) or air tickets. Online retail purchases only, not recurring payments, S$600/month sub-cap.
+
+
+## ⌨️ MCC Typeahead Fix (v1.14.4)
+
+- Typing the first digits of an MCC now lists up to 8 matching codes (it was 3), so the right one can be picked.
+- Typing a full 4-digit code we don't have (for example 5094) no longer shows nothing: the list shows the closest known codes and the result says the code isn't in our list yet.

@@ -148,6 +148,17 @@ export function searchMccs(query, limit = 3) {
     .slice(0, limit);
 }
 
+// Closest known codes to a typed 4-digit code that we have no entry for, nearest first.
+export function nearestMccs(code, limit = 6) {
+  const n = Number(code);
+  if (!/^\d{4}$/.test(String(code))) return [];
+  const all = new Set([...Object.keys(MCC_DATABASE), ...Object.keys(MCC_NAMES)]);
+  return [...all]
+    .map(c => ({ code: c, name: mccName(c), d: Math.abs(Number(c) - n) }))
+    .sort((a, b) => a.d - b.d || a.code.localeCompare(b.code))
+    .slice(0, limit);
+}
+
 // A category only auto-resolves from a typed name when exactly one category matches it.
 export function findMccByName(query) {
   const q = normalizeText(query);
