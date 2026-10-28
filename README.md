@@ -279,3 +279,7 @@ When the merchant you type in the recommender is on the Kris+ earning list, a cy
 ## 🛡️ Balance safety (v1.21.1)
 
 Found after the main vault read 0 in Firestore: when the app's first read of your vault said "no document", it created a blank vault (all zeros). If that read was cache-only or offline (a stale or slow connection), the blank write could later reach the server and wipe real balances. Now a vault is only created when the server itself confirms there is none, and the app refuses to write the whole vault until it has been loaded from the cloud (you get a "balances have not finished loading" message instead). A new guard (`js/vault-guard.js`) also remembers, on each device, the last balances it saw that were not all zero; if the cloud ever shows all zeros again, a banner offers to restore them with one tap (nothing is written unless you tap Restore). No Firestore rules changed.
+
+## 🔎 Browse all Kris+ merchants (v1.22.0)
+
+In the recommender, **Browse all Kris+ merchants** (under the Kris+ switch) opens the full list of 631 merchants with a search box, category chips (Dining, Retail, Activities, Services, Wellness) and a sort toggle (highest rate first, or A to Z). Tapping a merchant fills the recommender with it, so you see the best card and the Kris+ earn note. The list, its source (Mainly Miles, Sep 2026 edition) and its "as of" date are shown in the sheet; rates change often, so check the Kris+ app. No Firestore rules changed.
