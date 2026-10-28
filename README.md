@@ -143,3 +143,14 @@ Cards whose bonus needs a minimum spend show progress to it instead of an "Uncap
 - A recommendation that names a card whose tier is not unlocked yet gets a warning line.
 - Rules live in each card's `tierRule` in `js/config.js`; the logic is in `js/tiers.js`.
 - Limit: spend is totalled from what you log on the card, so Maybank's foreign-currency and air-ticket conditions are not separated out.
+
+
+## 👜 Luxury Brands (v1.14.1)
+
+Added to the retailer lookup, all at medium confidence (MCCs are community-reported on CheckMCC, not bank-confirmed):
+
+- **5631:** Celine, Louis Vuitton.
+- **5691:** Chanel (fashion & bags), Dior (fashion & bags), Hermès, Gucci, Prada.
+- **5944:** Rolex, and Chanel Beauty (beauty counter).
+- **5977:** Dior Beauty (beauty counter).
+- Typing "chanel" or "dior" resolves to the fashion boutique; use "Chanel Beauty" / "Dior Beauty" for makeup and fragrance counters. Fix any wrong code with **✎ Wrong category?**; the real MCC on your card statement is the best source.
