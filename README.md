@@ -299,3 +299,20 @@ Picking a specific merchant such as Sheng Siong used to rank the DBS yuu card fi
 ## 🟡 yuu partners always offered yuu (v1.22.4)
 
 7-Eleven (which codes as MCC 5499), Singtel (4814), CHAGEE (5814) and other yuu partner brands did not list DBS yuu in their category rules, so yuu was never suggested for them. Picking a yuu partner brand now adds DBS yuu at 10 mpd (Singapore spend) with a note about the S$800 + 4 merchants condition. Together with v1.22.3, yuu appears for partner brands and not for other merchants. No Firestore rules changed.
+
+## 🍵 CHAGEE counts for yuu in-app only (v1.22.5)
+
+CHAGEE only counts as a DBS yuu merchant when you pay in its app. In the recommender, CHAGEE now gets DBS yuu only on **Online / In-App**; on In-Person yuu is left out with a note saying so. The yuu card hint and the CHAGEE retailer note say the same. No Firestore rules changed.
+
+## 🗓️ Transaction date vs posting date (v1.23.0)
+
+Banks count your spend toward a cap or minimum by either the **transaction date** (the day you paid) or the **posting date** (the day the bank posts it, usually 1 to 3 days later). Near the end of a cycle that decides which cycle a purchase lands in. Source: The MileLion, "Which cards track spending by transaction date vs posting date?", 30 Jul 2026: https://milelion.com/2026/07/30/which-cards-track-spending-by-transaction-date-vs-posting-date/ (a third-party summary, not bank T&Cs; rules live in `js/posting.js`).
+
+- **By posting date:** Citi Rewards, HSBC Revolution, OCBC Rewards, and the UOB cards (Preferred Visa, Visa Signature, Lady's). **By transaction date:** DBS (yuu, WWMC), though DBS may use the merchant's timezone, so avoid the last day and the 1st. **Maybank** (World Mastercard, Horizon): counts to the month you spent in if it posts by the 7th (Horizon: 6th) of the next month. Cards with no cap or minimum spend are not affected.
+- **Card tiles** show a "Posting date" / "Transaction date" label (tap it for the full table).
+- **Banner:** in the last 3 days of a cycle (and the first 3 days of the next), a banner lists the posting-date cards whose cycle is ending and which days are at risk. Tap it for dates and the full table. Cycles follow each card's own end (calendar month or statement cutoff).
+- **Recommender:** on the last days of a cycle, a result that uses a posting-date card says when a charge made today would probably post and whether it would count to the next cycle.
+- **Logging:** on a posting-date card the log form shows a warning for that date and an optional **Posting date** field. A spend with a posting date counts to the cycle of that date in the card's cap and minimum-spend tracking, archives and reconcile view.
+- **Statements:** when the file has a posting date column (UOB .xls and some CSVs), posting-date cards store it and use it for the cycle. Lines posted in a later cycle than the purchase are flagged; for lines already in your list you can tick "Record the posting date on my entry" (undo restores it). Files with no posting date flag purchases made in the last 2 days of a cycle as possibly counting to the next one.
+
+Posting usually takes 1 to 3 days, longer over weekends and public holidays (the app skips weekends but does not know public holidays). No Firestore rules changed: the optional `postTs` field on a transaction needs no rule.

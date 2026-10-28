@@ -729,3 +729,17 @@ input:checked + .slider:before { transform: translateX(22px); }
 .kp-count { font-size: 0.72rem; color: #94a3b8; margin: 4px 0 8px; }
 .kp-row { width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; align-items: center; }
 .kp-rate { font-weight: 700; color: var(--kris-cyan); white-space: nowrap; font-size: 0.85rem; }
+
+/* Transaction date vs posting date (v1.23.0) */
+.post-chip { display:inline-block; margin-left:6px; font:inherit; font-size:0.62rem; font-weight:700; padding:2px 7px; border-radius:999px; border:1px solid rgba(148,163,184,0.35); background:rgba(148,163,184,0.12); color:#cbd5e1; cursor:pointer; vertical-align:middle; }
+.post-chip.post-posting { border-color:rgba(251,191,36,0.45); color:var(--gold, #fbbf24); background:rgba(251,191,36,0.10); }
+.post-chip.post-grace { border-color:rgba(34,211,238,0.4); color:#22d3ee; background:rgba(34,211,238,0.10); }
+.post-chip.post-transaction { border-color:rgba(74,222,128,0.4); color:var(--accent, #4ade80); background:rgba(74,222,128,0.10); }
+.post-note { font-size:0.76rem; line-height:1.45; color:#e2e8f0; background:rgba(251,191,36,0.10); border-left:3px solid rgba(251,191,36,0.7); padding:6px 9px; border-radius:6px; margin-top:6px; }
+.post-banner { border-color:rgba(251,191,36,0.35); }
+.post-h { font-size:0.9rem; margin:14px 0 6px; }
+.post-group { margin-bottom:10px; }
+.post-group-title { font-size:0.82rem; font-weight:700; margin-bottom:2px; }
+.post-cards { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.post-list { font-size:0.78rem; color:#cbd5e1; line-height:1.5; padding-left:18px; margin:0 0 8px; }
+.st-post { color:#fbbf24; }

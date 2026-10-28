@@ -15,6 +15,8 @@ import {
 } from "./config.js";
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { state } from "./state.js";
+import { countsTs, postingRule } from "./posting.js";
+import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
   deleteTxFromFirestore, 
@@ -55,7 +57,7 @@ export function getCycleLabel(card) {
 }
 
 export function getYuuMerchantProgress(card) {
-  const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
+  const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
   const uniqueMerchants = new Set();
   
   activeTxns.forEach(tx => {
@@ -183,7 +185,7 @@ export function renderCards() {
   }
 
   state.cards.forEach(card => {
-    const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
+    const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
     const currentSpend = activeTxns.reduce((sum, tx) => sum + (Number(tx.amt) || 0), 0);
     card.currentSpend = currentSpend;
 
@@ -228,6 +230,7 @@ export function renderCards() {
           <div>
             <div class="card-name">${card.name}</div>
             <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
+            ${postingChipHtml(card)}
           </div>
         </div>
         <span class="card-badge ${card.badgeClass || ''}">${tierInfo ? (tierInfo.met ? tierInfo.current + ' mpd' : tierInfo.current + ' → ' + tierInfo.steps[tierInfo.steps.length - 1].mpd + ' mpd') : card.bonusMpd + ' mpd'}</span>
@@ -241,7 +244,10 @@ export function renderCards() {
         <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${fmtAuto(card.monthlyCap)} (${pct}%)`)}</span>
       </div>
     `;
-    cardEl.addEventListener('click', () => openCardDetailModal(card.id));
+    cardEl.addEventListener('click', (e) => {
+      if (e.target.closest('.post-chip')) { window.dispatchEvent(new Event('open-posting-sheet')); return; }
+      openCardDetailModal(card.id);
+    });
     container.appendChild(cardEl);
 
     select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
@@ -256,7 +262,7 @@ export function openCardDetailModal(cardId) {
   const card = state.cards.find(c => c.id === cardId) || ALL_MASTER_CARDS.find(c => c.id === cardId);
   if (!card) return;
 
-  const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(tx.timestamp, card));
+  const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
   const currentSpend = activeTxns.reduce((sum, tx) => sum + (Number(tx.amt) || 0), 0);
   const isUncapped = card.monthlyCap >= 999999;
   const remaining = isUncapped ? 999999 : Math.max(0, card.monthlyCap - currentSpend);
@@ -282,6 +288,10 @@ export function openCardDetailModal(cardId) {
   }
   document.getElementById('modalCardName').innerText = card.name;
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
+  const cycleEl = document.getElementById('modalCardCycle');
+  let postEl = document.getElementById('modalCardPosting');
+  if (!postEl && cycleEl) { postEl = document.createElement('div'); postEl.id = 'modalCardPosting'; postEl.className = 'post-note'; cycleEl.insertAdjacentElement('afterend', postEl); }
+  if (postEl) { const h = postingDetailHtml(card); postEl.innerHTML = h; postEl.style.display = h ? '' : 'none'; }
   document.getElementById('modalCardSpent').innerText = `$${fmtNum(currentSpend, 2)}`;
   document.getElementById('modalCardSpentSub').innerText = isUncapped ? 'Uncapped capacity' : `${pct.toFixed(0)}% of $${fmtAuto(card.monthlyCap)}`;
   document.getElementById('modalCardRemaining').innerText = isUncapped ? 'Unlimited' : `$${fmtNum(remaining, 2)}`;
@@ -592,6 +602,7 @@ export function onCardSelectChange() {
     if (yuuGroup) yuuGroup.style.display = 'none';
   }
   checkShellMerchantTrigger();
+  window.dispatchEvent(new Event('tx-form-changed'));
 }
 
 export function onYuuMerchantChange() {
@@ -607,6 +618,7 @@ export function openModal() {
   document.getElementById('descInput').value = '';
   document.getElementById('amtInput').value = '';
   document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
+  const pi = document.getElementById('txPostInput'); if (pi) pi.value = '';
   document.getElementById('modalFormTitle').innerText = "Log Transaction";
   document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
   onCardSelectChange();
@@ -644,7 +656,9 @@ export function openEditModal(txId) {
   document.getElementById('modalFormTitle').innerText = "Edit Transaction";
   document.getElementById('btnSaveLedger').innerText = "Update Transaction";
 
+  const pe = document.getElementById('txPostInput'); if (pe) pe.value = tx.postTs ? new Date(tx.postTs).toLocaleDateString('en-CA') : '';
   checkShellMerchantTrigger();
+  window.dispatchEvent(new Event('tx-form-changed'));
   document.getElementById('modalOverlay')?.classList.add('open');
 }
 
@@ -684,6 +698,14 @@ export async function saveTransaction() {
     displayDateStr = chosen.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
   }
 
+  let postTs = null;
+  const rawPost = document.getElementById('txPostInput')?.value;
+  if (rawPost && postingRule(card)?.basis !== 'transaction') {
+    const pp = rawPost.split('-').map(Number);
+    postTs = new Date(pp[0], pp[1] - 1, pp[2], 12, 0, 0).getTime();
+    if (postTs < txTimestamp) return alert('The posting date cannot be before the transaction date.');
+  }
+
   if (editId) {
     const oldTx = state.transactions.find(t => t.id === editId);
     if (oldTx) {
@@ -715,7 +737,8 @@ export async function saveTransaction() {
     bonusCategory: isBonus ? 'bonus' : 'base',
     miles: earnedMiles,
     earnedRawPoints,
-    date: displayDateStr
+    date: displayDateStr,
+    ...(postTs ? { postTs } : {})
   });
 
   closeModal();
@@ -729,7 +752,7 @@ export function getStatementCycleForMonth(card, targetYear, targetMonth) {
 
   const cycleTxns = state.transactions.filter(tx => {
     if (tx.cardId !== card.id || !tx.timestamp) return false;
-    const txDate = new Date(tx.timestamp);
+    const txDate = new Date(countsTs(tx, card));
     return txDate >= windowStart && txDate <= windowEnd;
   });
 
@@ -1269,7 +1292,7 @@ export function renderReconcileView() {
 
   const activeTxns = state.transactions.filter(tx => {
     if (tx.cardId !== card.id || !tx.timestamp) return false;
-    const txDate = new Date(tx.timestamp);
+    const txDate = new Date(countsTs(tx, card));
     return txDate >= cycleInfo.windowStart && txDate <= cycleInfo.windowEnd;
   });
 

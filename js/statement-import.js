@@ -9,6 +9,7 @@ import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } fr
 import { fmtNum } from "./format.js";
 import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
+import { statementTiming, postingRule, countsTs } from "./posting.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -33,7 +34,7 @@ function lookupBrand(merchant) {
 }
 const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
 
-const S = { chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
+const S = { chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, post: {}, fileName: "" };
 
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
@@ -96,15 +97,29 @@ function readMapping() {
   S.flip = $("stFlip").checked;
 }
 
+// The posting date to store for a line: only for cards that count by posting date, and only when the file gave one.
+function postFor(card, line) {
+  const rule = postingRule(card);
+  return rule && rule.basis !== "transaction" && line.postTs ? line.postTs : null;
+}
 function keyCardId() { return familyOf(S.card.id)[0]; }   // one key per physical card, whichever entry the lines go to
 function recompute() {
   let lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order, flip: S.flip });
+  // A file whose only date column is a posting date: that date is the posting date.
+  const dateHdr = S.headerRow >= 0 && S.cols.date >= 0 ? String(S.rows[S.headerRow][S.cols.date] || "") : "";
+  if (/post/i.test(dateHdr)) lines.forEach(l => { if (l.postTs === undefined) l.postTs = l.ts; });
   if (S.since) { const t = parseDateStr(S.since, "ymd"); if (t) lines = lines.filter(l => l.ts >= t - 43200000); }
   const fam = familyOf(S.card.id);
   const existing = state.transactions.filter(t => fam.includes(t.cardId));
   const m = matchLines(lines, existing, { cardId: keyCardId() });
-  S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {};
+  S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {}; S.post = {};
   if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs") S.chan[i] = guessEntry(r.line); });
+  // Posting-date cards: which cycle each line counts to, and whether my entry needs its posting date recorded.
+  m.results.forEach((r, i) => {
+    const c = r.existing ? ALL_MASTER_CARDS.find(x => x.id === r.existing.cardId) || S.card : targetCard(r.line, i);
+    r.timing = r.status === "credit" ? null : statementTiming(c, r.line);
+    if (r.existing && r.timing && r.timing.status === "posted-later" && Number(r.existing.postTs) !== r.line.postTs) S.post[i] = true;
+  });
   m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : r.status === "differs" ? "statement" : "skip"; });
   renderReview();
 }
@@ -122,12 +137,22 @@ function targetCard(line, i) {
   return line.fx && sib && state.enabledCardIds.includes(sib) ? ALL_MASTER_CARDS.find(c => c.id === sib) : S.card;
 }
 
+const dShort = ts => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+function timingHtml(r, i) {
+  const t = r.timing; if (!t) return "";
+  if (t.status === "posted-later") {
+    return `<div class="st-sub st-post">📅 Spent ${dShort(t.spent)}, posted ${dShort(t.posted)}: counts to the cycle starting ${dShort(t.nextStart)} on this card (posting-date card).</div>`
+      + (r.status === "matched" && r.existing && S.post[i] !== undefined ? `<label class="st-sub"><input type="checkbox" class="st-postchk" data-i="${i}" ${S.post[i] ? "checked" : ""}> Record the posting date on my entry so it counts to that cycle</label>` : "");
+  }
+  return `<div class="st-sub st-post">⏳ This file has no posting date. Spent ${dShort(t.spent)}, near the end of the cycle: the bank may post it after ${dShort(new Date(t.nextStart.getTime() - 86400000))}, which would count it to the next cycle.</div>`;
+}
+
 function rowHtml(r, i) {
   const l = r.line;
   const head = `<div class="st-line-main"><b>${escapeHtml(friendlyName(l))}</b><span class="st-amt">${money(Math.abs(l.amt))}${l.amt < 0 ? " CR" : ""}</span></div>
     <div class="st-sub">${dateLabel(l.ts)}${l.pending ? " · ⏳ pending, the amount may still change" : ""}${l.fx ? ` · 🌏 foreign: ${escapeHtml(l.fx.cur)} ${fmtNum(l.fx.amount, 2)}` : ""} · <span title="${escapeHtml(l.desc)}">${escapeHtml(l.desc.length > 38 ? l.desc.slice(0, 36) + "…" : l.desc)}</span>${r.repeatTotal > 1 ? ` · appears ${r.repeatTotal}× on the statement (each kept as its own purchase)` : ""}</div>`;
   if (r.status === "differs") {
-    return `<div class="st-line st-differs">${head}
+    return `<div class="st-line st-differs">${head}${timingHtml(r, i)}
       <div class="st-sub st-warn">⚠️ ${escapeHtml(r.reason)} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)})</div>
       <select class="form-control st-choice" data-i="${i}">
         <option value="statement">Use the statement amount (${money(l.amt)})</option>
@@ -136,12 +161,22 @@ function rowHtml(r, i) {
       </select></div>`;
   }
   if (r.status === "new") {
-    return `<div class="st-line st-new">${head}
+    return `<div class="st-line st-new">${head}${timingHtml(r, i)}
       ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
-  return `<div class="st-line">${head}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
+  return `<div class="st-line">${head}${timingHtml(r, i)}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
+}
+
+function timingSummary() {
+  const later = S.results.filter(r => r.timing && r.timing.status === "posted-later").length;
+  const slip = S.results.filter(r => r.timing && r.timing.status === "may-slip").length;
+  if (!later && !slip) return "";
+  return `<div class="hm-note st-post">🗓️ ${S.card.name.replace(/\s*\(.*\)$/, "")} counts spend by <b>posting date</b>.`
+    + (later ? ` ${later} line${later === 1 ? "" : "s"} posted in a later cycle than the purchase and count there.` : "")
+    + (slip ? ` ${slip} line${slip === 1 ? "" : "s"} were bought near the end of a cycle and this file has no posting date, so ${slip === 1 ? "it" : "they"} may count to the next cycle.` : "")
+    + ` <a href="#" id="stPostInfo">How it works</a></div>`;
 }
 
 function renderReview() {
@@ -162,6 +197,7 @@ function renderReview() {
     <div class="st-summary">
       <span><b>${n.new}</b> new</span><span><b>${n.differs}</b> differ</span><span><b>${n.matched}</b> already logged</span><span><b>${n.credit}</b> credits skipped</span>
     </div>
+    ${timingSummary()}
     ${group("differs", "⚠️ Amount differs: you decide", true)}
     ${group("new", "➕ New: not in your list yet", true)}
     ${group("matched", "✅ Already in your list")}
@@ -175,7 +211,9 @@ function renderReview() {
     S.results.forEach((r, i) => { if (r.status === "new") S.chan[i] = v === "__guess" ? guessEntry(r.line) : v; });
     renderReview();
   });
+  box.querySelectorAll(".st-postchk").forEach(el => el.addEventListener("change", () => { S.post[el.dataset.i] = el.checked; updateApplyLabel(); }));
   box.querySelectorAll(".st-choice").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.value; updateApplyLabel(); }));
+  $("stPostInfo")?.addEventListener("click", e => { e.preventDefault(); window.dispatchEvent(new Event("open-posting-sheet")); });
   updateApplyLabel();
 }
 
@@ -185,6 +223,7 @@ function plan() {
     const c = S.choice[i];
     if (r.status === "new" && c === "add") add++;
     if (r.status === "differs") { if (c === "statement") update++; else if (c === "new") add++; }
+    else if (r.status === "matched" && S.post[i]) update++;
   });
   return { add, update };
 }
@@ -196,7 +235,7 @@ function updateApplyLabel() {
 }
 
 // Fields an import can change on an existing transaction; undo puts them back.
-const UNDO_FIELDS = ["amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote"];
+const UNDO_FIELDS = ["postTs", "amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote"];
 
 // The most recent import still in the list: lines it added, and lines it changed.
 export function lastImport() {
@@ -253,7 +292,7 @@ async function applyImport() {
   if (!confirm(`Add ${p.add} and update ${p.update} transaction${p.add + p.update === 1 ? "" : "s"} on ${card.name}?`)) return;
   btn.disabled = true;
   const bucketSpend = {};
-  for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, t.timestamp); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
+  for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
   let done = 0, rawDelta = 0, seq = 0;
   const base = Date.now();
   const importId = "imp" + base.toString(36);
@@ -265,7 +304,8 @@ async function applyImport() {
       const makeNew = (r.status === "new" && c === "add") || (r.status === "differs" && c === "new");
       if (makeNew) {
         const tCard = targetCard(l, i);
-        const bucket = tCard.id + cycleBucket(tCard, l.ts);
+        const postTs = postFor(tCard, l);
+        const bucket = tCard.id + cycleBucket(tCard, postTs ? countsTs({ timestamp: l.ts, postTs }, tCard) : l.ts);
         const est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
         bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
         const id = String(base + (seq++));
@@ -273,9 +313,17 @@ async function applyImport() {
           id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: tCard.id,
           bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
           date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
-          source: "statement", estimatedMiles: true, ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+          source: "statement", estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
         });
         rawDelta += est.earnedRawPoints; done++;
+      } else if (r.status === "matched" && S.post[i] && r.existing) {
+        const old = { ...r.existing }; delete old.firestoreId;
+        const oc = ALL_MASTER_CARDS.find(x => x.id === old.cardId) || card;
+        const pt = postFor(oc, l);
+        if (!pt) continue;
+        const importPrev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) importPrev[f] = old[f];
+        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, postTs: pt });
+        done++;
       } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
         const old = { ...r.existing }; delete old.firestoreId;
         const importPrev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) importPrev[f] = old[f];
@@ -287,7 +335,7 @@ async function applyImport() {
         const raw = Math.round(miles / ratio);
         const delta = raw - (Number(old.earnedRawPoints) || 0);
         rawDelta += delta;
-        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, ...(addVault ? { vaultDelta: delta } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
+        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, ...(addVault ? { vaultDelta: delta } : {}), ...(postFor(oc, l) ? { postTs: postFor(oc, l) } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
         done++;
       }
     }
