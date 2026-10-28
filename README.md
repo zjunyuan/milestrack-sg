@@ -333,3 +333,7 @@ Nothing about how settings are stored changed: the same fields are saved, and no
 ## 🔢 No default amount (v1.24.1)
 
 The recommender's amount box starts empty (placeholder "Amt (S$)") instead of 100. Until you type an amount the result is still worked out on S$100 so you can see the ranking, and a small note says so. No Firestore rules changed.
+
+## 🏬 Kris+ browse button tucked into the Kris+ row (v1.24.2)
+
+The full-width "Browse all Kris+ merchants" button is gone. A small storefront icon now sits beside the Kris+ switch and opens the same list (hover or long-press shows its name). The recommender has one row less. No Firestore rules changed.

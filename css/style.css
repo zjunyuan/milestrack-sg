@@ -805,3 +805,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .set-footer[hidden], [data-panel][hidden] { display:none !important; }
 .wal-body[hidden] { display:none !important; }
 .settings-sheet { min-height:min(640px, 78vh); }
+
+/* Kris+ browse button lives in the Kris+ switch row (v1.24.2) */
+.rec-pref-actions { display:flex; align-items:center; gap:10px; }
+.kp-icon-btn { display:flex; align-items:center; justify-content:center; width:34px; height:30px; border-radius:9px; border:1px solid rgba(0,180,216,0.4); background:rgba(0,180,216,0.12); color:#67e8f9; cursor:pointer; padding:0; }
+.kp-icon-btn .material-symbols-outlined { font-size:19px; }
+.kp-icon-btn:hover { background:rgba(0,180,216,0.22); }
