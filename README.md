@@ -353,3 +353,7 @@ The recommender's search box has a two-way switch above it: **Retailer** (brand 
 ## 🔀 Release roll-up (v1.25.2)
 
 Combines the Kris+ browse button move (v1.24.2), separate Retailer and MCC search (v1.25.0) and the gentler fee alert (v1.25.1). No new features and no Firestore rules changes.
+
+## 📱 Cleaner recommender on phones (v1.26.0)
+
+On touch devices the keyboard closes after you pick a retailer or MCC and the result scrolls into view, and the floating + hides while you type. The split headline is shorter ("Split across 2 cards · 326 miles", with the minimum-spend extra underneath). The month-end posting warning is a one-line tap-to-expand chip, and the long "no hand-written rules" paragraph sits behind "ℹ️ How this was chosen". No Firestore rules changed.
