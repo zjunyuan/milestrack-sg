@@ -674,3 +674,8 @@ input:checked + .slider:before { transform: translateX(22px); }
   .card-thumb.card-thumb-rec { width: 104px; height: 66px; }
   .card-detail-thumb { width: 112px; height: 71px; }
 }
+
+/* v1.18.0: minimum-spend unlock notes in recommendations */
+.unlock-note { font-size: 0.74rem; color: var(--warning); margin-top: 4px; line-height: 1.4; }
+.unlock-note.unlock-ok { color: var(--accent); }
+.unlock-pending { font-size: 0.68rem; font-weight: 600; color: var(--warning); white-space: nowrap; }

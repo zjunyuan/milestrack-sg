@@ -12,7 +12,7 @@ import {
 } from "./retailers.js";
 import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
-import { tierStatus, lockedWarning } from "./tiers.js";
+import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -287,6 +287,7 @@ function renderRecommendation() {
 
       return {
         card,
+        bonusRate: effectiveBonusRate,
         totalMiles: totalEarnedMiles,
         effectiveRate: (totalEarnedMiles / amt).toFixed(2),
         breakdownDesc,
@@ -311,6 +312,7 @@ function renderRecommendation() {
         ${winner.breakdownDesc}
         ${winner.isUncapped ? ' • <span style="color:var(--primary);">Uncapped general spend card</span>' : ' • <span style="color:var(--warning);">Capped card with base overflow</span>'}
       </div>
+      ${singleGateHtml(winner.card, amt, parseFloat(winner.effectiveRate) > winner.card.baseMpd ? winner.bonusRate : winner.card.baseMpd, getDaysUntilCycleEnd(winner.card))}
 
       ${runnerUp ? `
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
@@ -382,12 +384,18 @@ function renderRecommendation() {
         else finalStepRate = 0.4;
       }
 
-      const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, finalStepRate);
+      const gate = minSpendGate(candidate.card, { cardSpend: Number(candidate.card.currentSpend) || 0, amount: takeAmt, rate: finalStepRate, overseas: state.isOverseasMode });
+      const fullMiles = calcEarnedMiles(candidate.card, takeAmt, gate ? gate.unlockMpd : finalStepRate);
+      const nowRate = gate && gate.locked ? candidate.card.baseMpd : (gate ? gate.unlockMpd : finalStepRate);
+      const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, nowRate);
       allocationSteps.push({
         card: candidate.card,
         amount: takeAmt,
-        rate: finalStepRate,
+        rate: gate ? gate.unlockMpd : finalStepRate,
         miles: earnedMiles,
+        pendingMiles: gate && gate.locked ? Math.max(0, fullMiles - earnedMiles) : 0,
+        gate,
+        daysLeft: candidate.daysLeft,
         isBase: false
       });
 
@@ -431,6 +439,7 @@ function renderRecommendation() {
 
     if (allocationSteps.length > 1) {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
+      const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
       let stepsHtml = '';
       let buttonsHtml = '';
       const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
@@ -444,9 +453,13 @@ function renderRecommendation() {
               <div>
                 ${icon} <b>${step.card.name}</b>: Charge <b>$${fmtNum(step.amount, 2)}</b>
                 <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
+                ${step.gate && step.gate.locked ? `<div class="unlock-note">⚠️ Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> on this card by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d left) to unlock ${step.gate.unlockMpd} mpd. Until then it earns ${step.card.baseMpd} mpd.</div>` : (step.gate ? `<div class="unlock-note unlock-ok">✅ S$${fmtNum(step.gate.min)} minimum met with this charge</div>` : '')}
               </div>
             </div>
-            <span style="color:var(--accent); font-weight:700;">+${fmtNum(Math.round(step.miles))} mi</span>
+            <span style="text-align:right; font-weight:700;">
+              <span style="color:var(--accent);">+${fmtNum(Math.round(step.miles))} mi</span>
+              ${step.pendingMiles ? `<div class="unlock-pending">+${fmtNum(Math.round(step.pendingMiles))} mi once unlocked</div>` : ''}
+            </span>
           </div>
         `;
 
@@ -466,7 +479,7 @@ function renderRecommendation() {
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            Smart Waterfall Split: Earn ${fmtNum(Math.round(totalCombinedMiles))} miles across ${allocationSteps.length} cards
+            Smart Waterfall Split: Earn ${fmtNum(Math.round(totalCombinedMiles))} miles across ${allocationSteps.length} cards${totalPending ? ` (+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached)` : ''}
           </div>
           ${stepsHtml}
         </div>
@@ -516,6 +529,7 @@ function renderRecommendation() {
     <div class="rec-winner-meta">
       ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • Resets in ${singleCard.daysLeft}d
     </div>
+    ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : ''}
     <button class="btn-apply-rec" id="btnApplySingleRec">Log $${fmtNum(amt, 2)} with This Card</button>
@@ -524,6 +538,14 @@ function renderRecommendation() {
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
     applyRecommendation(singleCard.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${descName}`);
   });
+}
+
+// One-line "spend X more to unlock" note for a single-card result.
+function singleGateHtml(card, amt, rate, daysLeft) {
+  const gate = minSpendGate(card, { cardSpend: Number(card.currentSpend) || 0, amount: amt, rate, overseas: state.isOverseasMode });
+  if (!gate || !gate.locked) return '';
+  const extra = Math.max(0, calcEarnedMiles(card, amt, gate.unlockMpd) - calcEarnedMiles(card, amt, card.baseMpd));
+  return `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${card.baseMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
 }
 
 // Adds a warning under the result when it names a card whose bonus tier is not unlocked yet.
