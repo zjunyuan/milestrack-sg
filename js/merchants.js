@@ -2,6 +2,7 @@
 import { state } from "./state.js";
 import { searchRetailers, normalizeText, escapeHtml } from "./retailers.js";
 import { runRecommendation, selectRetailer } from "./recommender.js";
+import { searchKrisPlus, krisPlusMcc } from "./krisplus-merchants.js";
 import { searchMccs, mccName, isKnownMcc, nearestMccs } from "./mcc.js";
 
 const CONF_LABEL = { high: "", medium: "varies", low: "unsure" };
@@ -58,6 +59,14 @@ export function initRetailerSuggest() {
     hide();
     if (item.type === "retailer") {
       selectRetailer(item.retailer);
+    } else if (item.type === "kris") {
+      // Not a curated retailer: fill in the plain name. The recommender recognises it as a Kris+ merchant and ranks cards on an assumed MCC.
+      state.selectedRetailer = null;
+      setCommitted(item.kris.name);
+      input.value = item.kris.name;
+      markSelected(true);
+      showClear();
+      runRecommendation();
     } else {
       commitCategory(item.code);
     }
@@ -78,8 +87,11 @@ export function initRetailerSuggest() {
       box.hidden = false;
       return;
     }
+    const retailerHits = searchRetailers(q, state.merchantOverrides, 6).map(({ retailer }) => ({ type: "retailer", retailer }));
+    const known = retailerHits.flatMap(h => [h.retailer.name, ...(h.retailer.aliases || [])]);
     items = [
-      ...searchRetailers(q, state.merchantOverrides, 6).map(({ retailer }) => ({ type: "retailer", retailer })),
+      ...retailerHits,
+      ...searchKrisPlus(q, 4, known).map(kris => ({ type: "kris", kris })),
       ...categoryMatches(q)
     ];
     if (!items.length) return hide();
@@ -87,6 +99,10 @@ export function initRetailerSuggest() {
     box.innerHTML = items.map((item, i) => {
       if (item.type === "category") {
         return `<div class="rs-item" role="option" data-i="${i}"><span class="rs-name">${escapeHtml(item.label)}</span><span class="rs-tag">category</span></div>`;
+      }
+      if (item.type === "kris") {
+        const k = item.kris;
+        return `<div class="rs-item" role="option" data-i="${i}"><span class="rs-name">${escapeHtml(k.name)}</span><span class="rs-cat">${escapeHtml(mccName(krisPlusMcc(k)))}</span><span class="rs-tag rs-kris">Kris+ ${k.mpd} mpd</span></div>`;
       }
       const r = item.retailer;
       const tags = [

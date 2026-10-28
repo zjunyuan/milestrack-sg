@@ -287,3 +287,7 @@ In the recommender, **Browse all Kris+ merchants** (under the Kris+ switch) open
 ## 🧭 Kris+ merchants get card rankings too (v1.22.1)
 
 Typing or picking a Kris+ merchant that is not in the retailer list (for example "LeNu") used to say it "isn't in the retailer list yet" and rank nothing. Now the recommender ranks the cards on an assumed MCC taken from the merchant's Kris+ category (Dining 5812, Retail 5999, Activities 7999, Services 7299, Wellness 7298), with a few exceptions (petrol, taxis, fast food, cinemas, electronics, travel agents, car rental, supermarkets), shows the usual Kris+ earn note, and adds a line saying the MCC was assumed and may differ. Add the retailer to set the exact MCC. Curated retailers and typed MCC codes or category names are matched first, so they behave as before.
+
+## 🔤 Kris+ merchants in the search dropdown (v1.22.2)
+
+Typing in the recommender now suggests Kris+ merchants as well as the curated retailers, so "lenu" offers LeNu Chef Wai's Noodle Bar just like "paris" offers Paris Baguette. Kris+ suggestions show their usual category and a cyan "Kris+ N mpd" tag; picking one fills the box and ranks cards on the assumed category MCC (see v1.22.1). Merchants already in the retailer list are not shown twice. No Firestore rules changed.
