@@ -357,7 +357,7 @@ export const RETAILERS = [
   r("Hermès", "5691", "medium", ["hermes", "hermes boutique"], { alt: ["5631", "5948"], note: "Luxury boutique; coding can vary (leather goods, accessories)." }),
   r("Gucci", "5691", "medium", [], { alt: ["5631", "5948"], note: "Luxury boutique; coding can vary (clothing, bags, accessories)." }),
   r("Prada", "5691", "medium", [], { alt: ["5631", "5948"], note: "Luxury boutique; coding can vary (clothing, bags, accessories)." }),
-  r("Rolex", "5944", "medium", ["rolex boutique"], { note: "Watches are coded 5944 (jewellery and watch stores); authorised dealers can differ." }),
+  r("Rolex", "5944", "medium", ["rolex boutique"], { alt: ["5094"], note: "Watches are coded 5944 (jewellery and watch stores); authorised dealers can differ." }),
   r("Saint Laurent", "5699", "medium", ["ysl", "yves saint laurent"], { alt: ["5691", "5631"], note: "Luxury boutique; MCC set by the household, not bank-confirmed. Coding can vary by outlet." }),
   r("Balenciaga", "5691", "medium", [], { alt: ["5631"], note: "Luxury boutique; MCC set by the household, not bank-confirmed. Coding can vary by outlet." }),
   r("Bottega Veneta", "5699", "medium", ["bottega"], { alt: ["5631", "5948"], note: "Luxury boutique; MCC set by the household, not bank-confirmed. Coding can vary by outlet." }),

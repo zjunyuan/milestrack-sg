@@ -177,3 +177,9 @@ UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v
 
 - Typing the first digits of an MCC now lists up to 8 matching codes (it was 3), so the right one can be picked.
 - Typing a full 4-digit code we don't have (for example 5094) no longer shows nothing: the list shows the closest known codes and the result says the code isn't in our list yet.
+
+
+## ✈️ Airline and Watch MCCs (v1.14.5)
+
+- **Airline codes 3000-3299** (one code per carrier) are now recognised. Each follows the Airlines (4511) rules, and typing a prefix like "30" lists matching codes.
+- **5094 Precious Stones, Metals, Watches & Jewelry** is now a known category (Rolex offers it as an alternative to 5944).

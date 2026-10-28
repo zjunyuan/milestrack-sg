@@ -10,11 +10,19 @@ export function shortCategory(name = "") {
   return name.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Airline MCCs 3000-3299 are one block with one code per carrier. They are recognised as a range so the
+// reference list and pickers are not filled with 300 near-identical rows; each follows the Airlines (4511) rules.
+export function isAirlineRangeMcc(code) {
+  return /^3\d{3}$/.test(String(code)) && Number(code) >= 3000 && Number(code) <= 3299;
+}
+
 export function isKnownMcc(code) {
+  if (isAirlineRangeMcc(code)) return true;
   return Object.prototype.hasOwnProperty.call(MCC_DATABASE, code) || Object.prototype.hasOwnProperty.call(MCC_NAMES, code);
 }
 
 export function mccName(code) {
+  if (isAirlineRangeMcc(code)) return `Airlines (MCC ${code})`;
   if (MCC_DATABASE[code]) return shortCategory(MCC_DATABASE[code].name);
   return MCC_NAMES[code] || code;
 }
@@ -103,6 +111,11 @@ export function getBuiltinMccEntry(code) {
 }
 
 function rawBuiltinEntry(code) {
+  if (isAirlineRangeMcc(code)) {
+    const air = MCC_DATABASE["4511"];
+    return { code, ...air, name: `Airlines (MCC ${code}; the airline block is 3000-3299, one code per carrier)`,
+             notes: air.notes + "<br>ℹ️ Airline codes 3000-3299 follow the same rules as MCC 4511." };
+  }
   if (MCC_DATABASE[code]) return { code, ...MCC_DATABASE[code] };
   const name = MCC_NAMES[code];
   if (!name) return null;
@@ -132,6 +145,12 @@ export function searchMccs(query, limit = 3) {
     ...Object.keys(MCC_NAMES).filter(code => !MCC_DATABASE[code])
   ];
   const hits = [];
+  if (/^\d{2,4}$/.test(q)) {
+    for (let n = 3000; n <= 3299; n++) {
+      const code = String(n);
+      if (code.startsWith(q) && !all.includes(code)) all.push(code);
+    }
+  }
   for (const code of all) {
     const name = mccName(code);
     const n = normalizeText(name);
