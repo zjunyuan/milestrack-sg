@@ -1402,7 +1402,11 @@ export function updateReconcileDelta(appSpend) {
 
 export function switchTab(tabName) {
   if (window.innerWidth >= 900) {
-    if (tabName === 'history') document.getElementById('tabContentHistory')?.scrollIntoView({ behavior: 'smooth' });
+    // Desktop: History is its own page, shown only on request.
+    const on = tabName === 'history';
+    document.body.classList.toggle('show-history', on);
+    document.getElementById('btnHeaderHistory')?.classList.toggle('active', on);
+    if (on) window.scrollTo({ top: 0 });
     return;
   }
   const tabs = {
