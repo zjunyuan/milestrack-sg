@@ -411,6 +411,9 @@ function renderRecommendationCore() {
     const daysLeft = getDaysUntilCycleEnd(card);
     return { card, rate: evaluatedRate, remainingCap, isUncapped, daysLeft };
   }).filter(Boolean).sort((a, b) => {
+    // A capped card with no room left only earns its base rate, so it ranks behind cards that still have bonus room.
+    const aFull = !a.isUncapped && a.remainingCap <= 0, bFull = !b.isUncapped && b.remainingCap <= 0;
+    if (aFull !== bFull) return aFull ? 1 : -1;
     if (b.rate !== a.rate) return b.rate - a.rate;
     if (a.card.strategyType === 'whitelist' && b.card.strategyType === 'blacklist') return -1;
     if (a.card.strategyType === 'blacklist' && b.card.strategyType === 'whitelist') return 1;
