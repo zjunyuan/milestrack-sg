@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.22.4";
+export const APP_VERSION = "v1.22.5";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -171,7 +171,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: 'badge-gold', 
-    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. Req: S$800 min spend + 4 distinct merchants.', 
+    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. CHAGEE counts only when paid in its app. Req: S$800 min spend + 4 distinct merchants.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-yuu'

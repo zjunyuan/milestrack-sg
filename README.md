@@ -299,3 +299,7 @@ Picking a specific merchant such as Sheng Siong used to rank the DBS yuu card fi
 ## 🟡 yuu partners always offered yuu (v1.22.4)
 
 7-Eleven (which codes as MCC 5499), Singtel (4814), CHAGEE (5814) and other yuu partner brands did not list DBS yuu in their category rules, so yuu was never suggested for them. Picking a yuu partner brand now adds DBS yuu at 10 mpd (Singapore spend) with a note about the S$800 + 4 merchants condition. Together with v1.22.3, yuu appears for partner brands and not for other merchants. No Firestore rules changed.
+
+## 🍵 CHAGEE counts for yuu in-app only (v1.22.5)
+
+CHAGEE only counts as a DBS yuu merchant when you pay in its app. In the recommender, CHAGEE now gets DBS yuu only on **Online / In-App**; on In-Person yuu is left out with a note saying so. The yuu card hint and the CHAGEE retailer note say the same. No Firestore rules changed.
