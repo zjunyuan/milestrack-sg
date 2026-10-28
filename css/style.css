@@ -897,5 +897,4 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* Blank amount: results are an example only (v1.29.1) */
 .rec-eg-note { font-size:0.78rem; line-height:1.4; color:#e2e8f0; background:rgba(158,202,255,0.10); border-left:3px solid var(--primary); padding:7px 10px; border-radius:8px; }
-.rec-example .ct-log { display:none; }
-.rec-example .ct-amt { opacity:0.5; }
+.ct-rate-only { color:#cbd5e1; }
