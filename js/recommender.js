@@ -210,28 +210,22 @@ function appendKrisPlusNote() {
 }
 
 function renderRecommendation() {
+  // Nothing is recommended until there is both a retailer or MCC and an amount: no placeholder figures.
+  const hasQuery = !!(document.getElementById('mccInput')?.value || '').trim();
+  const hasAmt = parseFloat((document.getElementById('recAmount')?.value || '').replace(/,/g, '')) > 0;
+  const area = document.getElementById('recResultArea');
+  if (area && hasQuery && !hasAmt) {
+    area.innerHTML = '<div class="rec-eg-note">📝 Enter an amount above to see which card to use and how much to put on each.</div>';
+    return;
+  }
   renderRecommendationCore();
   appendKrisPlusNote();
-  // No amount typed yet: the cards are ranked (on S$100 behind the scenes) but no amounts, miles or Log buttons are shown,
-  // so an example figure is never mistaken for what to charge.
-  const area = document.getElementById('recResultArea');
-  const typed = (document.getElementById('recAmount')?.value || '').trim();
-  const isExample = !!area && !typed && !!area.querySelector('.card-tile');
-  area?.classList.toggle('rec-example', isExample);
-  if (isExample) {
-    const note = document.createElement('div');
-    note.className = 'rec-eg-note';
-    note.innerHTML = '📝 <b>Enter an amount</b> above to see how much to put on each card and the miles you will earn.';
-    const ctx = area.querySelector('.rec-context');
-    if (ctx) ctx.after(note); else area.prepend(note);
-  }
 }
 
 function renderRecommendationCore() {
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
-  const isExample = !(parseFloat(rawAmt) > 0);   // no amount typed: S$100 is only used to rank cards, never shown as an amount
   const allowContactless = (state.currentChannel === 'inperson') && !state.isKrisPlusMode && document.getElementById('contactlessSwitch')?.checked;
   const resultArea = document.getElementById('recResultArea');
   if (!resultArea) return;
@@ -371,19 +365,19 @@ function renderRecommendationCore() {
     resultArea.innerHTML = `
       <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
         <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [💳 Single Card Swipe Mode]<br>
-        ${isExample ? 'Comparing single cards without splitting.' : `Evaluating best single card for full payment of <b>$${fmtAuto(amt)}</b> without splitting.`}
+        Evaluating best single card for full payment of <b>$${fmtAuto(amt)}</b> without splitting.
       </div>
 
-      ${cardTileHtml({ card: winner.card, amount: amt, miles: winner.totalMiles, rate: winner.effectiveRate, label: 'Best single card', btn: 'id="btnApplySingleSwipeRec"', example: isExample })}
-      <div class="rec-winner-meta"${isExample ? ' hidden' : ''}>
+      ${cardTileHtml({ card: winner.card, amount: amt, miles: winner.totalMiles, rate: winner.effectiveRate, label: 'Best single card', btn: 'id="btnApplySingleSwipeRec"' })}
+      <div class="rec-winner-meta">
         ${winner.breakdownDesc}
         ${winner.isUncapped ? ' • <span style="color:var(--primary);">Uncapped general spend card</span>' : ' • <span style="color:var(--warning);">Capped card with base overflow</span>'}
       </div>
-      ${isExample ? '' : singleGateHtml(winner.card, amt, parseFloat(winner.effectiveRate) > winner.card.baseMpd ? winner.bonusRate : winner.card.baseMpd, getDaysUntilCycleEnd(winner.card))}
+      ${singleGateHtml(winner.card, amt, parseFloat(winner.effectiveRate) > winner.card.baseMpd ? winner.bonusRate : winner.card.baseMpd, getDaysUntilCycleEnd(winner.card))}
 
       ${runnerUp ? `
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
-          🥈 Alternative: <b>${runnerUp.card.name}</b> (${isExample ? '' : `+${fmtNum(Math.round(runnerUp.totalMiles))} mi • `}${runnerUp.effectiveRate} mpd)
+          🥈 Alternative: <b>${runnerUp.card.name}</b> (+${fmtNum(Math.round(runnerUp.totalMiles))} mi • ${runnerUp.effectiveRate} mpd)
         </div>
       ` : ''}
 
@@ -519,8 +513,7 @@ function renderRecommendationCore() {
           rateNote: step.gate && step.gate.locked ? ' now' : (step.isBase ? ' general' : ''),
           rank: idx + 1,
           btn: `data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
-          chips: stepChipsHtml(step),
-          example: isExample
+          chips: stepChipsHtml(step)
         });
       });
 
@@ -529,9 +522,9 @@ function renderRecommendationCore() {
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            ${isExample ? `Best ${allocationSteps.length} cards, in order` : `Use ${allocationSteps.length} cards · S$${fmtNum(amt, 2)} · ${fmtNum(Math.round(totalCombinedMiles))} miles`}
+            Use ${allocationSteps.length} cards · S$${fmtNum(amt, 2)} · ${fmtNum(Math.round(totalCombinedMiles))} miles
           </div>
-          ${totalPending && !isExample ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
+          ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
           ${stepsHtml}
         </div>
         ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
@@ -570,10 +563,10 @@ function renderRecommendationCore() {
   const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • resets in ${singleCard.daysLeft}d`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
-    ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: isExample ? 'Top card' : 'Use this card', btn: 'id="btnApplySingleRec"', example: isExample })}
+    ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
     <div class="rec-winner-meta">${spaceLine}</div>
-    ${isExample ? '' : singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
-    ${roundingWarning && !isExample ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
+    ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
+    ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${shellHtml}
     ${moreHtml(mccData, effectiveChannel, runnerUp ? `<div class="rec-alt">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : '')}
   `;
@@ -591,10 +584,9 @@ function tileNameParts(name) {
 }
 
 // One tile per card. `btn` is the attribute string for its Log button, `chips` is extra HTML shown under the tile.
-function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rateNote, example }) {
+function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rateNote }) {
   const { main, tag } = tileNameParts(card.name);
-  const rateOnly = rate === undefined || rate === null || rate === '' ? '' : `${rate} mpd${rateNote || ''}`;
-  const milesLine = example ? rateOnly : `+${fmtNum(Math.round(miles))} mi${rateOnly ? ` · ${rateOnly}` : ''}`;
+  const rateText = rate === undefined || rate === null || rate === '' ? '' : ` · ${rate} mpd${rateNote || ''}`;
   return `
     <div class="card-tile${rank ? '' : ' card-tile-solo'}">
       <div class="ct-row">
@@ -603,14 +595,14 @@ function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rate
           ${label ? `<div class="ct-label">${label}</div>` : ''}
           <div class="ct-name">${escapeHtml(main)}</div>
           ${tag ? `<div class="ct-tag">${escapeHtml(tag)}</div>` : ''}
-          ${example ? '' : `<div class="ct-amt-row">
+          <div class="ct-amt-row">
             <span class="ct-amt">S$${fmtNum(amount, 2)}</span>
             <button type="button" class="btn-apply-rec ct-log" ${btn}>Log</button>
-          </div>`}
-          <div class="ct-miles${example ? ' ct-rate-only' : ''}">${milesLine}</div>
+          </div>
+          <div class="ct-miles">+${fmtNum(Math.round(miles))} mi${rateText}</div>
         </div>
       </div>
-      ${example ? '' : (chips || '')}
+      ${chips || ''}
     </div>`;
 }
 
