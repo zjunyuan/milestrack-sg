@@ -20,6 +20,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/posting.js` / `js/posting-ui.js`: per-card transaction-date vs posting-date rules (source and date in the header), cycle-end maths, `countsTs(tx, card)` (the date a spend counts to; use it for cycle/cap membership instead of `tx.timestamp`), the month-end banner and the log-form hint. A transaction's optional `postTs` is the bank's posting date.
 - `js/retailers.js`: ~300 curated SG brand → MCC entries (`conf`, `aliases`, `alt`, `promo`), text normalisation helpers.
 - `js/merchants.js`: typeahead for the MCC/retailer input.
+- `js/settings-ui.js`: the Settings sheet (Cards / Dates / Data tabs, one row per physical card with its own inputs). The input ids are read by `saveSettings()` in `ui.js`, so keep them when changing the layout.
 - `js/ui.js`: DOM rendering, modals, audit sheets, cap bars. `js/app.js` is the bootstrapper, event wiring, and SW registration.
 - `sw.js`: service worker. `CORE_ASSETS` and `CARD_ASSETS` list every cached file.
 

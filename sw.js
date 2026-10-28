@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.23.1';
+const CACHE_NAME = 'milestrack-cache-v1.24.0';
 
 const CORE_ASSETS = [
   './',
@@ -15,6 +15,7 @@ const CORE_ASSETS = [
   './js/cardrules.js',
   './js/posting.js',
   './js/posting-ui.js',
+  './js/settings-ui.js',
   './js/tiers.js',
   './js/vault-guard.js',
   './js/krisplus-merchants.js',
