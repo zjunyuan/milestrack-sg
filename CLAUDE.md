@@ -17,6 +17,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/recommender.js`: miles calculation per engine, single-swipe scorer, waterfall split solver, household MCC rules (`state.mccRules`).
 - `js/mcc.js`: the one place that knows about every MCC. It combines `MCC_DATABASE` (hand-written rules), `MCC_NAMES` (labels only), and generated fallbacks.
 - `js/mcc-names.js`: ~230 ISO 18245 codes with names and no card rules, plus `COMMONLY_EXCLUDED_MCCS`.
+- `js/posting.js` / `js/posting-ui.js`: per-card transaction-date vs posting-date rules (source and date in the header), cycle-end maths, `countsTs(tx, card)` (the date a spend counts to; use it for cycle/cap membership instead of `tx.timestamp`), the month-end banner and the log-form hint. A transaction's optional `postTs` is the bank's posting date.
 - `js/retailers.js`: ~300 curated SG brand → MCC entries (`conf`, `aliases`, `alt`, `promo`), text normalisation helpers.
 - `js/merchants.js`: typeahead for the MCC/retailer input.
 - `js/ui.js`: DOM rendering, modals, audit sheets, cap bars. `js/app.js` is the bootstrapper, event wiring, and SW registration.

@@ -145,7 +145,8 @@ export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Dat
       || (cols.post >= 0 && !String(r[cols.post] || "").trim());               // no posting date yet
     const fx = foreignAmount(desc) || foreignFromColumns(r, cols);
     const fee = FEE_RE.test(desc);
-    lines.push({ ts, desc, merchant: cleanMerchant(desc), amt: Math.round(amt * 100) / 100, row: i, pending, fx, ref, fee });
+    const postTs = cols.post >= 0 ? parseDateStr(r[cols.post], order, now) : null;   // the bank's posting date, when the file has one
+    lines.push({ ts, desc, merchant: cleanMerchant(desc), amt: Math.round(amt * 100) / 100, row: i, pending, fx, ref, fee, ...(postTs !== null ? { postTs } : {}) });
   }
   return lines;
 }

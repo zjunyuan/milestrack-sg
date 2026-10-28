@@ -14,6 +14,7 @@ import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRul
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
 import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
+import { slipLine } from "./posting.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -497,6 +498,7 @@ function renderRecommendationCore() {
               <div>
                 ${icon} <b>${step.card.name}</b>: Charge <b>$${fmtNum(step.amount, 2)}</b>
                 <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
+                ${postNoteHtml(step.card)}
                 ${step.gate && step.gate.locked ? `<div class="unlock-note">⚠️ Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> on this card by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d left) to unlock ${step.gate.unlockMpd} mpd. Until then it earns ${step.card.baseMpd} mpd.</div>` : (step.gate ? `<div class="unlock-note unlock-ok">✅ S$${fmtNum(step.gate.min)} minimum met with this charge</div>` : '')}
               </div>
             </div>
@@ -584,12 +586,19 @@ function renderRecommendationCore() {
   });
 }
 
+// Month-end warning for cards that count spend by posting date ("" when it is not near the end of the cycle).
+function postNoteHtml(card) {
+  const line = slipLine(card, new Date());
+  return line ? `<div class="post-note">${line}</div>` : '';
+}
+
 // One-line "spend X more to unlock" note for a single-card result.
 function singleGateHtml(card, amt, rate, daysLeft) {
   const gate = minSpendGate(card, { cardSpend: Number(card.currentSpend) || 0, amount: amt, rate, overseas: state.isOverseasMode });
-  if (!gate || !gate.locked) return '';
+  const post = postNoteHtml(card);
+  if (!gate || !gate.locked) return post;
   const extra = Math.max(0, calcEarnedMiles(card, amt, gate.unlockMpd) - calcEarnedMiles(card, amt, card.baseMpd));
-  return `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${card.baseMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
+  return post + `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${card.baseMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
 }
 
 // Adds a warning under the result when it names a card whose bonus tier is not unlocked yet.

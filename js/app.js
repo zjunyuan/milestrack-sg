@@ -15,6 +15,7 @@ import { initHeymax } from "./heymax.js";
 import { initStatementImport } from "./statement-import.js";
 import { initVaultGuard } from "./vault-guard.js";
 import { initKrisPlusBrowser } from "./krisplus-browse.js";
+import { initPostingUi } from "./posting-ui.js";
 import { 
   renderPresets, 
   renderCards, 
@@ -255,6 +256,7 @@ initHeymax();
 initStatementImport();
 initVaultGuard();
 initKrisPlusBrowser();
+initPostingUi();
 document.getElementById('recAmount')?.addEventListener('input', runRecommendation);
 document.getElementById('contactlessSwitch')?.addEventListener('change', runRecommendation);
 document.getElementById('cardSelect')?.addEventListener('change', onCardSelectChange);
