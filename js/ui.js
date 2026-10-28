@@ -220,6 +220,12 @@ export function renderCards() {
       statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 0)} min left`;
     }
 
+    // Plain uncapped cards have no bar worth showing; tiers and min-spend cards stay.
+    if (isUncapped && !tierInfo && !statusNotice) {
+      select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
+      return;
+    }
+
     const thumbHtml = cardThumbHtml(card);
 
     const cardEl = document.createElement('div');
