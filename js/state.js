@@ -26,5 +26,7 @@ export const state = {
     ppv: "2024-05",
     prvi: "2024-07",
     kf: ""
-  }
+  },
+  uobStatementDay: 23,   // day of the month UOB statements come out (annual fee alert starts then)
+  feeAlerts: {}          // per UOB card: { cycle: "2026-08", status: "requested" | "snoozed", until: ms }
 };
