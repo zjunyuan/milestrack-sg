@@ -168,6 +168,8 @@ document.getElementById('btnTabCards')?.addEventListener('click', () => switchTa
 document.getElementById('btnTabCategory')?.addEventListener('click', () => switchTab('category'));
 document.getElementById('btnTabVault')?.addEventListener('click', () => switchTab('vault'));
 document.getElementById('btnTabHistory')?.addEventListener('click', () => switchTab('history'));
+document.getElementById('btnHeaderHistory')?.addEventListener('click', () => switchTab(document.body.classList.contains('show-history') ? 'cards' : 'history'));
+document.getElementById('btnHistoryBack')?.addEventListener('click', () => switchTab('cards'));
 
 document.getElementById('fabButton')?.addEventListener('click', openModal);
 document.getElementById('btnCloseModal')?.addEventListener('click', closeModal);

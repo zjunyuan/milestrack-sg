@@ -861,6 +861,24 @@ input:checked + .slider:before { transform: translateX(22px); }
 .history-cards > summary::-webkit-details-marker { display: none; }
 .history-cards > summary::after { content: '▾'; float: right; }
 .history-cards[open] > summary::after { content: '▴'; }
+.history-back { display: none; margin-left: 12px; cursor: pointer; color: var(--primary); font-weight: 700; }
+#btnHeaderHistory.active { color: var(--primary); }
 @media (min-width: 900px) {
-  #tabContentHistory { grid-column: 1 / -1; }
+  /* History is a separate page on desktop: hidden until the header History icon is used. */
+  #tabContentHistory { display: none !important; }
+  body.show-history .desktop-grid > .tab-content:not(#tabContentHistory) { display: none !important; }
+  body.show-history #tabContentHistory {
+    display: grid !important; grid-column: 1 / -1;
+    grid-template-columns: 340px 1fr; grid-template-rows: auto auto auto auto 1fr; column-gap: 24px; row-gap: 14px; align-items: start;
+  }
+  body.show-history .desktop-grid { grid-template-columns: 1fr; }
+  .history-back { display: inline; }
+  #tabContentHistory > * { min-width: 0; }
+  #tabContentHistory > :nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+  #tabContentHistory > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  #tabContentHistory > :nth-child(3) { grid-column: 1; grid-row: 3; }
+  #tabContentHistory > :nth-child(4) { grid-column: 1; grid-row: 4; }
+  #tabContentHistory > :nth-child(7) { grid-column: 1; grid-row: 5; }
+  #tabContentHistory > :nth-child(5) { grid-column: 2; grid-row: 2; }
+  #tabContentHistory > :nth-child(6) { grid-column: 2; grid-row: 3 / span 3; }
 }
