@@ -93,7 +93,9 @@ export function detectLayout(rows) {
     const debit = idx(h => /debit|withdraw/i.test(h));
     const credit = idx(h => /credit|deposit/i.test(h) && !/card/i.test(h));
     const amount = idx(h => isAmtHdr(h) && !/foreign|fcy|original/i.test(h), [/local|sgd|s\$/i, /^amount$/i]);
-    return { headerRow: i, cols: { date, desc, amount: debit >= 0 && amount < 0 ? -1 : amount, debit, credit } };
+    const status = idx(h => /status/i.test(h));
+    const split = debit >= 0 || credit >= 0;
+    return { headerRow: i, cols: { date, desc, amount: split ? -1 : amount, debit, credit, status } };
   }
   return null;
 }
@@ -113,11 +115,12 @@ export function guessLayoutByContent(rows) {
     if (aScore >= best.a && aScore > 0.6 && c !== date) { best.a = aScore; amount = c; }
     if (tScore > best.t && tScore > 0.6) { best.t = tScore; desc = c; }
   }
-  return { headerRow: -1, cols: { date, desc, amount, debit: -1, credit: -1 } };
+  return { headerRow: -1, cols: { date, desc, amount, debit: -1, credit: -1, status: -1 } };
 }
 
 // Turns the rows below the header into statement lines. cols are column indexes (-1 = not used).
 export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Date() } = {}) {
+  cols = { status: -1, ...cols };
   const lines = [];
   for (let i = headerRow + 1; i < rows.length; i++) {
     const r = rows[i];
@@ -131,9 +134,31 @@ export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Dat
     } else if (cols.amount >= 0) amt = parseAmountStr(r[cols.amount]);
     if (amt === null || amt === 0) continue;
     const desc = (cols.desc >= 0 ? r[cols.desc] : "").replace(/\s+/g, " ").trim() || "Statement line";
-    lines.push({ ts, desc, amt: Math.round(amt * 100) / 100, row: i });
+    const pending = cols.status >= 0 && /pending|authori[sz]ed|unbilled/i.test(r[cols.status] || "");
+    const fx = foreignAmount(desc);
+    lines.push({ ts, desc, merchant: cleanMerchant(desc), amt: Math.round(amt * 100) / 100, row: i, pending, fx });
   }
   return lines;
+}
+
+// ---------- merchant text ----------
+// Card statements append the city, country and (for foreign spend) the original currency amount to the merchant.
+// "ONLYFANS.COM LONDON GB USD 65.40" -> { cur: "USD", amount: 65.4 }
+export function foreignAmount(desc) {
+  const m = /\b([A-Z]{3})\s+(\d[\d,]*\.\d{2})\s*$/.exec(String(desc || ""));
+  if (!m || m[1] === "SGD") return null;
+  return { cur: m[1], amount: parseFloat(m[2].replace(/,/g, "")) };
+}
+const COUNTRY_TAIL = /\s+(SINGAPORE|SINGAPO|SGP|SG|LONDON|GB|GBR|USA|US|JPN|JP|KOR|KR|HK|HKG|CN|MY|MYS|AU|AUS|IE|IRL|TH|THA|ID|IDN|TW|TWN|VN|VNM)(\s+(SINGAPORE|SGP|SG|GB|GBR|USA|US|JPN|KOR|CN|HK|MY|AU|IE|TH|ID|TW|VN))*$/i;
+// Best-effort readable merchant name: no store/terminal codes, city or country, currency amount or phone numbers.
+export function cleanMerchant(desc) {
+  let t = String(desc || "").replace(/\s+/g, " ").trim();
+  t = t.replace(/\s+[A-Z]{3}\s+\d[\d,]*\.\d{2}\s*$/, "");          // foreign amount
+  t = t.replace(/@\S*/g, "");                                            // store/terminal code after @
+  t = t.replace(/^(FP\*|GRAB\*|SQ \*|PAYPAL \*|AMZN )/i, m => (/^FP\*/i.test(m) ? "" : m.replace(/\*$/, " "))).replace(/\*/g, " ");
+  for (let i = 0; i < 3; i++) t = t.replace(COUNTRY_TAIL, "");
+  t = t.replace(/\b\d{6,}\b/g, "").replace(/\s+/g, " ").trim();
+  return t || String(desc || "").trim();
 }
 
 // ---------- matching ----------
@@ -152,7 +177,9 @@ export function descSimilarity(a, b) {
   const contain = inter / Math.min(sa.size, sb.size);
   // prefix match on a token ("starbucks" vs "starbuck")
   const pref = [...sa].some(x => [...sb].some(y => x.length >= 4 && y.length >= 4 && (x.startsWith(y) || y.startsWith(x)))) ? 0.5 : 0;
-  return Math.max(jaccard, contain * 0.9, pref);
+  const ca = A.join(""), cb = B.join("");
+  const compact = Math.min(ca.length, cb.length) >= 5 && (ca.includes(cb) || cb.includes(ca)) ? 0.8 : 0;   // "shengsiong" vs "sheng siong"
+  return Math.max(jaccard, contain * 0.9, pref, compact);
 }
 
 export function dayKey(ts) { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
@@ -200,7 +227,7 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
       if (Math.abs((Number(p.tx.amt) || 0) - r.line.amt) >= 0.005) continue;
       const dd = days(p.tx.timestamp || 0, r.line.ts);
       if (dd > windowDays) continue;
-      exact.push({ r, p, score: descSimilarity(r.line.desc, p.tx.desc) * 2 - dd * 0.1 });
+      exact.push({ r, p, score: descSimilarity(r.line.merchant || r.line.desc, p.tx.desc) * 2 - dd * 0.1 });
     }
   }
   exact.sort((a, b) => b.score - a.score);
@@ -217,10 +244,11 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
       if (used.has(p.k)) continue;
       const amtTx = Number(p.tx.amt) || 0;
       const dd = days(p.tx.timestamp || 0, r.line.ts);
-      const sim = descSimilarity(r.line.desc, p.tx.desc);
+      const sim = descSimilarity(r.line.merchant || r.line.desc, p.tx.desc);
       const rel = Math.abs(amtTx - r.line.amt) / Math.max(amtTx, r.line.amt, 1);
       const sameAmt = Math.abs(amtTx - r.line.amt) < 0.005;
-      const ok = (dd <= looseDays && (sim >= 0.34 || rel <= 0.1)) || (sameAmt && dd <= 10 && sim >= 0.34);
+      // Same purchase with a different amount (tip, GST, FX): the names must look alike, or the amounts must be nearly equal.
+      const ok = (dd <= looseDays && sim >= 0.34 && rel <= 0.35) || (rel <= 0.03 && dd <= windowDays) || (sameAmt && dd <= 10 && sim >= 0.34);
       if (!ok) continue;
       loose.push({ r, p, score: sim * 2 + (1 - rel) - dd * 0.05 });
     }
@@ -252,4 +280,28 @@ export function summarize(results) {
   const n = { matched: 0, differs: 0, new: 0, credit: 0, repeatsInStatement: 0 };
   for (const r of results) { n[r.status]++; if (r.repeatTotal > 1 && r.repeat === 1) n.repeatsInStatement++; }
   return n;
+}
+
+// DBS-style files start with "Card Transaction Details For:","DBS Vantage Visa Infinite Card 7736". Returns { name, last4 } or null.
+// Only the last four digits are ever kept.
+export function detectCardHint(rows) {
+  for (const r of rows.slice(0, 8)) {
+    if (/card transaction details|card name|account/i.test(r[0] || "") && r[1]) {
+      const m = /(\d{4})\D*$/.exec(r[1].trim());
+      return { name: r[1].replace(/[\d-]{4,}\s*$/, "").trim(), last4: m ? m[1] : "" };
+    }
+  }
+  return null;
+}
+// Suggests one of the app's card ids from a statement card name, or "" when unsure.
+export function suggestCardId(hint, enabledIds = [], remembered = {}) {
+  if (!hint) return "";
+  if (hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4])) return remembered[hint.last4];
+  const n = hint.name.toLowerCase();
+  const pick = id => (enabledIds.includes(id) ? id : "");
+  if (/vantage/.test(n)) return pick("dbs-vantage");
+  if (/altitude/.test(n)) return pick("dbs-altitude");
+  if (/yuu/.test(n)) return pick("dbs-yuu");
+  if (/woman|mastercard world|world mastercard/.test(n)) return pick("dbs-wwmc");
+  return "";
 }

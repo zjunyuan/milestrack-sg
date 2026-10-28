@@ -5,11 +5,34 @@ import { ALL_MASTER_CARDS } from "./config.js";
 import { saveTxToFirestore, updateVaultDoc } from "./firebase.js";
 import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
-import { findRetailerForInput, escapeHtml } from "./retailers.js";
+import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId } from "./statements.js";
 
-const S = { card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
+const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
+const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
+const saveRemembered = (m) => { try { localStorage.setItem(REMEMBER_KEY, JSON.stringify(m)); } catch { /* storage unavailable */ } };
+const titleCase = t => t.toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+// Name shown in the ledger: the known brand if we recognise it, else the cleaned merchant text.
+// Statement text runs words together ("SHENGSIONG", "GOPAY-GOJEK"), which the typeahead matcher misses, so also look for a
+// known brand name or alias (5+ letters, spaces removed) inside the merchant text. The longest hit wins.
+const compact = t => String(t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function lookupBrand(merchant) {
+  const direct = findRetailerForInput(merchant, state.merchantOverrides);
+  if (direct) return direct;
+  const m = compact(merchant);
+  let best = null, bestLen = 0;
+  for (const r of buildRetailerList(state.merchantOverrides)) {
+    for (const n of [r.name, ...(r.aliases || [])]) {
+      const c = compact(n);
+      if (c.length >= 5 && c.length > bestLen && m.includes(c)) { best = r; bestLen = c.length; }
+    }
+  }
+  return best;
+}
+const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
+
+const S = { hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
 
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
@@ -29,7 +52,7 @@ function cycleBucket(card, ts) {
 // Miles for an imported line are an estimate: bonus rate when the brand's MCC lists this card and the cycle's cap has room, else base.
 function estimateTx(card, line, spentInBucket) {
   let rate = card.baseMpd, bonus = false;
-  const retailer = findRetailerForInput(line.desc, state.merchantOverrides);
+  const retailer = lookupBrand(line.merchant || line.desc);
   const entry = retailer && getMccEntry(retailer.mcc);
   const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
   const room = card.monthlyCap >= 999999 || spentInBucket + line.amt <= card.monthlyCap;
@@ -79,8 +102,8 @@ function recompute() {
 
 function rowHtml(r, i) {
   const l = r.line;
-  const head = `<div class="st-line-main"><b>${escapeHtml(l.desc)}</b><span class="st-amt">${money(Math.abs(l.amt))}${l.amt < 0 ? " CR" : ""}</span></div>
-    <div class="st-sub">${dateLabel(l.ts)}${r.repeatTotal > 1 ? ` · appears ${r.repeatTotal}× on the statement (each kept as its own purchase)` : ""}</div>`;
+  const head = `<div class="st-line-main"><b>${escapeHtml(friendlyName(l))}</b><span class="st-amt">${money(Math.abs(l.amt))}${l.amt < 0 ? " CR" : ""}</span></div>
+    <div class="st-sub">${dateLabel(l.ts)}${l.pending ? " · ⏳ pending, the amount may still change" : ""}${l.fx ? ` · 🌏 foreign: ${escapeHtml(l.fx.cur)} ${fmtNum(l.fx.amount, 2)}` : ""} · <span title="${escapeHtml(l.desc)}">${escapeHtml(l.desc.length > 38 ? l.desc.slice(0, 36) + "…" : l.desc)}</span>${r.repeatTotal > 1 ? ` · appears ${r.repeatTotal}× on the statement (each kept as its own purchase)` : ""}</div>`;
   if (r.status === "differs") {
     return `<div class="st-line st-differs">${head}
       <div class="st-sub st-warn">⚠️ ${escapeHtml(r.reason)} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)})</div>
@@ -160,10 +183,10 @@ async function applyImport() {
         bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
         const id = String(base + (seq++));
         await saveTxToFirestore(id, {
-          id, owner: state.myVaultKey, timestamp: l.ts, desc: l.desc, amt: l.amt, cardId: card.id,
+          id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: card.id,
           bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
           date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
-          source: "statement", estimatedMiles: true, stmtKey: r.key
+          source: "statement", estimatedMiles: true, stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
         });
         rawDelta += est.earnedRawPoints; done++;
       } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
@@ -182,6 +205,7 @@ async function applyImport() {
       state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) + rawDelta);
       await updateVaultDoc(state.myVaultKey, state.myVault);
     }
+    if (S.hint && S.hint.last4) { const m = loadRemembered(); m[S.hint.last4] = card.id; saveRemembered(m); }
     closeStatementSheet();
     alert(`Imported ${done} transaction${done === 1 ? "" : "s"}.${addVault ? "" : " Your bank points balances were not changed."}`);
   } catch (err) {
@@ -201,6 +225,12 @@ async function onFile(file) {
   }
   const text = await file.text();
   S.rows = parseCsv(text);
+  S.hint = detectCardHint(S.rows);
+  const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered());
+  if (guess) { $("stCard").value = guess; S.card = ALL_MASTER_CARDS.find(c => c.id === guess); }
+  $("stCardHint").textContent = S.hint
+    ? (guess ? `Detected \"${S.hint.name}\" ending ${S.hint.last4}, so I picked ${S.card.name}. Change it if that's wrong.` : `The file says \"${S.hint.name}\" ending ${S.hint.last4}. Please pick the matching card above.`)
+    : "";
   const found = detectLayout(S.rows) || guessLayoutByContent(S.rows);
   S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy";
   renderMapping(); recompute();
@@ -211,7 +241,7 @@ export function openStatementSheet() {
   const cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
   sel.innerHTML = cards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
   S.card = cards[0] || null;
-  $("stFile").value = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
+  $("stFile").value = ""; $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
   $("btnStmtApply").disabled = true; $("btnStmtApply").textContent = "Choose a file";
   $("stmtOverlay")?.classList.add("open");
 }

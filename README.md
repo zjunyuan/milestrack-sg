@@ -236,3 +236,5 @@ Statements often come out before the month ends. "Import a bank statement (CSV)"
 - **Logged but not on this statement**: shown for information and left untouched (it may not have posted yet, or be on the wrong card).
 
 Importing the same file twice does nothing, because imported lines carry a fingerprint. Miles on imported lines are estimates from the card's rules and the merchant name (marked `estimatedMiles`); bank points balances are only changed if you tick the box. PDF statements are not supported yet. No Firestore rules changed.
+
+DBS card CSVs (Transaction Date, Description, Debit Amount, Credit Amount, Transaction Status) are recognised as they come: the card is picked from the line at the top of the file (and remembered by its last four digits on this device), "Pending" lines are flagged because their amounts can still change, foreign-currency lines show the original amount, and merchant text like "SHENGSIONG@TAMPCTRL506 SINGAPORE SGP" is cleaned and matched to a known brand ("Sheng Siong") so it lines up with what you log by hand. The original statement text is kept on each imported transaction.
