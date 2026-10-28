@@ -14,7 +14,7 @@ import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRul
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
 import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
-import { slipLine } from "./posting.js";
+import { slipLine, slipRisk } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
@@ -542,14 +542,15 @@ function renderRecommendationCore() {
       resultArea.innerHTML = `
         <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
           <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
-          ${mccData.notes}
+          ${notesHtml(mccData.notes)}
         </div>
         ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            Smart Waterfall Split: Earn ${fmtNum(Math.round(totalCombinedMiles))} miles across ${allocationSteps.length} cards${totalPending ? ` (+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached)` : ''}
+            Split across ${allocationSteps.length} cards · ${fmtNum(Math.round(totalCombinedMiles))} miles
           </div>
+          ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
           ${stepsHtml}
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -587,8 +588,7 @@ function renderRecommendationCore() {
 
   resultArea.innerHTML = `
     <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
-      <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
-      ${mccData.notes}
+      <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]${notesHtml(mccData.notes, true)}
     </div>
     ${isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : ''}
     <div class="rec-winner-title">
@@ -612,7 +612,19 @@ function renderRecommendationCore() {
 // Month-end warning for cards that count spend by posting date ("" when it is not near the end of the cycle).
 function postNoteHtml(card) {
   const line = slipLine(card, new Date());
-  return line ? `<div class="post-note">${line}</div>` : '';
+  if (!line) return '';
+  const r = slipRisk(card, new Date());
+  const label = r.level === 'likely' ? '⏳ Last day of cycle: may count to next month'
+    : r.level === 'maybe' ? '⏳ Cycle ends soon: may count to next month'
+    : r.level === 'grace' ? '🗓️ Maybank posting grace applies' : '🛒 Month-end timing: tap for detail';
+  return `<details class="post-note"><summary>${label}</summary><div class="post-note-body">${line}</div></details>`;
+}
+
+// The long "no hand-written rules" paragraph goes behind a tap; hand-written notes (promos, exclusions) stay visible.
+function notesHtml(notes, lead) {
+  const t = String(notes || '');
+  if (/No hand-written rules/i.test(t)) return `<details class="rec-notes"><summary>ℹ️ How this was chosen</summary><div>${t}</div></details>`;
+  return (lead ? '<br>' : '') + t;
 }
 
 // One-line "spend X more to unlock" note for a single-card result.

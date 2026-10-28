@@ -380,3 +380,11 @@ function showUpdateToast(worker) {
     worker.postMessage({ type: 'SKIP_WAITING' });
   };
 }
+
+// Touch devices: hide the floating + while the on-screen keyboard is up so it does not cover the form or results (v1.26.0).
+(function () {
+  if (!window.matchMedia || !matchMedia("(pointer: coarse)").matches) return;
+  const typing = el => el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  document.addEventListener("focusin", e => { if (typing(e.target)) document.body.classList.add("kb-open"); });
+  document.addEventListener("focusout", () => setTimeout(() => { if (!typing(document.activeElement)) document.body.classList.remove("kb-open"); }, 50));
+})();

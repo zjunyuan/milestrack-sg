@@ -48,6 +48,13 @@ export function initRetailerSuggest() {
     runRecommendation();
   }
 
+  // On touch devices, close the on-screen keyboard after a pick so the result is not hidden behind it, then bring the result into view.
+  function dropKeyboard() {
+    if (!window.matchMedia || !matchMedia("(pointer: coarse)").matches) return;
+    input.blur();
+    setTimeout(() => document.getElementById("recResultArea")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 150);
+  }
+
   function hide() { box.hidden = true; active = -1; }
 
   function highlight() {
@@ -59,6 +66,7 @@ export function initRetailerSuggest() {
     const item = items[i];
     if (!item) return;
     hide();
+    dropKeyboard();
     if (item.type === "switch") {
       setSearchMode(item.to);
       refresh();
