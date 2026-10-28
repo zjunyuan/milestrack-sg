@@ -882,3 +882,18 @@ input:checked + .slider:before { transform: translateX(22px); }
   #tabContentHistory > :nth-child(5) { grid-column: 2; grid-row: 2; }
   #tabContentHistory > :nth-child(6) { grid-column: 2; grid-row: 3 / span 3; }
 }
+
+/* Miles Vault redesign */
+.vault-hero-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vault-hero-label { font-size: 0.8rem; text-transform: uppercase; color: var(--primary); letter-spacing: 0.5px; }
+.vault-edit-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(158,202,255,0.12); color: var(--primary); border: 1px solid rgba(158,202,255,0.3); border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.vault-household-line { font-size: 0.82rem; color: #cbd5e1; margin-bottom: 4px; }
+.vault-household-line b { color: #fff; }
+.travel-goal-strip { background: rgba(158,202,255,0.08); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.travel-goal-strip .travel-goal-dest { font-size: 0.88rem; font-weight: 600; color: #fff; }
+.travel-goal-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.travel-goal-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; width: 0; }
+.vault-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vault-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 999px; padding: 6px 12px; font-size: 0.8rem; color: #cbd5e1; }
+.vault-chip b { color: #fff; }
+.vault-chip-empty { color: #94a3b8; }

@@ -293,7 +293,6 @@ document.getElementById('txFilterCardSelect')?.addEventListener('change', (e) =>
 });
 
 // Archive Modal Listeners
-document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', () => switchTab('history'));
 document.getElementById('archiveMonthSelect')?.addEventListener('change', () => { renderArchiveData(); renderTransactions(); });
 document.getElementById('btnExportArchiveCSV')?.addEventListener('click', exportArchiveMonthCSV);
 

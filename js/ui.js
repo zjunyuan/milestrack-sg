@@ -379,14 +379,20 @@ export function updateTravelGoal(personalTotalMiles) {
 
   const destEl = document.getElementById('travelGoalDest');
   const progEl = document.getElementById('travelGoalProgress');
+  const barEl = document.getElementById('travelGoalBar');
+  const floor = unlockedTier ? unlockedTier.totalMiles : 0;
+  const pct = nextTier
+    ? Math.max(0, Math.min(100, ((personalTotalMiles - floor) / (nextTier.totalMiles - floor)) * 100))
+    : 100;
+  if (barEl) barEl.style.width = `${pct.toFixed(0)}%`;
 
   if (!unlockedTier) {
     const firstTier = KRISFLYER_4PAX_TIERS[0];
-    destEl.innerHTML = `Starting accumulation`;
-    progEl.innerHTML = `Need <b>${fmtNum((firstTier.totalMiles - personalTotalMiles))}</b> more miles for 4x Return to <b>${firstTier.name}</b>`;
+    destEl.innerHTML = `✈️ 4 pax business return: starting`;
+    progEl.innerHTML = `<b>${fmtNum((firstTier.totalMiles - personalTotalMiles))}</b> more miles for <b>${firstTier.name}</b>`;
   } else {
-    destEl.innerHTML = `🎉 Unlocked: <b>${unlockedTier.name}</b>`;
-    progEl.innerHTML = nextTier ? `Need <b>${fmtNum((nextTier.totalMiles - personalTotalMiles))}</b> more miles for <b>${nextTier.name}</b>` : `🌟 Top tier reached!`;
+    destEl.innerHTML = `✈️ 4 pax business: <b>${unlockedTier.name}</b> ✓`;
+    progEl.innerHTML = nextTier ? `<b>${fmtNum((nextTier.totalMiles - personalTotalMiles))}</b> more miles for <b>${nextTier.name}</b>` : `🌟 Top tier reached`;
   }
 }
 
@@ -504,30 +510,30 @@ export function renderAllVaultsTally() {
   const card = document.getElementById('allVaultsTallyCard');
   const container = document.getElementById('allVaultsList');
   const grandTotalEl = document.getElementById('allVaultsGrandTotal');
+  const householdLine = document.getElementById('householdLine');
   if (!card || !container) return;
 
   // Only the household admin sees every vault.
-  card.style.display = state.userRole === 'PRIMARY' ? 'flex' : 'none';
-  if (state.userRole !== 'PRIMARY') return;
+  const isAdmin = state.userRole === 'PRIMARY';
+  card.style.display = isAdmin ? 'block' : 'none';
+  if (householdLine) householdLine.style.display = isAdmin ? 'block' : 'none';
+  if (!isAdmin) return;
 
   let grandTotal = 0;
-  container.innerHTML = ALL_VAULT_KEYS.map((key) => {
+  const filled = [];
+  const empty = [];
+  ALL_VAULT_KEYS.forEach((key) => {
     const vault = state.allVaultsData[key] || {};
     const miles = Object.values(vault).reduce(
       (sum, item) => sum + Math.floor((Number(item?.points) || 0) * (Number(item?.ratio) || 1)), 0);
     grandTotal += miles;
-    return `
-      <div class="vault-tally-row">
-        <div class="vault-row-info">
-          <span class="vault-row-dot ${key === 'primary' ? 'household' : key}"></span>
-          <div>
-            <div class="vault-row-name">${VAULT_LABELS[key] || key}</div>
-            <div class="vault-row-meta">Synced live</div>
-          </div>
-        </div>
-        <div class="vault-row-miles">${fmtNum(miles)} mi</div>
-      </div>`;
-  }).join('');
+    const label = VAULT_LABELS[key] || key;
+    (miles > 0 ? filled : empty).push({ key, label, miles });
+  });
+
+  container.innerHTML = filled.map(v => `
+      <span class="vault-chip"><span class="vault-row-dot ${v.key === 'primary' ? 'household' : v.key}"></span>${escapeHtml(v.label)} <b>${fmtNum(v.miles)}</b></span>`).join('')
+    + (empty.length ? `<span class="vault-chip vault-chip-empty">${escapeHtml(empty.map(v => v.label).join(', '))}: 0</span>` : '');
   if (grandTotalEl) grandTotalEl.textContent = `${fmtNum(grandTotal)} mi`;
 }
 
