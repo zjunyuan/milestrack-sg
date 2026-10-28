@@ -7,6 +7,7 @@ export const state = {
   myVaultKey: "primary",
   currentChannel: "inperson",
   isKrisPlusMode: false,
+  searchMode: "retailer",       // recommender search box: "retailer" | "mcc" (js/search-mode.js)
   isOverseasMode: false,
   isSingleSwipeMode: false,
   merchantOverrides: {},   // household brand->MCC corrections (Firestore milestrack_merchants)

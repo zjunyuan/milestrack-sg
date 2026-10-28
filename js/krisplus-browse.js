@@ -1,4 +1,5 @@
 // Browse and search every Kris+ earning merchant from the recommender. Tapping one fills the recommender with it.
+import { setSearchMode } from "./search-mode.js";
 import { KRISPLUS_MERCHANTS, KRISPLUS_META } from "./krisplus-merchants.js";
 import { normalizeText, escapeHtml } from "./retailers.js";
 
@@ -38,7 +39,7 @@ export function initKrisPlusBrowser() {
   $("kpList")?.addEventListener("click", e => {
     const row = e.target.closest(".kp-row"); if (!row) return;
     const input = $("mccInput");
-    if (input) { input.value = row.dataset.name; input.dispatchEvent(new Event("input", { bubbles: true })); input.scrollIntoView({ block: "center", behavior: "smooth" }); }
+    if (input) { setSearchMode("retailer"); input.value = row.dataset.name; input.dispatchEvent(new Event("input", { bubbles: true })); input.scrollIntoView({ block: "center", behavior: "smooth" }); }
     closeKrisPlusBrowser();
   });
 }

@@ -1,6 +1,7 @@
 // "Use it or lose it": unspent 4 mpd headroom, and HeyMax gift vouchers as a way to fill it before the cycle ends.
 // HeyMax gift card purchases code as MCC 5311 (Department Stores), which most bonus cards whitelist.
 // Source for the MCC: The Milelion, 28 May 2025. Voucher list and Max Miles rates: HeyMax explore page, 28 Oct 2026.
+import { setSearchMode } from "./search-mode.js";
 import { state } from "./state.js";
 import { getMccEntry } from "./mcc.js";
 import { calcEarnedMiles, getDaysUntilCycleEnd, runRecommendation } from "./recommender.js";
@@ -172,7 +173,7 @@ export function openHeymaxSheet() {
     const amt = document.getElementById("recAmount");
     if (amt) amt.value = String(Math.round(planAmt * 100) / 100);
     const mcc = document.getElementById("mccInput");
-    if (mcc) { mcc.value = HEYMAX_MCC; mcc.dispatchEvent(new Event("input", { bubbles: true })); }
+    if (mcc) { setSearchMode("mcc"); mcc.value = HEYMAX_MCC; mcc.dispatchEvent(new Event("input", { bubbles: true })); }
     runRecommendation();
     closeHeymaxSheet();
     mcc?.scrollIntoView({ behavior: "smooth", block: "center" });

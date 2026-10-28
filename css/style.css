@@ -809,3 +809,17 @@ input:checked + .slider:before { transform: translateX(22px); }
 /* Annual fee alert: calm until the renewal is two weeks away (v1.25.1) */
 .fee-alert-card.is-soon { background: rgba(239, 100, 90, 0.11); border-color: rgba(239, 100, 90, 0.45); }
 .fee-alert-card.is-soon .fee-alert-title { color: #f58f86; }
+
+/* Kris+ browse button lives in the Kris+ switch row (v1.24.2) */
+.rec-pref-actions { display:flex; align-items:center; gap:10px; }
+.kp-icon-btn { display:flex; align-items:center; justify-content:center; width:34px; height:30px; border-radius:9px; border:1px solid rgba(0,180,216,0.4); background:rgba(0,180,216,0.12); color:#67e8f9; cursor:pointer; padding:0; }
+.kp-icon-btn .material-symbols-outlined { font-size:19px; }
+.kp-icon-btn:hover { background:rgba(0,180,216,0.22); }
+
+/* Retailer / MCC search switch (v1.25.0) */
+.search-mode { display:grid; grid-template-columns:1fr 1fr; gap:4px; background:rgba(0,0,0,0.22); padding:3px; border-radius:12px; margin-bottom:8px; }
+.search-mode button { display:flex; align-items:center; justify-content:center; gap:6px; background:transparent; border:0; color:#94a3b8; font:inherit; font-size:0.8rem; font-weight:600; padding:7px; border-radius:9px; cursor:pointer; }
+.search-mode button .material-symbols-outlined { font-size:17px; }
+.search-mode button.active { background:var(--primary-container); color:#fff; }
+.rs-item.rs-switch { color:#cbd5e1; font-size:0.8rem; gap:8px; }
+.rs-item.rs-switch .material-symbols-outlined { font-size:18px; color:var(--primary); }

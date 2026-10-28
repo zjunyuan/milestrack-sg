@@ -3,13 +3,14 @@ import { state } from "./state.js";
 import { searchRetailers, normalizeText, escapeHtml } from "./retailers.js";
 import { runRecommendation, selectRetailer } from "./recommender.js";
 import { searchKrisPlus, krisPlusMcc } from "./krisplus-merchants.js";
+import { getSearchMode, setSearchMode } from "./search-mode.js";
 import { searchMccs, mccName, isKnownMcc, nearestMccs } from "./mcc.js";
 
 const CONF_LABEL = { high: "", medium: "varies", low: "unsure" };
 
-function categoryMatches(q) {
+function categoryMatches(q, textLimit = 3) {
   // Typing digits: show every code that starts with them (up to 8) so the right one can be picked.
-  return searchMccs(q, /^\d+$/.test(q) ? 8 : 3).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
+  return searchMccs(q, /^\d+$/.test(q) ? 8 : textLimit).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
 }
 
 export function initRetailerSuggest() {
@@ -37,6 +38,7 @@ export function initRetailerSuggest() {
   // Fill the box with the full "5311 · Department Stores" text so it is obvious which category is selected.
   function commitCategory(code) {
     state.selectedRetailer = null;
+    setSearchMode("mcc");
     const label = `${code} · ${mccName(code)}`;
     setCommitted(label);
     input.value = label;
@@ -57,9 +59,13 @@ export function initRetailerSuggest() {
     const item = items[i];
     if (!item) return;
     hide();
-    if (item.type === "retailer") {
+    if (item.type === "switch") {
+      setSearchMode(item.to);
+      refresh();
+    } else if (item.type === "retailer") {
       selectRetailer(item.retailer);
     } else if (item.type === "kris") {
+      setSearchMode("retailer");
       // Not a curated retailer: fill in the plain name. The recommender recognises it as a Kris+ merchant and ranks cards on an assumed MCC.
       state.selectedRetailer = null;
       setCommitted(item.kris.name);
@@ -80,6 +86,7 @@ export function initRetailerSuggest() {
     // A full 4-digit code we know is applied straight away. An unknown one gets its nearest neighbours instead of nothing.
     if (/^\d{4}$/.test(q)) {
       if (isKnownMcc(q)) return commitCategory(q);
+      setSearchMode("mcc");
       items = nearestMccs(q, 6).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
       active = -1;
       box.innerHTML = `<div class="rs-note">MCC ${escapeHtml(q)} isn't in our list yet. Closest codes:</div>` +
@@ -88,15 +95,25 @@ export function initRetailerSuggest() {
       return;
     }
     const retailerHits = searchRetailers(q, state.merchantOverrides, 6).map(({ retailer }) => ({ type: "retailer", retailer }));
-    const known = retailerHits.flatMap(h => [h.retailer.name, ...(h.retailer.aliases || [])]);
-    items = [
-      ...retailerHits,
-      ...searchKrisPlus(q, 4, known).map(kris => ({ type: "kris", kris })),
-      ...categoryMatches(q)
-    ];
-    if (!items.length) return hide();
+    if (getSearchMode() === "retailer") {
+      const known = retailerHits.flatMap(h => [h.retailer.name, ...(h.retailer.aliases || [])]);
+      items = [...retailerHits, ...searchKrisPlus(q, 4, known).map(kris => ({ type: "kris", kris }))];
+      if (!items.length) {
+        if (!categoryMatches(q).length) return hide();
+        items = [{ type: "switch", to: "mcc", label: `No retailer matches "${q}". Search it as an MCC category instead` }];
+      }
+    } else {
+      items = categoryMatches(q, 6);
+      if (!items.length) {
+        if (!retailerHits.length) return hide();
+        items = [{ type: "switch", to: "retailer", label: `"${q}" looks like a retailer name. Search it as a retailer instead` }];
+      }
+    }
     active = -1;
     box.innerHTML = items.map((item, i) => {
+      if (item.type === "switch") {
+        return `<div class="rs-item rs-switch" role="option" data-i="${i}"><span class="material-symbols-outlined">swap_horiz</span><span class="rs-name">${escapeHtml(item.label)}</span></div>`;
+      }
       if (item.type === "category") {
         return `<div class="rs-item" role="option" data-i="${i}"><span class="rs-name">${escapeHtml(item.label)}</span><span class="rs-tag">category</span></div>`;
       }

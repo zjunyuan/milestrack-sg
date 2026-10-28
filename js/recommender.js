@@ -15,6 +15,7 @@ import { CITI_INSTORE_MCCS } from "./cardrules.js";
 import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { slipLine } from "./posting.js";
+import { setSearchMode } from "./search-mode.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -89,6 +90,7 @@ export function selectRetailer(retailer) {
 export function applyRetailerSelection(name, mcc) {
   const label = `${name} · ${mcc} · ${mccName(mcc)}`;
   state.selectedRetailer = { name, mcc, label };
+  setSearchMode('retailer');
   const input = document.getElementById('mccInput');
   if (input) {
     input.value = label;
