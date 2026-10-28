@@ -162,7 +162,6 @@ document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async
 });
 
 document.getElementById('btnOpenVaultBalances')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
-document.getElementById('btnSummaryUpdateVault')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
 
 document.getElementById('btnTabCards')?.addEventListener('click', () => switchTab('cards'));
 document.getElementById('btnTabCategory')?.addEventListener('click', () => switchTab('category'));
