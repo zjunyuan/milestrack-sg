@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.13.0";
+export const APP_VERSION = "v1.14.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -362,6 +362,7 @@ export const ALL_MASTER_CARDS = [
     minSpend: 0, 
     bonusMpd: 2.4, 
     baseMpd: 1.2, 
+    tierRule: { kind: 'annual-sia', at: 1000, mpd: 2.4 },
     engine: 'uob-5', 
     cycleType: 'uncapped', 
     strategyType: 'whitelist',
@@ -381,6 +382,7 @@ export const ALL_MASTER_CARDS = [
     minSpend: 800, 
     bonusMpd: 3.2, 
     baseMpd: 0.4, 
+    tierRule: { kind: 'monthly', scope: 'Foreign-currency spend:', steps: [{ at: 800, mpd: 2.8 }, { at: 4000, mpd: 3.2 }] },
     engine: 'citi-1', 
     cycleType: 'calendar', 
     strategyType: 'whitelist',
@@ -400,6 +402,7 @@ export const ALL_MASTER_CARDS = [
     minSpend: 800, 
     bonusMpd: 2.8, 
     baseMpd: 0.4, 
+    tierRule: { kind: 'monthly', scope: 'Foreign-currency and air-ticket spend:', steps: [{ at: 800, mpd: 2.8 }] },
     engine: 'citi-1', 
     cycleType: 'calendar', 
     strategyType: 'whitelist',

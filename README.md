@@ -131,3 +131,15 @@ Eight cards no longer rely on hand-written category lists. `js/cardrules.js` hol
 - **Maintenance:** sources and retrieval dates are in the header of `js/cardrules.js`. Update the sets there when a bank changes its terms.
 - **Not modelled yet:** KrisFlyer UOB 2.4 mpd (needs S$1,000 SIA Group spend per membership year), UOB PRVI 3.0 mpd on IDR/MYR/THB/VND, UOB Lady's other categories.
 - Firestore rules are unchanged.
+
+
+## 🎚 Spend-Tier Cards (v1.14.0)
+
+Cards whose bonus needs a minimum spend show progress to it instead of an "Uncapped" or "Cap" line.
+
+- **KrisFlyer UOB:** 2.4 mpd needs S$1,000 of SIA Group spend (SIA, Scoot, KrisShop, Kris+, Pelago, matched on the transaction description) in the membership year. Set the membership-year start month in Settings; otherwise the calendar year is used. UOB credits the tier after the year ends, and the card says so.
+- **Maybank World:** S$800/month unlocks 2.8 mpd, S$4,000/month unlocks 3.2 mpd. **Maybank Horizon:** S$800/month unlocks 2.8 mpd.
+- The card badge reads "now → top rate", the bar shows progress with tier markers, and the card detail view explains the rule.
+- A recommendation that names a card whose tier is not unlocked yet gets a warning line.
+- Rules live in each card's `tierRule` in `js/config.js`; the logic is in `js/tiers.js`.
+- Limit: spend is totalled from what you log on the card, so Maybank's foreign-currency and air-ticket conditions are not separated out.

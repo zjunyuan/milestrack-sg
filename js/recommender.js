@@ -11,6 +11,7 @@ import {
 } from "./retailers.js";
 import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
+import { tierStatus, lockedWarning } from "./tiers.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -501,9 +502,31 @@ function renderRecommendation() {
   });
 }
 
+// Adds a warning under the result when it names a card whose bonus tier is not unlocked yet.
+function decorateTierCallouts() {
+  const box = document.getElementById('recResultArea');
+  if (!box) return;
+  box.querySelectorAll('.tier-callout').forEach(n => n.remove());
+  const text = box.textContent || '';
+  const lines = [];
+  for (const card of state.cards) {
+    if (!card.tierRule || !text.includes(card.name)) continue;
+    if (card.id === 'kf-uob' && state.isKrisPlusMode) continue;   // Kris+ is the 3 mpd rate, no SIA spend needed
+    const w = lockedWarning(card, tierStatus(card, { spend: card.currentSpend || 0, txns: state.transactions, renewalYm: state.uobRenewals.kf }));
+    if (w) lines.push(w);
+  }
+  if (lines.length) {
+    const div = document.createElement('div');
+    div.className = 'tier-callout';
+    div.innerHTML = lines.map(l => '⚠️ ' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>');
+    box.appendChild(div);
+  }
+}
+
 export function runRecommendation() {
   applyRateSchedule();
   renderRecommendation();
+  decorateTierCallouts();
   decorateRetailerTools();
   decorateRuleTools();
 }
