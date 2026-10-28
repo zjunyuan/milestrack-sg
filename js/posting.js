@@ -19,6 +19,9 @@ export const POSTING_META = {
   url: "https://milelion.com/2026/07/30/which-cards-track-spending-by-transaction-date-vs-posting-date/"
 };
 
+// The month-end warning in the recommender only appears for a charge of at least this much (S$). A smaller one would not change the decision.
+export const SLIP_ALERT_MIN = 600;
+
 const DAY = 86400000;
 const TXN = { basis: "transaction", note: "DBS counts the transaction date, but possibly in the merchant's or acquirer's timezone. To be safe, avoid spending on the last day of the month and the 1st." };
 const POST = { basis: "posting", note: "Counted when the bank posts the charge, usually 1-3 days after you pay (longer over weekends and public holidays)." };

@@ -14,7 +14,7 @@ import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRul
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
 import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
-import { slipLine, slipRisk } from "./posting.js";
+import { slipLine, slipRisk, SLIP_ALERT_MIN } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
@@ -521,7 +521,7 @@ function renderRecommendationCore() {
               <div>
                 ${icon} <b>${step.card.name}</b>: Charge <b>$${fmtNum(step.amount, 2)}</b>
                 <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
-                ${postNoteHtml(step.card)}
+                ${postNoteHtml(step.card, step.amount)}
                 ${step.gate && step.gate.locked ? `<div class="unlock-note">⚠️ Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> on this card by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d left) to unlock ${step.gate.unlockMpd} mpd. Until then it earns ${step.card.baseMpd} mpd.</div>` : (step.gate ? `<div class="unlock-note unlock-ok">✅ S$${fmtNum(step.gate.min)} minimum met with this charge</div>` : '')}
               </div>
             </div>
@@ -642,7 +642,8 @@ function updateOptionsBadge() {
 }
 
 // Month-end warning for cards that count spend by posting date ("" when it is not near the end of the cycle).
-function postNoteHtml(card) {
+function postNoteHtml(card, amount) {
+  if (!(Number(amount) >= SLIP_ALERT_MIN)) return '';   // small spend: it would not change what you do
   const line = slipLine(card, new Date());
   if (!line) return '';
   const r = slipRisk(card, new Date());
@@ -662,7 +663,7 @@ function notesHtml(notes, lead) {
 // One-line "spend X more to unlock" note for a single-card result.
 function singleGateHtml(card, amt, rate, daysLeft) {
   const gate = minSpendGate(card, { cardSpend: Number(card.currentSpend) || 0, amount: amt, rate, overseas: state.isOverseasMode });
-  const post = postNoteHtml(card);
+  const post = postNoteHtml(card, amt);
   if (!gate || !gate.locked) return post;
   const extra = Math.max(0, calcEarnedMiles(card, amt, gate.unlockMpd) - calcEarnedMiles(card, amt, card.baseMpd));
   return post + `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${card.baseMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
