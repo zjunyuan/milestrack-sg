@@ -627,6 +627,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .rs-tag.rs-medium { background: rgba(251,191,36,0.15); color: var(--gold); }
 .rs-tag.rs-low { background: rgba(239,68,68,0.15); color: var(--danger); }
 .rs-tag.rs-ok { background: rgba(74,222,128,0.15); color: var(--accent); }
+.rs-tag.rs-kris { background: rgba(34,211,238,0.15); color: #22d3ee; }
 .rs-tag.rs-promo { background: rgba(192,132,252,0.18); color: var(--purple); }
 
 .retailer-tools { display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px; margin-top: 2px; }

@@ -773,3 +773,31 @@ const MCC_OVERRIDES = {
   "ACE Fresh": "5411", "ACE Marketplace": "5411", "ACE Signature": "5411", "All India Supermart": "5411"
 };
 export const krisPlusMcc = (m) => MCC_OVERRIDES[m.name] || CATEGORY_MCC[m.category] || "5999";
+
+// Typeahead matches for the recommender's dropdown. Prefix of the name beats prefix of a word, which beats a substring (3+ letters).
+// Merchants already shown as curated retailers (same name) are skipped by the caller. Returns [{ name, category, mpd }].
+export function searchKrisPlus(query, limit = 4, skipNames = []) {
+  const q = normalizeText(query || "");
+  if (q.length < 2 || /^\d+$/.test(q)) return [];
+  const skip = new Set(skipNames.map(normalizeText));
+  const scored = [];
+  for (const m of KRISPLUS_MERCHANTS) {
+    if (skip.has(m.base) || skip.has(m.full)) continue;
+    let s = 0;
+    if (m.base === q || m.full === q) s = 100;
+    else if (m.base.startsWith(q) || m.full.startsWith(q)) s = 80;
+    else if (m.baseTokens.some(t => t.startsWith(q))) s = 70;
+    else if (q.length >= 3 && m.base.includes(q)) s = 55;
+    if (s) scored.push({ m, s });
+  }
+  scored.sort((a, b) => b.s - a.s || b.m.mpd - a.m.mpd || a.m.name.length - b.m.name.length);
+  const seen = new Set();
+  const out = [];
+  for (const { m } of scored) {
+    if (seen.has(m.name)) continue;
+    seen.add(m.name);
+    out.push(m);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
