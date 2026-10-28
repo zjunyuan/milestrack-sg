@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.15.0";
+export const APP_VERSION = "v1.16.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -16,8 +16,8 @@ export const TEST_EMAILS = ["junyuanxeunice@gmail.com"];
 // Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
 export const ALL_VAULT_KEYS = ["primary", "sister", "ellice", "eugene", "test"];
 export const VAULT_LABELS = {
-  primary: "Household",
-  sister: "Sister",
+  primary: "Zhangs",
+  sister: "Minsi",
   ellice: "Ellice",
   eugene: "Eugene",
   test: "Test"

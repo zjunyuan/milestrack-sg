@@ -1,6 +1,6 @@
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule } from "./config.js";
 import { state } from "./state.js";
-import { openModal, onCardSelectChange, checkShellMerchantTrigger } from "./ui.js";
+import { openModal, onCardSelectChange, checkShellMerchantTrigger, cardThumbHtml } from "./ui.js";
 import {
   buildRetailerList,
   findRetailerForInput,
@@ -303,7 +303,7 @@ function renderRecommendation() {
       </div>
 
       <div class="rec-winner-title">
-        <span>⭐ <b>${winner.card.name}</b></span>
+        <span class="rec-winner-name">${cardThumbHtml(winner.card, 'card-thumb-rec')}<span>⭐ <b>${winner.card.name}</b></span></span>
         <span style="color:var(--accent); font-weight:700;">+${Math.round(winner.totalMiles).toLocaleString()} mi (${winner.effectiveRate} mpd)</span>
       </div>
       <div class="rec-winner-meta">
@@ -438,9 +438,12 @@ function renderRecommendation() {
         const icon = numberEmojis[idx] || `${idx + 1}️⃣`;
         stepsHtml += `
           <div class="cascade-step">
-            <div>
-              ${icon} <b>${step.card.name}</b>: Charge <b>$${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-              <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
+            <div class="cascade-card">
+              ${cardThumbHtml(step.card, 'card-thumb-sm')}
+              <div>
+                ${icon} <b>${step.card.name}</b>: Charge <b>$${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                <div style="font-size:0.72rem; color:#94a3b8;">${step.isBase ? `General Fallback (${step.rate} mpd)` : `${step.rate} mpd bonus tier`}</div>
+              </div>
             </div>
             <span style="color:var(--accent); font-weight:700;">+${Math.round(step.miles).toLocaleString()} mi</span>
           </div>
@@ -506,7 +509,7 @@ function renderRecommendation() {
     </div>
     ${isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : ''}
     <div class="rec-winner-title">
-      <span>⭐ <b>${singleCard.card.name}</b></span>
+      <span class="rec-winner-name">${cardThumbHtml(singleCard.card, 'card-thumb-rec')}<span>⭐ <b>${singleCard.card.name}</b></span></span>
       <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${Math.round(calculatedMiles).toLocaleString()} mi)</span>
     </div>
     <div class="rec-winner-meta">

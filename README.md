@@ -190,3 +190,10 @@ UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v
 - Picking a category from the suggestions, or typing a complete known 4-digit code, now fills the box with the full text (for example **5311 · Department Stores**) and turns it green, so it is obvious which MCC is selected.
 - Picking a retailer does the same: the box shows the brand with its MCC and category (for example **Starbucks · 5814 · Fast Food & Quick Service**). Choosing an alternative category chip updates the MCC in the box, and "Reset to default" puts the built-in one back.
 - Tapping the box selects the whole text, so typing starts a new search. Any edit clears the green state. The ✕ button resets it.
+
+
+## 🖼 Bigger Cards, Earning Profile, Names (v1.16.0)
+
+- **Card artwork is larger** (real cards are 1.586:1): 96x61 in the card list (80x51 on small phones), 128x81 on the recommendation itself, 64x40 per step in a split, and 140x88 in the card detail sheet. The recommended card is now shown with its picture.
+- **Earning profile & rules** in the card detail sheet is filled in: bonus and base mpd, any spend tiers or minimums, cap, channel (online, in-person, contactless only), whether the card is blacklist or whitelist, upcoming rate changes, the card's hint, and its bonus categories.
+- **Renames:** the main total reads **Zhangs Total Miles**; the Household vault is labelled **Zhangs** and Sister is **Minsi**. Vault IDs are unchanged, so no data moves.
