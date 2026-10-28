@@ -166,3 +166,20 @@ All medium confidence, set by the household (not bank-confirmed).
 - **5655 (sports apparel and footwear):** Nike and Adidas (moved from 5651), Puma, New Balance, Asics, Under Armour, Reebok, Fila, Saucony, Hoka, On Running, Mizuno, Onitsuka Tiger, Salomon. 5661 and 5941 are offered as alternatives.
 - **5661 (shoe stores):** Vincci, Bata, Hush Puppies, Skechers, Clarks, Crocs, Birkenstock, Dr. Martens, Havaianas, Ecco, Geox, Rockport, Camper, Aldo, Steve Madden, Call It Spring, Ugg, Timberland, Converse, Vans, Foot Locker, Sneakers Mania, Limited Edt, Allbirds, Bata Kids, Clarks Kids, Pazzion, plus Charles & Keith and Pedro from before.
 - 5655 and 5661 earn the same on our modelled cards; 5941 (sporting goods) differs only for HSBC Revolution, which excludes it.
+
+
+## 🛍 UOB Preferred Visa Online Rule (v1.14.3)
+
+UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v3.0, 10 Mar 2026) of eligible online MCCs, so it appears for every qualifying category instead of only the hand-written ones. That adds shoe stores (5661), men's and women's clothing (5691) and many other retail, dining and entertainment codes. It does **not** cover sports apparel (5655), sporting goods (5941) or air tickets. Online retail purchases only, not recurring payments, S$600/month sub-cap.
+
+
+## ⌨️ MCC Typeahead Fix (v1.14.4)
+
+- Typing the first digits of an MCC now lists up to 8 matching codes (it was 3), so the right one can be picked.
+- Typing a full 4-digit code we don't have (for example 5094) no longer shows nothing: the list shows the closest known codes and the result says the code isn't in our list yet.
+
+
+## ✈️ Airline and Watch MCCs (v1.14.5)
+
+- **Airline codes 3000-3299** (one code per carrier) are now recognised. Each follows the Airlines (4511) rules, and typing a prefix like "30" lists matching codes.
+- **5094 Precious Stones, Metals, Watches & Jewelry** is now a known category (Rolex offers it as an alternative to 5944).

@@ -3,7 +3,7 @@
 // relying on hand-written per-category lists. Cards not listed here keep their lists in MCC_DATABASE.
 //
 // Sources (retrieved 28 Oct 2026). If a bank changes its terms, update the sets here and the date in `source`.
-//   UOB Visa Signature T&C v2.1 (28 Oct 2025), UOB Preferred Visa T&C v3.0 (10 Mar 2026)
+//   UOB Visa Signature T&C v2.1 (28 Oct 2025), UOB Preferred Visa T&C v3.0 (10 Mar 2026; Selected Online Transactions MCCs, section 1(a)(ix))
 //   OCBC Rewards T&C (updated 5 Oct 2026), HSBC Revolution T&C (effective 1 Apr 2026)
 //   DBS Woman's Card T&C (27 Jul 2026), DBS Rewards Programme T&C (Sep 2026)
 //   Citi Rewards 10X T&C (effective 1 Apr 2024) + MileLion review (27 Feb 2026) for the MCC ranges
@@ -77,6 +77,15 @@ const hsbcEligible = mccMatcher([
 // of air-ticket spend. Other local categories earn only 1.2 mpd, below the everyday cards, so they are not listed.
 const horizonAirTickets = mccMatcher(["4511", "3000-3350"]);
 
+// UOB Preferred Platinum Visa online: 4 mpd only at these MCCs (online retail purchase via website, not recurring), S$600/month sub-cap
+const PPV_ONLINE_MCCS = set(
+  "4816", "5262", "5306", "5309", "5310", "5311", "5331", "5399", "5611", "5621", "5631", "5641", "5651", "5661", "5691", "5699",
+  "5732", "5733", "5734", "5735", "5912", "5942", "5944", "5945", "5946", "5947", "5948", "5949", "5964", "5966", "5967", "5968",
+  "5969", "5970", "5992", "5999",                                       // department and retail stores
+  "5811", "5812", "5814", "5333", "5411", "5441", "5462", "5499", "8012", "9751",   // supermarkets, dining, food delivery
+  "7278", "7832", "7841", "7922", "7991", "7996", "7998", "7999"                    // entertainment and ticketing
+);
+
 // ---- rule table ----------------------------------------------------------------------------------
 // local / overseas: returns the bonus rate for that MCC, or 0 when not eligible.
 
@@ -84,6 +93,8 @@ export const CARD_RULES = {
   "uob-vs-contactless": { local: (c) => (UOB_EXCLUDED.has(c) ? 0 : 4.0), overseas: () => 0,
     source: "UOB Visa Signature T&C v2.1, 28 Oct 2025" },
   "uob-ppv-contactless": { local: (c) => (UOB_EXCLUDED.has(c) ? 0 : 4.0), overseas: (c) => (UOB_EXCLUDED.has(c) ? 0 : 4.0),
+    source: "UOB Preferred Visa T&C v3.0, 10 Mar 2026" },
+  "uob-ppv-online": { local: (c) => (PPV_ONLINE_MCCS.has(c) ? 4.0 : 0), overseas: null,
     source: "UOB Preferred Visa T&C v3.0, 10 Mar 2026" },
   "uob-vs-fcy": { local: () => 0, overseas: (c) => (UOB_EXCLUDED.has(c) ? 0 : 4.0),
     source: "UOB Visa Signature T&C v2.1, 28 Oct 2025" },

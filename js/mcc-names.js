@@ -94,6 +94,7 @@ export const MCC_NAMES = {
   "5941": "Sporting Goods Stores",
   "5942": "Book Stores",
   "5943": "Stationery, Office & School Supply Stores",
+  "5094": "Precious Stones, Metals, Watches & Jewelry",
   "5944": "Jewelry, Watch, Clock & Silverware Stores",
   "5945": "Hobby, Toy & Game Shops",
   "5946": "Camera & Photographic Supply Stores",

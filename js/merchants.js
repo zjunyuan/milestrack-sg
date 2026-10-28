@@ -2,12 +2,13 @@
 import { state } from "./state.js";
 import { searchRetailers, normalizeText, escapeHtml } from "./retailers.js";
 import { runRecommendation, selectRetailer } from "./recommender.js";
-import { searchMccs, mccName } from "./mcc.js";
+import { searchMccs, mccName, isKnownMcc, nearestMccs } from "./mcc.js";
 
 const CONF_LABEL = { high: "", medium: "varies", low: "unsure" };
 
 function categoryMatches(q) {
-  return searchMccs(q, 3).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
+  // Typing digits: show every code that starts with them (up to 8) so the right one can be picked.
+  return searchMccs(q, /^\d+$/.test(q) ? 8 : 3).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
 }
 
 export function initRetailerSuggest() {
@@ -48,7 +49,17 @@ export function initRetailerSuggest() {
 
   function refresh() {
     const q = input.value.trim();
-    if (!q || /^\d{4}$/.test(q)) return hide();
+    if (!q) return hide();
+    // A full 4-digit code we know is applied straight away. An unknown one gets its nearest neighbours instead of nothing.
+    if (/^\d{4}$/.test(q)) {
+      if (isKnownMcc(q)) return hide();
+      items = nearestMccs(q, 6).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
+      active = -1;
+      box.innerHTML = `<div class="rs-note">MCC ${escapeHtml(q)} isn't in our list yet. Closest codes:</div>` +
+        items.map((item, i) => `<div class="rs-item" role="option" data-i="${i}"><span class="rs-name">${escapeHtml(item.label)}</span><span class="rs-tag">category</span></div>`).join("");
+      box.hidden = false;
+      return;
+    }
     items = [
       ...searchRetailers(q, state.merchantOverrides, 6).map(({ retailer }) => ({ type: "retailer", retailer })),
       ...categoryMatches(q)

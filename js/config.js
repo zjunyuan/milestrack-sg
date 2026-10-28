@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.14.2";
+export const APP_VERSION = "v1.14.5";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -191,7 +191,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: 'Shopee, Lazada, FairPrice Online, GrabFood, Fast Food & whitelisted Kris+ dining/retail.', 
+    hint: '4 mpd on online retail purchases at whitelisted MCCs (department and retail, supermarkets, dining and food delivery, entertainment). S$600/month sub-cap. Not air tickets, and not sporting goods (5941) or sports apparel (5655).', 
     isContactlessOnly: false,
     channelMode: 'online',
     themeClass: 'thumb-uob'

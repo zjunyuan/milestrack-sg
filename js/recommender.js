@@ -179,7 +179,7 @@ function renderRecommendation() {
           ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
           : (state.isOverseasMode 
             ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-            : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).')}
+            : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).'))}
       </div>
     `;
     return;
