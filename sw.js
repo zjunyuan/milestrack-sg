@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.20.4';
+const CACHE_NAME = 'milestrack-cache-v1.20.5';
 
 const CORE_ASSETS = [
   './',
@@ -102,15 +102,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // The app's own pages, scripts and styles: network first (so an update is never half-applied), cache when offline.
+  // The app's own pages, scripts and styles: network first (so an update is never half-applied), cache when offline or when the
+  // network is slow (8s). Written defensively: Safari is strict about re-creating navigation requests, so those are fetched as they are.
   const own = url.origin === self.location.origin && (event.request.mode === 'navigate' || /\.(js|mjs|css|html|json)$/.test(url.pathname));
   if (own) {
-    event.respondWith(
-      fetch(new Request(event.request, { cache: 'no-cache' })).then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(event.request, copy)); }
+    event.respondWith((async () => {
+      let req = event.request;
+      if (req.mode !== 'navigate') { try { req = new Request(req.url, { cache: 'no-cache', credentials: req.credentials }); } catch (e) { req = event.request; } }
+      const fromCache = () => caches.match(event.request, { ignoreSearch: true }).then((hit) => hit || (event.request.mode === 'navigate' ? caches.match('./index.html') : undefined));
+      const net = fetch(req).then((res) => {
+        if (res && res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(event.request, copy)).catch(() => {}); }
         return res;
-      }).catch(() => caches.match(event.request, { ignoreSearch: true }).then((hit) => hit || caches.match('./index.html')))
-    );
+      });
+      try {
+        const first = await Promise.race([net, new Promise((r) => setTimeout(() => r(null), 8000))]);
+        if (first) return first;
+        return (await fromCache()) || net;          // slow network: use the cached copy if there is one, otherwise keep waiting
+      } catch (e) {
+        const hit = await fromCache();
+        if (hit) return hit;
+        return fetch(event.request);                // last resort: plain request, never leave the page without an answer
+      }
+    })());
     return;
   }
 

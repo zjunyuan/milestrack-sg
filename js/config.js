@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.20.4";
+export const APP_VERSION = "v1.20.5";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",

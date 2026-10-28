@@ -265,3 +265,7 @@ A phone left with a blank screen by a half-applied update no longer needs its si
 ## 🧯 On-screen error panel (v1.20.4)
 
 If the app cannot start, you now see a panel instead of a blank page: the app version, whether you are online, the service worker state, the browser, and the errors the page captured, with **Reset app files and reload** (clears cached app files only, never your data) and **Copy details**. It appears after the automatic recovery from v1.20.3 has already been tried once. Add `?debug` to the address (for example `https://your-site/?debug`) to open the same panel on a working app.
+
+## 🍎 Safari-safe service worker (v1.20.5)
+
+The v1.20.2 network-first service worker rebuilt navigation requests, which iPhone Safari can reject, leaving the page loading forever. Navigations are now fetched as they are, other app files use a no-cache request, a slow network (8s) falls back to the cached copy, and any failure ends in a plain fetch so a page is never left without a response.
