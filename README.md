@@ -303,6 +303,7 @@ Picking a specific merchant such as Sheng Siong used to rank the DBS yuu card fi
 ## 🍵 CHAGEE counts for yuu in-app only (v1.22.5)
 
 CHAGEE only counts as a DBS yuu merchant when you pay in its app. In the recommender, CHAGEE now gets DBS yuu only on **Online / In-App**; on In-Person yuu is left out with a note saying so. The yuu card hint and the CHAGEE retailer note say the same. No Firestore rules changed.
+
 ## 🗓️ Transaction date vs posting date (v1.23.0)
 
 Banks count your spend toward a cap or minimum by either the **transaction date** (the day you paid) or the **posting date** (the day the bank posts it, usually 1 to 3 days later). Near the end of a cycle that decides which cycle a purchase lands in. Source: The MileLion, "Which cards track spending by transaction date vs posting date?", 30 Jul 2026: https://milelion.com/2026/07/30/which-cards-track-spending-by-transaction-date-vs-posting-date/ (a third-party summary, not bank T&Cs; rules live in `js/posting.js`).
