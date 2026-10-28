@@ -62,7 +62,7 @@ export function checkOcbc6MpdPromo(input) {
 // Returns the retailer for typed text, honouring a typeahead pick / alt-category chip.
 function resolveRetailer(input) {
   const sel = state.selectedRetailer;
-  if (sel && normalizeText(input) === normalizeText(sel.name)) {
+  if (sel && (normalizeText(input) === normalizeText(sel.name) || (sel.label && normalizeText(input) === normalizeText(sel.label)))) {
     const entry = buildRetailerList(state.merchantOverrides).find(r => normalizeText(r.name) === normalizeText(sel.name));
     if (entry) return { ...entry, defaultMcc: entry.mcc, mcc: sel.mcc };
   }
@@ -72,12 +72,24 @@ function resolveRetailer(input) {
 
 // Called by the typeahead when the user picks a suggestion.
 export function selectRetailer(retailer) {
-  state.selectedRetailer = { name: retailer.name, mcc: retailer.mcc };
-  const input = document.getElementById('mccInput');
-  if (input) input.value = retailer.name;
+  applyRetailerSelection(retailer.name, retailer.mcc);
   const clearBtn = document.getElementById('btnClearMcc');
   if (clearBtn) clearBtn.style.display = 'flex';
   runRecommendation();
+}
+
+// Selects a brand with a given MCC and fills the box with the full text ("Starbucks · 5814 · Fast Food Restaurants"),
+// so the person can see exactly which category is in use. The caller re-runs the recommender.
+export function applyRetailerSelection(name, mcc) {
+  const label = `${name} · ${mcc} · ${mccName(mcc)}`;
+  state.selectedRetailer = { name, mcc, label };
+  const input = document.getElementById('mccInput');
+  if (input) {
+    input.value = label;
+    input.dataset.committed = label;
+    input.closest('.mcc-input-wrapper')?.classList.add('has-selection');
+  }
+  return label;
 }
 
 export function resolveMccEntry(input) {
@@ -86,6 +98,14 @@ export function resolveMccEntry(input) {
 
   const promo = checkOcbc6MpdPromo(clean);
   if (promo) return promo;
+
+  // A brand picked from the list: its box text contains the MCC, so resolve it as the brand, not as a bare code.
+  const picked = state.selectedRetailer;
+  if (picked && picked.label && normalizeText(clean) === normalizeText(picked.label)) {
+    const retailer = resolveRetailer(clean);
+    const entry = retailer && getMccEntry(retailer.mcc);
+    if (entry) return { ...entry, retailer };
+  }
 
   const codeMatch = clean.match(/\b\d{4}\b/);
   if (codeMatch) {
@@ -551,9 +571,7 @@ async function saveMerchantFix({ name, mcc, aliases = [] }) {
   const merged = [...new Set(aliases.map(a => a.trim().slice(0, 60)).filter(a => a && normalizeText(a) !== normalizeText(cleanName)))].slice(0, 10);
   // Optimistic: show the fix immediately; the Firestore listener confirms it.
   state.merchantOverrides = { ...previous, [slug]: { name: cleanName, mcc, aliases: merged } };
-  state.selectedRetailer = { name: cleanName, mcc };
-  const input = document.getElementById('mccInput');
-  if (input) input.value = cleanName;
+  applyRetailerSelection(cleanName, mcc);
   runRecommendation();
 
   try {
@@ -571,13 +589,17 @@ async function removeMerchantFix(slug) {
   const next = { ...previous };
   delete next[slug];
   state.merchantOverrides = next;
-  state.selectedRetailer = null;
+  const prevSel = state.selectedRetailer;
+  // Back to the built-in category: re-select the brand so the box shows its default MCC.
+  const base = buildRetailerList(next).find(r => r.slug === slug);
+  if (base) applyRetailerSelection(base.name, base.mcc); else state.selectedRetailer = null;
   runRecommendation();
   try {
     await deleteMerchantOverride(slug);
   } catch (e) {
     console.error('Removing merchant fix failed:', e);
     state.merchantOverrides = previous;
+    if (prevSel) applyRetailerSelection(prevSel.name, prevSel.mcc);
     runRecommendation();
     alert('Could not remove this correction: ' + e.message);
   }
@@ -659,8 +681,7 @@ function decorateRetailerTools() {
   resultArea.appendChild(box);
 
   box.querySelectorAll('[data-alt]').forEach(btn => btn.addEventListener('click', () => {
-    state.selectedRetailer = { name: retailer.name, mcc: btn.dataset.alt };
-    document.getElementById('mccInput').value = retailer.name;
+    applyRetailerSelection(retailer.name, btn.dataset.alt);
     runRecommendation();
   }));
   box.querySelectorAll('[data-pick]').forEach(btn => btn.addEventListener('click', () => {

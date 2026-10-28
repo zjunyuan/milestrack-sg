@@ -660,3 +660,4 @@ input:checked + .slider:before { transform: translateX(22px); }
 .tier-callout { margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 0.75rem; line-height: 1.4; color: var(--warning); background: rgba(255, 193, 7, 0.08); border: 1px solid rgba(255, 193, 7, 0.25); }
 
 .rs-note { padding: 8px 10px; font-size: 0.75rem; color: var(--warning); }
+.mcc-input-wrapper.has-selection input { border-color: var(--accent); color: var(--accent); font-weight: 600; }

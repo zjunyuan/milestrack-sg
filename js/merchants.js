@@ -25,6 +25,25 @@ export function initRetailerSuggest() {
 
   let items = [];
   let active = -1;
+  // Exact text of the current selection, kept on the input so other code (alt-category chips, "add retailer") can set it too.
+  // While the box holds it, no suggestions are shown.
+  const getCommitted = () => input.dataset.committed || "";
+  const setCommitted = (v) => { if (v) input.dataset.committed = v; else delete input.dataset.committed; };
+
+  function markSelected(on) { wrapper.classList.toggle("has-selection", !!on); }
+  function showClear() { const b = document.getElementById("btnClearMcc"); if (b) b.style.display = "flex"; }
+
+  // Fill the box with the full "5311 · Department Stores" text so it is obvious which category is selected.
+  function commitCategory(code) {
+    state.selectedRetailer = null;
+    const label = `${code} · ${mccName(code)}`;
+    setCommitted(label);
+    input.value = label;
+    markSelected(true);
+    showClear();
+    hide();
+    runRecommendation();
+  }
 
   function hide() { box.hidden = true; active = -1; }
 
@@ -40,19 +59,18 @@ export function initRetailerSuggest() {
     if (item.type === "retailer") {
       selectRetailer(item.retailer);
     } else {
-      state.selectedRetailer = null;
-      input.value = item.code;
-      document.getElementById("btnClearMcc") && (document.getElementById("btnClearMcc").style.display = "flex");
-      runRecommendation();
+      commitCategory(item.code);
     }
   }
 
   function refresh() {
+    if (getCommitted() && input.value === getCommitted()) return hide();
+    if (getCommitted()) { setCommitted(""); markSelected(false); }   // the text was edited: it is a new search
     const q = input.value.trim();
     if (!q) return hide();
     // A full 4-digit code we know is applied straight away. An unknown one gets its nearest neighbours instead of nothing.
     if (/^\d{4}$/.test(q)) {
-      if (isKnownMcc(q)) return hide();
+      if (isKnownMcc(q)) return commitCategory(q);
       items = nearestMccs(q, 6).map(h => ({ type: "category", code: h.code, label: `${h.code} · ${h.name}` }));
       active = -1;
       box.innerHTML = `<div class="rs-note">MCC ${escapeHtml(q)} isn't in our list yet. Closest codes:</div>` +
@@ -91,7 +109,10 @@ export function initRetailerSuggest() {
   });
 
   input.addEventListener("input", refresh);
-  input.addEventListener("focus", refresh);
+  input.addEventListener("focus", () => {
+    refresh();
+    if (getCommitted() && input.value === getCommitted()) input.select();   // typing replaces the selection
+  });
   input.addEventListener("blur", () => setTimeout(hide, 120));
   input.addEventListener("keydown", (e) => {
     if (box.hidden) return;
@@ -100,5 +121,5 @@ export function initRetailerSuggest() {
     else if (e.key === "Enter" && active >= 0) { e.preventDefault(); choose(active); }
     else if (e.key === "Escape") { hide(); }
   });
-  document.getElementById("btnClearMcc")?.addEventListener("click", hide);
+  document.getElementById("btnClearMcc")?.addEventListener("click", () => { setCommitted(""); markSelected(false); hide(); });
 }

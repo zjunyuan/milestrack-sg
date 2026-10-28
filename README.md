@@ -183,3 +183,10 @@ UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v
 
 - **Airline codes 3000-3299** (one code per carrier) are now recognised. Each follows the Airlines (4511) rules, and typing a prefix like "30" lists matching codes.
 - **5094 Precious Stones, Metals, Watches & Jewelry** is now a known category (Rolex offers it as an alternative to 5944).
+
+
+## ✅ Clear MCC Selection (v1.15.0)
+
+- Picking a category from the suggestions, or typing a complete known 4-digit code, now fills the box with the full text (for example **5311 · Department Stores**) and turns it green, so it is obvious which MCC is selected.
+- Picking a retailer does the same: the box shows the brand with its MCC and category (for example **Starbucks · 5814 · Fast Food & Quick Service**). Choosing an alternative category chip updates the MCC in the box, and "Reset to default" puts the built-in one back.
+- Tapping the box selects the whole text, so typing starts a new search. Any edit clears the green state. The ✕ button resets it.
