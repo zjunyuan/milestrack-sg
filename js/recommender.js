@@ -422,6 +422,44 @@ function renderRecommendationCore() {
     return a.card.monthlyCap - b.card.monthlyCap;
   });
 
+  let smallAmountNote = '';
+  // Small amounts: the nominal rate can mislead (S$4 on a S$5-block card earns 0 mi).
+  // If the top card covers the whole amount, prefer whichever covering card really earns the most.
+  {
+    const covers = (c) => c.isUncapped || c.remainingCap >= amt;
+    const real = (c) => calcEarnedMiles(c.card, amt, c.rate);
+    const top = scoredCandidates[0];
+    if (top && covers(top)) {
+      let best = top, bestMiles = real(top);
+      for (const c of scoredCandidates.slice(1)) {
+        if (!covers(c)) continue;
+        const m = real(c);
+        if (m > bestMiles) { best = c; bestMiles = m; }
+      }
+      if (best !== top) {
+        scoredCandidates.splice(scoredCandidates.indexOf(best), 1);
+        scoredCandidates.unshift(best);
+      }
+      // Every bonus card earns nothing at this amount (e.g. under S$5 on a S$5-block card):
+      // fall back to the uncapped card that earns the most real miles.
+      if (bestMiles === 0) {
+        let fb = null, fbMiles = 0;
+        for (const c of state.cards) {
+          if (c.monthlyCap < 999999 || !state.enabledCardIds.includes(c.id)) continue;
+          if (effectiveChannel === 'online' && c.channelMode === 'inperson') continue;
+          if (effectiveChannel === 'inperson' && c.channelMode === 'online') continue;
+          if (effectiveChannel === 'inperson' && !allowContactless && (c.isContactlessOnly || c.inPersonNeedsContactless)) continue;
+          const m = calcEarnedMiles(c, amt, c.baseMpd);
+          if (m > fbMiles) { fb = c; fbMiles = m; }
+        }
+        if (fb) {
+          smallAmountNote = `S$${fmtNum(amt, 2)} is under the S$5 minimum block, so bonus cards earn 0 mi. This card earns the most at this amount.`;
+          scoredCandidates.unshift({ card: fb, rate: fb.baseMpd, remainingCap: 999999, isUncapped: true, daysLeft: getDaysUntilCycleEnd(fb) });
+        }
+      }
+    }
+  }
+
   const primary = scoredCandidates[0];
   const requiresSplit = !primary.isUncapped && primary.remainingCap < amt;
 
@@ -554,11 +592,12 @@ function renderRecommendationCore() {
     }
   }
 
+  if (smallAmountNote) roundingWarning = smallAmountNote;
   const runnerUp = scoredCandidates[1];
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
   const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
-  const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • resets in ${singleCard.daysLeft}d`;
+  const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
     ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
