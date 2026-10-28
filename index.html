@@ -184,7 +184,7 @@
           </div>
 
           <button type="button" class="btn-backup" id="btnOpenStatementImport2" style="width:100%; margin-bottom:10px;">
-            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement (CSV)
+            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement
           </button>
           <div id="txList"></div>
         </div>
@@ -452,8 +452,8 @@
       <p style="font-size:0.78rem; color:#94a3b8;">Works with a statement downloaded before the month ends. The file is read on your device and is not uploaded; only the lines you choose to import are saved. New lines are added, lines already in your list are left alone, and lines whose amount disagrees are shown for you to decide.</p>
       <label class="st-col"><span>Card on the statement</span><select id="stCard" class="form-control"></select></label>
       <div id="stCardHint" class="hm-note"></div>
-      <label class="st-col"><span>Statement file (CSV)</span><input type="file" id="stFile" accept=".csv,text/csv,.pdf,application/pdf" class="form-control"></label>
-      <div id="stmtPdfNote" class="hm-note" style="display:none;">📄 PDF statements aren't supported yet. If your bank's online banking offers a CSV or Excel download of the same statement, use that one.</div>
+      <label class="st-col"><span>Statement file (CSV, Excel .xls or PDF)</span><input type="file" id="stFile" accept=".csv,text/csv,.xls,application/vnd.ms-excel,.pdf,application/pdf" class="form-control"></label>
+      <div id="stmtFileNote" class="hm-note st-warn" style="display:none;"></div>
       <div id="stmtMapping"></div>
       <div id="stmtReview"></div>
       <label class="hm-note" style="display:flex; gap:6px; align-items:flex-start;"><input type="checkbox" id="stAddVault"> Also add the estimated points to my bank points balances (leave off if you have already updated balances from your banking app)</label>
@@ -525,7 +525,7 @@
         </button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
         <button class="btn-backup" id="btnOpenStatementImport" style="width:100%; margin-top:10px;">
-          <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement (CSV)
+          <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement
         </button>
       </div>
 

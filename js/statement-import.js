@@ -7,7 +7,8 @@ import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr } from "./statements.js";
+import { readXls } from "./xls.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -32,7 +33,7 @@ function lookupBrand(merchant) {
 }
 const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
 
-const S = { hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
+const S = { flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
 
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
@@ -81,23 +82,35 @@ function renderMapping() {
       ${colSelect("stColCredit", "Credit (if separate)", S.cols.credit)}
       <label class="st-col"><span>Dates are</span><select id="stOrder" class="form-control">
         <option value="dmy" ${S.order === "dmy" ? "selected" : ""}>Day / Month</option><option value="mdy" ${S.order === "mdy" ? "selected" : ""}>Month / Day</option></select></label>
-    </div>`;
-  for (const id of ["stColDate", "stColDesc", "stColAmt", "stColDebit", "stColCredit", "stOrder"]) $(id).addEventListener("change", () => { readMapping(); recompute(); });
+      <label class="st-col"><span>Only lines on or after</span><input type="date" id="stSince" class="form-control" value="${S.since}"></label>
+    </div>
+    <label class="hm-note" style="display:flex; gap:6px; align-items:center; margin-top:6px;"><input type="checkbox" id="stFlip" ${S.flip ? "checked" : ""}> Spend is shown as negative numbers in this file (flip the signs)</label>`;
+  for (const id of ["stColDate", "stColDesc", "stColAmt", "stColDebit", "stColCredit", "stOrder", "stSince", "stFlip"]) $(id).addEventListener("change", () => { readMapping(); recompute(); });
 }
 
 function readMapping() {
   const v = id => parseInt($(id).value, 10);
-  S.cols = { date: v("stColDate"), desc: v("stColDesc"), amount: v("stColAmt"), debit: v("stColDebit"), credit: v("stColCredit") };
+  S.cols = { ...S.cols, date: v("stColDate"), desc: v("stColDesc"), amount: v("stColAmt"), debit: v("stColDebit"), credit: v("stColCredit") };
   S.order = $("stOrder").value;
+  S.since = $("stSince").value;
+  S.flip = $("stFlip").checked;
 }
 
+function keyCardId() { return familyOf(S.card.id)[0]; }   // one key per physical card, whichever entry the lines go to
 function recompute() {
-  const lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order });
-  const existing = state.transactions.filter(t => t.cardId === S.card.id);
-  const m = matchLines(lines, existing, { cardId: S.card.id });
+  let lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order, flip: S.flip });
+  if (S.since) { const t = parseDateStr(S.since, "ymd"); if (t) lines = lines.filter(l => l.ts >= t - 43200000); }
+  const fam = familyOf(S.card.id);
+  const existing = state.transactions.filter(t => fam.includes(t.cardId));
+  const m = matchLines(lines, existing, { cardId: keyCardId() });
   S.results = m.results; S.missing = m.missing; S.choice = {};
-  m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? "add" : r.status === "differs" ? "statement" : "skip"; });
+  m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : r.status === "differs" ? "statement" : "skip"; });
   renderReview();
+}
+// Foreign-currency lines on a card with a separate FCY entry go to that entry.
+function targetCard(line) {
+  const sib = FX_SIBLING[S.card.id];
+  return line.fx && sib && state.enabledCardIds.includes(sib) ? ALL_MASTER_CARDS.find(c => c.id === sib) : S.card;
 }
 
 function rowHtml(r, i) {
@@ -115,7 +128,9 @@ function rowHtml(r, i) {
   }
   if (r.status === "new") {
     return `<div class="st-line st-new">${head}
-      <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" checked> Add to my list</label></div>`;
+      ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
+      ${targetCard(l).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l).name)}</div>` : ""}
+      <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
   return `<div class="st-line">${head}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
 }
@@ -169,7 +184,7 @@ async function applyImport() {
   if (!confirm(`Add ${p.add} and update ${p.update} transaction${p.add + p.update === 1 ? "" : "s"} on ${card.name}?`)) return;
   btn.disabled = true;
   const bucketSpend = {};
-  for (const t of state.transactions.filter(t => t.cardId === card.id)) { const b = cycleBucket(card, t.timestamp); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
+  for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, t.timestamp); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
   let done = 0, rawDelta = 0, seq = 0;
   const base = Date.now();
   try {
@@ -178,23 +193,25 @@ async function applyImport() {
       const r = S.results[i], c = S.choice[i], l = r.line;
       const makeNew = (r.status === "new" && c === "add") || (r.status === "differs" && c === "new");
       if (makeNew) {
-        const bucket = cycleBucket(card, l.ts);
-        const est = estimateTx(card, l, bucketSpend[bucket] || 0);
+        const tCard = targetCard(l);
+        const bucket = tCard.id + cycleBucket(tCard, l.ts);
+        const est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
         bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
         const id = String(base + (seq++));
         await saveTxToFirestore(id, {
-          id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: card.id,
+          id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: tCard.id,
           bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
           date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
-          source: "statement", estimatedMiles: true, stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+          source: "statement", estimatedMiles: true, stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
         });
         rawDelta += est.earnedRawPoints; done++;
       } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
         const old = { ...r.existing }; delete old.firestoreId;
         if (c === "keep") { await saveTxToFirestore(old.id, { ...old, stmtKey: r.key, stmtNote: `Statement said S$${l.amt.toFixed(2)}` }); continue; }
-        const rate = old.bonusCategory === "bonus" ? card.bonusMpd : card.baseMpd;
-        const miles = calcEarnedMiles(card, l.amt, rate);
-        const ratio = state.myVault[card.vaultKey]?.ratio || 1;
+        const oc = ALL_MASTER_CARDS.find(c => c.id === old.cardId) || card;
+        const rate = old.bonusCategory === "bonus" ? oc.bonusMpd : oc.baseMpd;
+        const miles = calcEarnedMiles(oc, l.amt, rate);
+        const ratio = state.myVault[oc.vaultKey]?.ratio || 1;
         const raw = Math.round(miles / ratio);
         rawDelta += raw - (Number(old.earnedRawPoints) || 0);
         await saveTxToFirestore(old.id, { ...old, amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
@@ -215,25 +232,41 @@ async function applyImport() {
   }
 }
 
-async function onFile(file) {
-  if (!file) return;
-  S.fileName = file.name;
-  $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
-  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
-    $("stmtPdfNote").style.display = "block";
-    $("btnStmtApply").disabled = true; return;
-  }
-  const text = await file.text();
-  S.rows = parseCsv(text);
+function afterRows(rows) {
+  S.rows = rows;
   S.hint = detectCardHint(S.rows);
   const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered());
   if (guess) { $("stCard").value = guess; S.card = ALL_MASTER_CARDS.find(c => c.id === guess); }
-  $("stCardHint").textContent = S.hint
-    ? (guess ? `Detected \"${S.hint.name}\" ending ${S.hint.last4}, so I picked ${S.card.name}. Change it if that's wrong.` : `The file says \"${S.hint.name}\" ending ${S.hint.last4}. Please pick the matching card above.`)
-    : "";
+  const fam = familyOf(S.card.id);
+  const famNote = fam.length > 1 ? ` This card has separate entries in the app (${fam.map(id => ALL_MASTER_CARDS.find(c => c.id === id)?.name).filter(Boolean).join(" / ")}). Lines go to the one selected above${FX_SIBLING[S.card.id] ? ", foreign-currency lines to the FCY entry" : ""}; duplicates are checked across all of them.` : "";
+  $("stCardHint").textContent = (S.hint
+    ? (guess ? `Detected "${S.hint.name || "card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}, so I picked ${S.card.name}. Change it if that's wrong.` : `The file says "${S.hint.name || "a card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}. Please pick the matching card above.`)
+    : "") + famNote;
   const found = detectLayout(S.rows) || guessLayoutByContent(S.rows);
-  S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy";
+  S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy"; S.since = ""; S.flip = false;
+  const probe = buildLines(S.rows, S.headerRow, S.cols, { order: S.order });
+  S.flip = probe.length >= 2 && probe.filter(l => l.amt < 0).length > probe.length * 0.6;   // spend shown as negative numbers
   renderMapping(); recompute();
+}
+
+async function onFile(file) {
+  if (!file) return;
+  S.fileName = file.name;
+  $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
+  try {
+    if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+      const { readPdfLines } = await import("./pdf-statement.js");
+      return afterRows(await readPdfLines(file, () => prompt("This PDF is password protected. Enter the password (it is only used on this device):")));
+    }
+    if (/\.xlsx$/i.test(file.name)) throw new Error("This is an .xlsx file. Save it as CSV (or .xls) from Excel and try again.");
+    if (/\.xls$/i.test(file.name)) return afterRows(readXls(await file.arrayBuffer()));
+    afterRows(parseCsv(await file.text()));
+  } catch (err) {
+    console.error("Statement read failed", err);
+    $("stmtFileNote").style.display = "block";
+    $("stmtFileNote").textContent = "Couldn't read that file: " + (err && err.message ? err.message : err);
+    $("btnStmtApply").disabled = true;
+  }
 }
 
 export function openStatementSheet() {
@@ -241,7 +274,7 @@ export function openStatementSheet() {
   const cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
   sel.innerHTML = cards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
   S.card = cards[0] || null;
-  $("stFile").value = ""; $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtPdfNote").style.display = "none";
+  $("stFile").value = ""; $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
   $("btnStmtApply").disabled = true; $("btnStmtApply").textContent = "Choose a file";
   $("stmtOverlay")?.classList.add("open");
 }

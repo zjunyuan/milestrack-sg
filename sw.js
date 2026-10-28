@@ -16,6 +16,8 @@ const CORE_ASSETS = [
   './js/tiers.js',
   './js/heymax.js',
   './js/statements.js',
+  './js/xls.js',
+  './js/pdf-statement.js',
   './js/statement-import.js',
   './js/format.js',
   './js/mcc-names.js',

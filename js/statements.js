@@ -74,7 +74,7 @@ export function parseAmountStr(str) {
 // ---------- layout detection ----------
 const isDateHdr = h => /date/i.test(h);
 const isDescHdr = h => /desc|particular|detail|merchant|narrat|payee|transaction$|^transaction\s*(info|name)/i.test(h);
-const isAmtHdr = h => /amount|amt|spend|charge|sgd|s\$|local/i.test(h);
+const isAmtHdr = h => /amount|amt|spend|charge|sgd|s\$|local/i.test(h) && !/currency|type|status/i.test(h);
 
 // Looks for a header row in the first 40 rows and guesses columns. Returns { headerRow, cols } or null.
 export function detectLayout(rows) {
@@ -92,10 +92,13 @@ export function detectLayout(rows) {
     const desc = idx(isDescHdr, [/desc/i, /merchant/i]);
     const debit = idx(h => /debit|withdraw/i.test(h));
     const credit = idx(h => /credit|deposit/i.test(h) && !/card/i.test(h));
-    const amount = idx(h => isAmtHdr(h) && !/foreign|fcy|original/i.test(h), [/local|sgd|s\$/i, /^amount$/i]);
+    const amount = idx(h => isAmtHdr(h) && !/foreign|fcy|original/i.test(h), [/amount.*local|local.*amount/i, /local|sgd|s\$/i, /^amount$/i]);
+    const post = idx(h => /posting|post date/i.test(h));
+    const fcType = idx(h => /foreign.*(currency|type)/i.test(h));
+    const fcAmt = idx(h => /foreign/i.test(h) && /amount|amt/i.test(h));
     const status = idx(h => /status/i.test(h));
     const split = debit >= 0 || credit >= 0;
-    return { headerRow: i, cols: { date, desc, amount: split ? -1 : amount, debit, credit, status } };
+    return { headerRow: i, cols: { date, desc, amount: split ? -1 : amount, debit, credit, status, post, fcType, fcAmt } };
   }
   return null;
 }
@@ -115,12 +118,12 @@ export function guessLayoutByContent(rows) {
     if (aScore >= best.a && aScore > 0.6 && c !== date) { best.a = aScore; amount = c; }
     if (tScore > best.t && tScore > 0.6) { best.t = tScore; desc = c; }
   }
-  return { headerRow: -1, cols: { date, desc, amount, debit: -1, credit: -1, status: -1 } };
+  return { headerRow: -1, cols: { date, desc, amount, debit: -1, credit: -1, status: -1, post: -1 } };
 }
 
 // Turns the rows below the header into statement lines. cols are column indexes (-1 = not used).
-export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Date() } = {}) {
-  cols = { status: -1, ...cols };
+export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Date(), flip = false } = {}) {
+  cols = { status: -1, post: -1, ...cols };
   const lines = [];
   for (let i = headerRow + 1; i < rows.length; i++) {
     const r = rows[i];
@@ -133,12 +136,28 @@ export function buildLines(rows, headerRow, cols, { order = "dmy", now = new Dat
       if (dr !== null || cr !== null) amt = (dr || 0) - (cr || 0);
     } else if (cols.amount >= 0) amt = parseAmountStr(r[cols.amount]);
     if (amt === null || amt === 0) continue;
-    const desc = (cols.desc >= 0 ? r[cols.desc] : "").replace(/\s+/g, " ").trim() || "Statement line";
-    const pending = cols.status >= 0 && /pending|authori[sz]ed|unbilled/i.test(r[cols.status] || "");
-    const fx = foreignAmount(desc);
-    lines.push({ ts, desc, merchant: cleanMerchant(desc), amt: Math.round(amt * 100) / 100, row: i, pending, fx });
+    if (flip) amt = -amt;
+    let desc = (cols.desc >= 0 ? r[cols.desc] : "").replace(/\s+/g, " ").trim() || "Statement line";
+    const refM = /\bRef(?:erence)?\s*(?:No\.?|#)?:?\s*(\d{8,})/i.exec(desc);   // UOB puts a unique "Ref No: ..." in the description
+    const ref = refM ? refM[1] : "";
+    if (refM) desc = desc.replace(refM[0], "").replace(/\s+/g, " ").trim();
+    const pending = (cols.status >= 0 && /pending|authori[sz]ed|unbilled/i.test(r[cols.status] || ""))
+      || (cols.post >= 0 && !String(r[cols.post] || "").trim());               // no posting date yet
+    const fx = foreignAmount(desc) || foreignFromColumns(r, cols);
+    const fee = FEE_RE.test(desc);
+    lines.push({ ts, desc, merchant: cleanMerchant(desc), amt: Math.round(amt * 100) / 100, row: i, pending, fx, ref, fee });
   }
   return lines;
+}
+
+// Fees and charges are on the card but are not spend: no miles, and they do not count toward minimum spend.
+export const FEE_RE = /ccy conversion fee|currency conversion fee|annual (renewal )?fee|renewal fee|late (payment )?(fee|charge)|finance charge|interest charge|service charge|gst (on|charge)|fee waiver|overlimit/i;
+
+// Some exports (UOB) carry the original currency in their own columns: "Foreign Currency Type", "Transaction Amount(Foreign)".
+function foreignFromColumns(r, cols) {
+  if (cols.fcType === undefined || cols.fcType < 0) return null;
+  const cur = String(r[cols.fcType] || "").trim(), amt = parseAmountStr(r[cols.fcAmt]);
+  return cur && cur !== "SGD" && amt ? { cur, amount: Math.abs(amt) } : null;
 }
 
 // ---------- merchant text ----------
@@ -153,6 +172,10 @@ const COUNTRY_TAIL = /\s+(SINGAPORE|SINGAPO|SGP|SG|LONDON|GB|GBR|USA|US|JPN|JP|K
 // Best-effort readable merchant name: no store/terminal codes, city or country, currency amount or phone numbers.
 export function cleanMerchant(desc) {
   let t = String(desc || "").replace(/\s+/g, " ").trim();
+  t = t.replace(/[•*xX]{2,}[\s•*xX-]*\d{4}/g, "").replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, "")    // masked card number and a posting date inside the text
+       .replace(/-?[\d,]+\.\d{2}\s+[A-Z]{3}\s*$/, "");                                         // trailing "85.00 SGD"
+  t = t.replace(/([A-Za-z])(SINGAPORE|Singapore)(\s+[A-Z]{2,3})?\s*$/, "$1 $2$3");               // "SQUARESINGAPORE SG": city glued to a fixed-width field
+  t = t.replace(/\s+N\/A\b/g, "");
   t = t.replace(/\s+[A-Z]{3}\s+\d[\d,]*\.\d{2}\s*$/, "");          // foreign amount
   t = t.replace(/@\S*/g, "");                                            // store/terminal code after @
   t = t.replace(/^(FP\*|GRAB\*|SQ \*|PAYPAL \*|AMZN )/i, m => (/^FP\*/i.test(m) ? "" : m.replace(/\*$/, " "))).replace(/\*/g, " ");
@@ -186,6 +209,7 @@ export function dayKey(ts) { const d = new Date(ts); return `${d.getFullYear()}-
 function hash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
 // Stable fingerprint of a statement line, so importing the same file twice recognises its own lines.
 export function lineKey(cardId, line, occurrence = 1) {
+  if (line.ref) return hash([cardId, "ref", line.ref].join("|"));   // the bank's own reference beats any guess
   return hash([cardId, dayKey(line.ts), line.amt.toFixed(2), descTokens(line.desc).join(" "), occurrence].join("|"));
 }
 
@@ -203,7 +227,7 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
   const seen = {};
   for (const r of results) {
     const base = lineKey(cardId, r.line, 0);
-    seen[base] = (seen[base] || 0) + 1;
+    seen[base] = r.line.ref ? 1 : (seen[base] || 0) + 1;
     r.repeat = seen[base];
     r.key = lineKey(cardId, r.line, r.repeat);
   }
@@ -282,26 +306,45 @@ export function summarize(results) {
   return n;
 }
 
-// DBS-style files start with "Card Transaction Details For:","DBS Vantage Visa Infinite Card 7736". Returns { name, last4 } or null.
-// Only the last four digits are ever kept.
+// One physical card can be several entries in the app (a channel each). Statements are matched against all of them.
+export const CARD_FAMILIES = [
+  ["uob-ppv-contactless", "uob-ppv-online"],
+  ["uob-vs-contactless", "uob-vs-fcy"],
+  ["uob-ls-dining", "uob-ls-travel"]
+];
+export const familyOf = (id) => CARD_FAMILIES.find(f => f.includes(id)) || [id];
+export const FX_SIBLING = { "uob-vs-contactless": "uob-vs-fcy" };   // foreign-currency lines go to the FCY entry
+
+// What the file says about its card: DBS ("Card Transaction Details For:","DBS Vantage ... 7736"), UOB ("Account Type:",
+// "PREFERRED VISA" plus "Account Number:"), Maybank PDF text, or a masked number in a line. Only the last four digits are kept.
 export function detectCardHint(rows) {
-  for (const r of rows.slice(0, 8)) {
-    if (/card transaction details|card name|account/i.test(r[0] || "") && r[1]) {
-      const m = /(\d{4})\D*$/.exec(r[1].trim());
-      return { name: r[1].replace(/[\d-]{4,}\s*$/, "").trim(), last4: m ? m[1] : "" };
-    }
+  let name = "", last4 = "";
+  for (const r of rows.slice(0, 12)) {
+    const k = String(r[0] || ""), v = String(r[1] || "").trim();
+    if (/card transaction details/i.test(k) && v) { name = v.replace(/[\d-]{4,}\s*$/, "").trim(); const m = /(\d{4})\D*$/.exec(v); if (m) last4 = m[1]; }
+    else if (/^account type/i.test(k) && v) name = v;
+    else if (/^account number|^card number/i.test(k) && v) { const m = /(\d{4})\D*$/.exec(v); if (m && !last4) last4 = m[1]; }
   }
-  return null;
+  if (!last4) {
+    for (const r of rows.slice(0, 5)) { const m = /[•*xX]{2,}[\s•*xX-]*(\d{4})/.exec(r.join(" ")); if (m) { last4 = m[1]; break; } }
+  }
+  return name || last4 ? { name, last4 } : null;
 }
 // Suggests one of the app's card ids from a statement card name, or "" when unsure.
 export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   if (!hint) return "";
   if (hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4])) return remembered[hint.last4];
-  const n = hint.name.toLowerCase();
-  const pick = id => (enabledIds.includes(id) ? id : "");
-  if (/vantage|visa platinum/.test(n)) return pick("dbs-vantage");   // the user's "VISA Platinum" statements are the Vantage card
+  const n = (hint.name || "").toLowerCase();
+  const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";
+  if (/maybank/.test(n)) return /horizon/.test(n) ? pick("mb-horizon-vs") : (/world/.test(n) ? pick("mb-world-mc") : "");
+  if (/vantage|visa platinum/.test(n)) return pick("dbs-vantage");
   if (/altitude/.test(n)) return pick("dbs-altitude");
   if (/yuu/.test(n)) return pick("dbs-yuu");
   if (/woman|mastercard world|world mastercard/.test(n)) return pick("dbs-wwmc");
+  if (/preferred visa|ppv/.test(n)) return pick("uob-ppv-contactless", "uob-ppv-online");
+  if (/lady/.test(n)) return pick("uob-ls-dining", "uob-ls-travel");
+  if (/krisflyer/.test(n)) return pick("kf-uob");
+  if (/visa signature/.test(n)) return pick("uob-vs-contactless", "uob-vs-fcy");
+  if (/prvi/.test(n)) return pick("uob-prvi");
   return "";
 }
