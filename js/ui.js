@@ -509,32 +509,19 @@ export function renderCategoryTracker() {
 export function renderAllVaultsTally() {
   const card = document.getElementById('allVaultsTallyCard');
   const container = document.getElementById('allVaultsList');
-  const grandTotalEl = document.getElementById('allVaultsGrandTotal');
-  const householdLine = document.getElementById('householdLine');
   if (!card || !container) return;
 
   // Only the household admin sees every vault.
   const isAdmin = state.userRole === 'PRIMARY';
   card.style.display = isAdmin ? 'block' : 'none';
-  if (householdLine) householdLine.style.display = isAdmin ? 'block' : 'none';
   if (!isAdmin) return;
 
-  let grandTotal = 0;
-  const filled = [];
-  const empty = [];
-  ALL_VAULT_KEYS.forEach((key) => {
+  container.innerHTML = ALL_VAULT_KEYS.map((key) => {
     const vault = state.allVaultsData[key] || {};
     const miles = Object.values(vault).reduce(
       (sum, item) => sum + Math.floor((Number(item?.points) || 0) * (Number(item?.ratio) || 1)), 0);
-    grandTotal += miles;
-    const label = VAULT_LABELS[key] || key;
-    (miles > 0 ? filled : empty).push({ key, label, miles });
-  });
-
-  container.innerHTML = filled.map(v => `
-      <span class="vault-chip"><span class="vault-row-dot ${v.key === 'primary' ? 'household' : v.key}"></span>${escapeHtml(v.label)} <b>${fmtNum(v.miles)}</b></span>`).join('')
-    + (empty.length ? `<span class="vault-chip vault-chip-empty">${escapeHtml(empty.map(v => v.label).join(', '))}: 0</span>` : '');
-  if (grandTotalEl) grandTotalEl.textContent = `${fmtNum(grandTotal)} mi`;
+    return `<span class="vault-chip${miles > 0 ? '' : ' vault-chip-empty'}"><span class="vault-row-dot ${key === 'primary' ? 'household' : key}"></span>${escapeHtml(VAULT_LABELS[key] || key)} <b>${fmtNum(miles)}</b></span>`;
+  }).join('');
 }
 
 export function checkUobFeeDefense() {
