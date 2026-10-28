@@ -209,3 +209,8 @@ Dollar amounts and miles now show commas everywhere (for example $1,111.00 spent
 A vault saved with partial entries (for example only the points for UOB UNI$) used to show "UNDEFINED" tiles and count miles at the wrong ratio. The app now takes each currency's name, unit and ratio from its own definitions and reads only the points from the saved vault, so the tiles always read correctly. The saved vault is tidied the next time you update points or log a transaction.
 
 The Edit Points Balances sheet also failed to save on such a vault (nothing happened when you pressed Save) and kept a stuck "0" in each box. Save now works, empty balances show a faint 0 you can type over, tapping a box selects its value, and a failed save shows an error instead of failing silently.
+
+
+## 🔓 Minimum-Spend Unlock Notes (v1.18.0)
+
+When a recommended card's bonus rate only applies after a monthly minimum (UOB Visa Signature S$1,000, DBS yuu S$800, Maybank foreign-currency tiers), the recommendation no longer shows the full bonus as if it were already earned. Each affected row now says how much more to charge on that card before the cycle ends ("Charge S$267 more by 18 Nov (21d left)"), shows the miles you earn now at the base rate, and lists the extra miles that unlock once the minimum is met. The split header totals the miles now and the miles pending. Banks credit the bonus on the whole cycle's spend once the minimum is met, so a locked charge is pending, not lost. The note disappears once your logged spend plus the charge reaches the minimum.

@@ -69,3 +69,30 @@ export function lockedWarning(card, status) {
   if (status.kind === "annual-sia") return `${card.name}: the ${status.steps[0].mpd} mpd rate needs ${money(status.steps[0].at)} of SIA Group spend this membership year (${money(status.spent)} so far), credited after the year ends.`;
   return `${card.name}: ${status.next.mpd} mpd applies only once ${money(status.next.at)} is spent this month (${money(status.spent)} so far).`;
 }
+
+// Minimum-spend gate for one planned charge. Returns null when the card has no monthly minimum for this charge,
+// otherwise { min, spend, after, locked, needMore, unlockMpd }. `after` is the cycle spend including this charge.
+// Cards with a monthly tierRule (Maybank) only gate foreign-currency spend, so they are skipped for local spend.
+// Banks credit the bonus on the whole cycle's spend once the minimum is met, so a locked charge is "pending", not lost.
+export function minSpendGate(card, { cardSpend = 0, amount = 0, rate = 0, overseas = false } = {}) {
+  if (!card) return null;
+  let min = 0, unlockMpd = rate;
+  const rule = card.tierRule;
+  if (rule && rule.kind === "monthly") {
+    if (!overseas) return null;
+    const first = [...rule.steps].sort((a, b) => a.at - b.at)[0];
+    min = first.at; unlockMpd = Math.max(rate, first.mpd);
+  } else if (!rule && card.minSpend > 0) {
+    min = card.minSpend;
+  }
+  if (!(min > 0) || !(unlockMpd > card.baseMpd)) return null;
+  const after = cardSpend + amount;
+  const locked = after < min;
+  return { min, spend: cardSpend, after, locked, needMore: Math.max(0, min - after), unlockMpd };
+}
+
+// "18 Nov" for a cycle that ends in `daysLeft` days.
+export function cycleEndLabel(daysLeft, now = new Date()) {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysLeft);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
