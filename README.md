@@ -329,3 +329,7 @@ Settings & Card Wallet is now three icon tabs with a Save button that stays in v
 - **Data:** JSON backup, Ledger CSV, Restore and Import statement as icon tiles, the "Transaction date vs posting date" guide, and the app version.
 
 Nothing about how settings are stored changed: the same fields are saved, and no Firestore rules changed.
+
+## 🔢 No default amount (v1.24.1)
+
+The recommender's amount box starts empty (placeholder "Amt (S$)") instead of 100. Until you type an amount the result is still worked out on S$100 so you can see the ranking, and a small note says so. No Firestore rules changed.

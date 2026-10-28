@@ -210,6 +210,15 @@ function appendKrisPlusNote() {
 function renderRecommendation() {
   renderRecommendationCore();
   appendKrisPlusNote();
+  // No amount typed yet: the result is worked out on S$100 as an example, so say so.
+  const area = document.getElementById('recResultArea');
+  const typed = (document.getElementById('recAmount')?.value || '').trim();
+  if (area && !typed && area.querySelector('.rec-winner-title, .cascade-step')) {
+    const note = document.createElement('div');
+    note.className = 'hm-note rec-eg-note';
+    note.textContent = 'Shown for S$100 as an example. Enter your amount above for exact miles and splits.';
+    area.appendChild(note);
+  }
 }
 
 function renderRecommendationCore() {
