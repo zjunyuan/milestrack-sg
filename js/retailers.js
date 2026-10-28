@@ -303,6 +303,10 @@ export const RETAILERS = [
   r("Lee Hwa", "5944", "high", ["lee hwa jewellery"]),
   r("Tiffany & Co", "5944", "high", ["tiffany"]),
   r("Cartier", "5944", "high"),
+  r("Van Cleef & Arpels", "5944", "high", ["van cleef", "vca", "van cleef and arpels"]),
+  r("Bvlgari", "5944", "high", ["bulgari"]),
+  r("Chaumet", "5944", "high"),
+  r("Chopard", "5944", "high"),
   // Luxury (MCCs from CheckMCC community listings and household judgement; not bank-confirmed, so "medium")
   r("Celine", "5631", "medium", ["celine boutique"], { alt: ["5691"], note: "Luxury boutique; coded 5631 per CheckMCC (in-store). Can vary by outlet or channel." }),
   r("Louis Vuitton", "5631", "medium", ["lv", "louis vuitton boutique"], { alt: ["5691"], note: "Luxury boutique; coded 5631 per CheckMCC (in-store). Can vary by outlet or channel." }),

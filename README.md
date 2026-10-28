@@ -151,6 +151,7 @@ Added to the retailer lookup, all at medium confidence (MCCs are community-repor
 
 - **5631:** Celine, Louis Vuitton.
 - **5691:** Chanel (fashion & bags), Dior (fashion & bags), Hermès, Gucci, Prada.
-- **5944:** Rolex, and Chanel Beauty (beauty counter).
+- **5944 (high confidence):** Cartier, Tiffany & Co, Van Cleef & Arpels, Bvlgari, Chaumet, Chopard.
+- **5944 (medium):** Rolex, and Chanel Beauty (beauty counter).
 - **5977:** Dior Beauty (beauty counter).
 - Typing "chanel" or "dior" resolves to the fashion boutique; use "Chanel Beauty" / "Dior Beauty" for makeup and fragrance counters. Fix any wrong code with **✎ Wrong category?**; the real MCC on your card statement is the best source.
