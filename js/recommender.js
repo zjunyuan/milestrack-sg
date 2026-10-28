@@ -74,6 +74,9 @@ function resolveRetailer(input) {
 }
 
 // Called by the typeahead when the user picks a suggestion.
+// yuu partner brands that only qualify for 10 mpd when paid in their own app.
+const YUU_IN_APP_ONLY = /chagee/i;
+
 export function selectRetailer(retailer) {
   applyRetailerSelection(retailer.name, retailer.mcc);
   const clearBtn = document.getElementById('btnClearMcc');
@@ -252,7 +255,13 @@ function renderRecommendationCore() {
     candidateList = [{ id: 'dbs-yuu', baseRate: 10.0 }, ...candidateList];
     mccData.notes = `${String(mccData.notes || '')}<br>🟡 <b>DBS yuu partner:</b> ${escapeHtml(namedMerchant)} earns 10 mpd on DBS yuu (needs S$800 spend + 4 yuu merchants in the month).`;
   }
-  
+
+  // Some yuu partners only qualify when paid in their own app (CHAGEE). In person, yuu is not offered.
+  if (namedMerchant && YUU_IN_APP_ONLY.test(namedMerchant) && effectiveChannel !== 'online' && candidateList.some(c => c.id === 'dbs-yuu')) {
+    candidateList = candidateList.filter(c => c.id !== 'dbs-yuu');
+    mccData.notes = `${String(mccData.notes || '').replace(/<br>🟡 <b>DBS yuu partner:<\/b>.*$/, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} only counts as a yuu merchant when you pay in its app. Switch to <b>Online / In-App</b> to see yuu.`;
+  }
+
   if (state.isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
     candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];
   }

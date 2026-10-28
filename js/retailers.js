@@ -81,7 +81,7 @@ export const RETAILERS = [
   r("The Alley", "5814", "high", ["alley"]),
   r("Tiger Sugar", "5814", "high"),
   r("HEYTEA", "5814", "medium", ["hey tea"]),
-  r("CHAGEE", "5814", "high", [], { note: "CHAGEE counts as a DBS yuu partner merchant." }),
+  r("CHAGEE", "5814", "high", [], { note: "CHAGEE counts as a DBS yuu partner merchant only when you pay in its app." }),
   r("foodpanda", "5814", "high", ["food panda", "panda"]),
   r("Deliveroo", "5814", "high"),
   r("GrabFood", "5814", "high", ["grab food"]),
