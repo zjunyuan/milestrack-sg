@@ -1,7 +1,7 @@
 import { fmtNum, fmtAuto } from "./format.js";
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant } from "./config.js";
 import { state } from "./state.js";
-import { openModal, onCardSelectChange, checkShellMerchantTrigger, cardThumbHtml } from "./ui.js";
+import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
 import {
   buildRetailerList,
   findRetailerForInput,
@@ -1043,27 +1043,10 @@ export function applyRecommendation(cardId, amt, desc) {
   const txDateInput = document.getElementById('txDateInput');
 
   if (cardSelect) cardSelect.value = cardId;
-  if (amtInput) amtInput.value = amt;
+  if (amtInput) amtInput.value = Math.round(Number(amt) * 100) / 100;   // avoid float noise such as 83.96000000000004
   if (descInput) descInput.value = desc || '';
   if (bonusCategory) bonusCategory.value = 'bonus';
   if (txDateInput) txDateInput.value = new Date().toLocaleDateString('en-CA');
 
   onCardSelectChange();
-  checkShellMerchantTrigger();
-}
-
-export function updateShellNettCalc() {
-  const gross = parseFloat(document.getElementById('shellGrossInput')?.value) || 0;
-  const btn = document.getElementById('btnApplyShellDiscount');
-  const status = document.getElementById('shellDiscountStatusText');
-  if (!btn || !status) return;
-
-  if (gross > 0) {
-    const nett = (gross * 0.86).toFixed(2);
-    btn.innerText = `Apply 14% (Net $${nett})`;
-    status.innerHTML = `Gross $${fmtNum(gross, 2)} - 14% = <b>Net $${nett}</b> charged`;
-  } else {
-    btn.innerText = `Apply 14% Off`;
-    status.innerText = `Enter gross pump price from meter to compute nett S$ amount charged.`;
-  }
 }

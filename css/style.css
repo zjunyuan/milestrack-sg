@@ -278,50 +278,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 .uob-rounding-notice { font-size: 0.75rem; color: #fdba74; background: rgba(249, 115, 22, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(249, 115, 22, 0.25); line-height: 1.35; }
 .kris-stacked-badge { font-size: 0.75rem; color: var(--kris-cyan); background: rgba(0, 180, 216, 0.12); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(0, 180, 216, 0.28); line-height: 1.35; }
 
-/* Shell Petrol Discount Calculator Helper Card */
-.shell-calc-box {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(239, 68, 68, 0.08) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 2px;
-}
-.shell-calc-header {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--gold);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.shell-calc-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.shell-calc-input-row input {
-  flex: 1;
-  padding: 8px 10px;
-  font-size: 0.85rem;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  color: #fff;
-}
-.btn-apply-shell-discount {
-  background: var(--gold);
-  color: #1a1a1a;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
 
 .cascade-split-card { background: rgba(158, 202, 255, 0.08); border: 1px solid rgba(158, 202, 255, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .cascade-header { font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
