@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.17.0";
+export const APP_VERSION = "v1.17.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -137,6 +137,24 @@ export const DEFAULT_VAULT = {
   mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
   kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
 };
+
+// Builds a complete vault from a stored Firestore doc. The app owns each currency's name, ratio, unit and rule;
+// the doc only supplies the points. A doc with partial entries (for example just {points: 0}) therefore can no
+// longer show "undefined" or use the wrong ratio. Extra currencies that carry their own name and unit are kept.
+export function normalizeVault(data) {
+  const src = data && typeof data === "object" ? data : {};
+  const out = {};
+  for (const [key, def] of Object.entries(DEFAULT_VAULT)) {
+    const stored = src[key] && typeof src[key] === "object" ? src[key] : {};
+    const pts = Number(stored.points);
+    out[key] = { ...def, points: Number.isFinite(pts) ? pts : 0 };
+  }
+  for (const [key, item] of Object.entries(src)) {
+    if (key in DEFAULT_VAULT || !item || typeof item !== "object") continue;
+    if (item.name && item.unit) out[key] = { ratio: 1, points: 0, ...item };
+  }
+  return out;
+}
 
 export const ALL_MASTER_CARDS = [
   { 
