@@ -3,7 +3,7 @@
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS } from "./config.js";
 import { escapeHtml } from "./retailers.js";
-import { POSTING_RULES, POSTING_META, BASIS_LABEL, postingRule, bannerRows, slipLine, expectedPosting } from "./posting.js";
+import { POSTING_RULES, POSTING_META, BASIS_LABEL, postingRule, bannerRows, slipLine, expectedPosting, SLIP_ALERT_MIN } from "./posting.js";
 
 const $ = id => document.getElementById(id);
 const fmtDay = d => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -22,15 +22,20 @@ export function postingDetailHtml(card) {
   const rule = postingRule(card);
   if (!rule) return "";
   const b = BASIS_LABEL[rule.basis];
-  const slip = slipLine(card, new Date());
-  return `${b.icon} <b>${escapeHtml(b.short)}.</b> ${escapeHtml(rule.note)}${slip ? `<br>${slip}` : ""}`;
+  return `${b.icon} <b>${escapeHtml(b.short)}.</b> ${escapeHtml(rule.note)}`;
 }
 
 // ---- banner ---------------------------------------------------------------------------------------------------------
 export function renderPostingBanner() {
   const box = $("postingBannerContainer");
   if (!box) return;
-  const rows = bannerRows(enabledCards());
+  // Only the last 2 days of a cycle (the last day and the one before), and only for cards where spend moving to the next cycle could still cost you (cap room left, or a minimum spend not met yet).
+  const matters = (card) => {
+    const live = state.cards.find(c => c.id === card.id) || card;
+    const spent = Number(live.currentSpend) || 0;
+    return ((Number(card.monthlyCap) || 0) < 999999 && spent < card.monthlyCap) || ((Number(card.minSpend) || 0) > 0 && spent < card.minSpend);
+  };
+  const rows = bannerRows(enabledCards(), new Date(), 1).filter(r => r.phase === "ending" && matters(r.card));
   if (!rows.length) { box.innerHTML = ""; return; }
   const ending = rows.filter(r => r.phase === "ending");
   const lead = ending.length ? ending : rows;
@@ -109,7 +114,8 @@ export function refreshLogHint() {
   group.style.display = show ? "flex" : "none";
   const dv = $("txDateInput")?.value;
   const spend = dv ? new Date(...dv.split("-").map((n, i) => i === 1 ? n - 1 : Number(n)), 12) : new Date();
-  const line = card && rule ? slipLine(card, spend) : "";
+  const amount = Number($("amtInput")?.value) || 0;
+  const line = card && rule && amount >= SLIP_ALERT_MIN ? slipLine(card, spend) : "";   // small spend: no warning
   const est = show && rule.basis === "posting" ? expectedPosting(spend) : null;
   hint.innerHTML = (line ? `<div class="post-note">${line}</div>` : "")
     + (show ? `<div class="hm-note">${est ? `A charge on this date usually posts ${fmtDay(est.from)} to ${fmtDay(est.to)}. ` : ""}Leave blank to count it on the date above; or enter the date the bank posted it once you know.</div>` : "");
@@ -124,4 +130,5 @@ export function initPostingUi() {
   $("postingOverlay")?.addEventListener("click", e => { if (e.target.id === "postingOverlay") closePostingSheet(); });
   $("txDateInput")?.addEventListener("change", refreshLogHint);
   $("cardSelect")?.addEventListener("change", refreshLogHint);
+  $("amtInput")?.addEventListener("input", refreshLogHint);
 }
