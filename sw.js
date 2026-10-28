@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.20.1';
+const CACHE_NAME = 'milestrack-cache-v1.20.2';
 
 const CORE_ASSETS = [
   './',
@@ -47,9 +47,15 @@ const CARD_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.addAll(CORE_ASSETS);
+      // cache:'reload' skips the browser's HTTP cache, so a freshly published version is never mixed with stale copies of other files
+      await Promise.all(CORE_ASSETS.map(async (url) => {
+        const res = await fetch(new Request(url, { cache: 'reload' }));
+        if (!res.ok) throw new Error(`Failed to cache ${url}: ${res.status}`);
+        await cache.put(url, res);
+      }));
       await Promise.allSettled(
         CARD_ASSETS.map((url) =>
           fetch(url).then((res) => {
@@ -92,6 +98,18 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('identitytoolkit.googleapis.com') ||
     url.hostname.includes('securetoken.googleapis.com')
   ) {
+    return;
+  }
+
+  // The app's own pages, scripts and styles: network first (so an update is never half-applied), cache when offline.
+  const own = url.origin === self.location.origin && (event.request.mode === 'navigate' || /\.(js|mjs|css|html|json)$/.test(url.pathname));
+  if (own) {
+    event.respondWith(
+      fetch(new Request(event.request, { cache: 'no-cache' })).then((res) => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(event.request, copy)); }
+        return res;
+      }).catch(() => caches.match(event.request, { ignoreSearch: true }).then((hit) => hit || caches.match('./index.html')))
+    );
     return;
   }
 
