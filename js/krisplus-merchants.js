@@ -762,3 +762,14 @@ export function findKrisPlusMerchants(text) {
   });
   return hit.sort((a, b) => b.mpd - a.mpd).slice(0, 4);
 }
+
+// The Kris+ list has no MCC codes, so the recommender needs a best guess to rank cards: the category's usual MCC, with a few known exceptions.
+const CATEGORY_MCC = { Dining: "5812", Retail: "5999", Activities: "7999", Services: "7299", Wellness: "7298" };
+const MCC_OVERRIDES = {
+  "Esso": "5541", "Ryde": "4121", "Krispy Kreme": "5814", "Golden Village": "7832", "Challenger": "5732", "Harvey Norman": "5732",
+  "Goldbell Car Rental": "7512", "AWE Rentals": "7512", "Car Choice Singapore": "7512",
+  "ASA Holidays": "4722", "Chan Brothers Travel": "4722", "CTC Travel": "4722", "EU Holidays": "4722", "HIS Travel": "4722", "Hong Thai Travel": "4722",
+  "L.G.E Travel Singapore": "4722", "Nam Ho Travel": "4722", "New Shan Travel": "4722", "SA TOURS": "4722", "Super Travels": "4722", "UOB Travel": "4722", "WTS Travel": "4722",
+  "ACE Fresh": "5411", "ACE Marketplace": "5411", "ACE Signature": "5411", "All India Supermart": "5411"
+};
+export const krisPlusMcc = (m) => MCC_OVERRIDES[m.name] || CATEGORY_MCC[m.category] || "5999";

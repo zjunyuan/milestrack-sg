@@ -12,7 +12,7 @@ import {
 } from "./retailers.js";
 import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
 import { CITI_INSTORE_MCCS } from "./cardrules.js";
-import { findKrisPlusMerchants, KRISPLUS_META } from "./krisplus-merchants.js";
+import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-merchants.js";
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
@@ -129,6 +129,11 @@ export function resolveMccEntry(input) {
   const byName = findMccByName(clean);
   if (byName) return getMccEntry(byName);
 
+  // A Kris+ merchant with no curated MCC: rank the cards on the category's usual MCC and say so.
+  const kp = findKrisPlusMerchants(clean)[0];
+  const kpEntry = kp && getMccEntry(krisPlusMcc(kp));
+  if (kpEntry) return { ...kpEntry, krisMerchant: kp.name, notes: `${kpEntry.notes}<br>ℹ️ <b>MCC assumed:</b> ${kp.name} is on the Kris+ list but not in the retailer list, so cards are ranked on MCC ${krisPlusMcc(kp)} (${kp.category}). Its real MCC may differ; add the retailer to set it exactly.` };
+
   if (state.isOverseasMode) {
     return {
       code: "FCY-GEN",
@@ -216,8 +221,8 @@ function renderRecommendationCore() {
   // For a known brand, label the result "Brand · Category" but log just the brand name.
   const mccData = resolvedMcc && resolvedMcc.retailer
     ? { ...resolvedMcc, name: `${escapeHtml(resolvedMcc.retailer.name)} · ${shortCategory(resolvedMcc.name)}` }
-    : resolvedMcc;
-  const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : (mccData && mccData.name);
+    : (resolvedMcc && resolvedMcc.krisMerchant ? { ...resolvedMcc, name: `${escapeHtml(resolvedMcc.krisMerchant)} · ${shortCategory(resolvedMcc.name)}` } : resolvedMcc);
+  const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : ((resolvedMcc && resolvedMcc.krisMerchant) || (mccData && mccData.name));
 
   if (!mccData) {
     resultArea.innerHTML = `
