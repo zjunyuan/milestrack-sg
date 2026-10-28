@@ -337,3 +337,11 @@ The recommender's amount box starts empty (placeholder "Amt (S$)") instead of 10
 ## 🏬 Kris+ browse button tucked into the Kris+ row (v1.24.2)
 
 The full-width "Browse all Kris+ merchants" button is gone. A small storefront icon now sits beside the Kris+ switch and opens the same list (hover or long-press shows its name). The recommender has one row less. No Firestore rules changed.
+
+## 🔎 Retailer and MCC search are separate (v1.25.0)
+
+The recommender's search box has a two-way switch above it: **Retailer** (brand names, including every Kris+ merchant) and **MCC** (4-digit codes and category names such as "grocery"). Each mode only suggests its own kind of result, so a code never gets mixed in with brands. Tapping the switch clears the box.
+- Typing a 4-digit code in Retailer mode switches to MCC for you.
+- If nothing matches in the current mode but the text fits the other one, the dropdown offers a "search it as a retailer / MCC category instead" row.
+- Picking a Kris+ merchant, a retailer or an alt-category chip switches to Retailer; the HeyMax voucher plan switches to MCC.
+- Your last mode is remembered on this device. Older text such as a pasted code or label still works in either mode. No Firestore rules changed.
