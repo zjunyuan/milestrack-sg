@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.29.5</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.30.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.29.5</span>
+          <span class="version-tag" id="headerVersionTag">v1.30.0</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -170,35 +170,6 @@
           </div>
           <div class="card-list" id="cardsContainer"></div>
         </div>
-
-        <!-- RECENT TRANSACTIONS WITH SEARCH & FILTER -->
-        <div>
-          <div class="section-title">
-            <span>Recent Transactions</span>
-            <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
-          </div>
-          
-          <div style="display:flex; gap:8px; margin: 4px 0 10px;">
-            <div class="mcc-input-wrapper" style="flex:1;">
-              <input 
-                type="text" 
-                id="txSearchInput" 
-                class="form-control" 
-                placeholder="Search merchant, card, or notes..." 
-                style="padding: 9px 12px; font-size: 0.85rem;"
-              >
-              <button type="button" class="btn-clear-mcc" id="btnClearTxSearch" title="Clear search">✕</button>
-            </div>
-            <select id="txFilterCardSelect" class="form-control" style="width:auto; max-width: 140px; padding: 9px 8px; font-size: 0.8rem;">
-              <option value="ALL">All Cards</option>
-            </select>
-          </div>
-
-          <button type="button" class="btn-backup" id="btnOpenStatementImport2" style="width:100%; margin-bottom:10px;">
-            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement
-          </button>
-          <div id="txList"></div>
-        </div>
       </div>
 
       <!-- TAB 2 (Mobile only): CATEGORY CAPS -->
@@ -271,6 +242,58 @@
           <div id="categoryCardsDesktop" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
       </div>
+
+      <!-- TAB 4: HISTORY (period summary + transactions) -->
+      <div class="tab-content" id="tabContentHistory" style="display:none;">
+        <div class="section-title" style="margin-top:0;">
+          <span>History</span>
+          <span style="font-size:0.75rem; color:#94a3b8;" id="txCountBadge">0 recorded</span>
+        </div>
+
+        <div class="form-group">
+          <select id="archiveMonthSelect" class="form-control" aria-label="Period"></select>
+        </div>
+
+        <div class="card-detail-grid">
+          <div class="detail-stat-box">
+            <span class="detail-stat-lbl">Total Spent</span>
+            <span class="detail-stat-val" id="archiveTotalSpent">$0.00</span>
+            <span class="detail-stat-sub" id="archiveTxnCount">0 transactions</span>
+          </div>
+          <div class="detail-stat-box">
+            <span class="detail-stat-lbl">Miles Generated</span>
+            <span class="detail-stat-val" id="archiveTotalMiles" style="color:var(--accent);">0 mi</span>
+            <span class="detail-stat-sub" id="archiveBlendedMpd">0.00 blended mpd</span>
+          </div>
+        </div>
+
+        <details class="history-cards">
+          <summary>Card performance &amp; cap tally</summary>
+          <div id="archiveCardBreakdownList" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;"></div>
+        </details>
+
+        <div style="display:flex; gap:8px;">
+          <div class="mcc-input-wrapper" style="flex:1;">
+            <input type="text" id="txSearchInput" class="form-control" placeholder="Search merchant, card, or notes..." style="padding: 9px 12px; font-size: 0.85rem;">
+            <button type="button" class="btn-clear-mcc" id="btnClearTxSearch" title="Clear search">✕</button>
+          </div>
+          <select id="txFilterCardSelect" class="form-control" style="width:auto; max-width: 140px; padding: 9px 8px; font-size: 0.8rem;">
+            <option value="ALL">All Cards</option>
+          </select>
+        </div>
+
+        <div id="txList"></div>
+
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-backup" id="btnOpenStatementImport2" style="flex:1;">
+            <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import statement
+          </button>
+          <button type="button" class="btn-backup" id="btnExportArchiveCSV" style="flex:1;">
+            <span class="material-symbols-outlined" style="font-size:18px;">download</span> Export CSV
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -287,6 +310,10 @@
     <button class="nav-tab" id="btnTabVault">
       <span class="material-symbols-outlined">account_balance_wallet</span>
       <span>Miles Vault</span>
+    </button>
+    <button class="nav-tab" id="btnTabHistory">
+      <span class="material-symbols-outlined">history</span>
+      <span>History</span>
     </button>
   </nav>
 
@@ -577,46 +604,6 @@
     </div>
   </div>
 
-  <!-- MODAL: MONTHLY CYCLE RESET & FULL-YEAR ARCHIVE -->
-  <div class="modal-overlay" id="archiveModalOverlay">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="material-symbols-outlined" style="color:var(--primary);">calendar_month</span>
-          <h2 style="font-size:1.15rem;">Monthly & Annual Archive</h2>
-        </div>
-        <span class="material-symbols-outlined" id="btnCloseArchiveModal" style="cursor:pointer; color:#94a3b8;">close</span>
-      </div>
-
-      <div class="form-group" style="margin-top:4px;">
-        <label>Select History Cycle or Full Year</label>
-        <select id="archiveMonthSelect" class="form-control"></select>
-      </div>
-
-      <div class="card-detail-grid">
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">Total Spent</span>
-          <span class="detail-stat-val" id="archiveTotalSpent">$0.00</span>
-          <span class="detail-stat-sub" id="archiveTxnCount">0 transactions</span>
-        </div>
-        <div class="detail-stat-box">
-          <span class="detail-stat-lbl">Miles Generated</span>
-          <span class="detail-stat-val" id="archiveTotalMiles" style="color:var(--accent);">0 mi</span>
-          <span class="detail-stat-sub" id="archiveBlendedMpd">0.00 blended mpd</span>
-        </div>
-      </div>
-
-      <div style="margin-top:6px;">
-        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">Card Performance & Cap Tally</span>
-        <div id="archiveCardBreakdownList" style="display:flex; flex-direction:column; gap:8px; margin-top:6px; max-height:280px; overflow-y:auto;"></div>
-      </div>
-
-      <button type="button" class="btn-backup" id="btnExportArchiveCSV" style="margin-top:6px; width:100%;">
-        <span class="material-symbols-outlined" style="font-size:18px;">download</span> Export Period CSV
-      </button>
-    </div>
-  </div>
-
   <!-- MODAL: MONTHLY STATEMENT RECONCILIATION -->
   <div class="modal-overlay" id="reconcileModalOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -698,7 +685,7 @@
     // service worker once and reloads (a half-applied update leaves a blank page). (3) If it still fails, shows what went wrong on screen
     // instead of a blank page, with a Copy button. Add ?debug to the address to see the panel and the error log at any time. Your data lives in Firebase and is not touched.
     (function () {
-      var VER = 'v1.29.5', log = [];
+      var VER = 'v1.30.0', log = [];
       function note(m) { log.push(String(m).slice(0, 400)); }
       window.addEventListener('error', function (e) {
         var t = e.target && e.target !== window && (e.target.src || e.target.href);
@@ -736,6 +723,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.29.5"></script>
+  <script type="module" src="js/app.js?v=1.30.0"></script>
 </body>
 </html>

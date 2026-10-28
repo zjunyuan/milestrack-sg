@@ -24,6 +24,7 @@ import {
   renderVault, 
   renderCategoryTracker, 
   renderTransactions, 
+  refreshHistory,
   renderAllVaultsTally,
   openSettingsModal,
   closeSettingsModal,
@@ -40,8 +41,6 @@ import {
   openModal,
   closeModal,
   closeCardDetailModal,
-  openArchiveModal,
-  closeArchiveModal,
   openReconcileModal,
   closeReconcileModal,
   saveTransaction,
@@ -105,7 +104,7 @@ window.addEventListener('settings-updated', () => {
 window.addEventListener('txns-updated', () => {
   renderCards();
   renderCategoryTracker();
-  renderTransactions();
+  refreshHistory();
 });
 
 // Boot Firebase
@@ -168,6 +167,7 @@ document.getElementById('btnSummaryUpdateVault')?.addEventListener('click', () =
 document.getElementById('btnTabCards')?.addEventListener('click', () => switchTab('cards'));
 document.getElementById('btnTabCategory')?.addEventListener('click', () => switchTab('category'));
 document.getElementById('btnTabVault')?.addEventListener('click', () => switchTab('vault'));
+document.getElementById('btnTabHistory')?.addEventListener('click', () => switchTab('history'));
 
 document.getElementById('fabButton')?.addEventListener('click', openModal);
 document.getElementById('btnCloseModal')?.addEventListener('click', closeModal);
@@ -291,9 +291,8 @@ document.getElementById('txFilterCardSelect')?.addEventListener('change', (e) =>
 });
 
 // Archive Modal Listeners
-document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', openArchiveModal);
-document.getElementById('btnCloseArchiveModal')?.addEventListener('click', closeArchiveModal);
-document.getElementById('archiveMonthSelect')?.addEventListener('change', renderArchiveData);
+document.getElementById('btnOpenArchiveHistory')?.addEventListener('click', () => switchTab('history'));
+document.getElementById('archiveMonthSelect')?.addEventListener('change', () => { renderArchiveData(); renderTransactions(); });
 document.getElementById('btnExportArchiveCSV')?.addEventListener('click', exportArchiveMonthCSV);
 
 // Reconciliation Modal Listeners
