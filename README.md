@@ -117,3 +117,17 @@ The household admin (primary role) can set which cards earn a bonus on any categ
 - **Remove:** **↺ Remove rule (use built-in)** deletes the document.
 - **Still in code:** the Citi Rewards in-person category whitelist, Maybank World overseas spend tiers, and the OCBC 6 mpd S$1,000 cap.
 - **Firestore:** publish the updated `docs/firestore.rules`. Everyone signed in as a household member can read `milestrack_mccRules`; only the primary role can write it.
+
+
+## 📜 Bank-Rule Candidates (v1.13.0)
+
+Eight cards no longer rely on hand-written category lists. `js/cardrules.js` holds each bank's published exclusion or eligibility list and generates that card's candidates for **any** MCC.
+
+- **Cards covered:** UOB Visa Signature (contactless and FCY), UOB Preferred Platinum Visa, OCBC Rewards, Citi Rewards, HSBC Revolution, DBS Woman's World, and Maybank Horizon air tickets.
+- **Blacklist cards now count:** UOB VS and PPV earn 4 mpd on contactless spend at any MCC outside the UOB exclusion list, so they appear for things like sporting goods (5941) when contactless is on. Turning contactless off hides them.
+- **HSBC Revolution** only earns online or contactless, so it is hidden for in-person spend with contactless off.
+- **Dated rates:** `rateSchedule` on a card switches its rate on a date. DBS Vantage drops from 1.5 to 1.4 mpd local on 2 Nov 2026.
+- **Household rules still win:** an active household rule replaces these generated candidates for its category.
+- **Maintenance:** sources and retrieval dates are in the header of `js/cardrules.js`. Update the sets there when a bank changes its terms.
+- **Not modelled yet:** KrisFlyer UOB 2.4 mpd (needs S$1,000 SIA Group spend per membership year), UOB PRVI 3.0 mpd on IDR/MYR/THB/VND, UOB Lady's other categories.
+- Firestore rules are unchanged.
