@@ -320,3 +320,12 @@ Posting usually takes 1 to 3 days, longer over weekends and public holidays (the
 ## 🧮 Cards with no cap room no longer win (v1.23.1)
 
 A capped card whose monthly cap was already used up (for example DBS yuu at S$824 of S$822.86) was still shown as the winner at its base rate (0.14 mpd) when only one other card had room, because the single-card result fell back to the top-ranked card. Cards with no bonus room now rank behind cards that still have room, so the result is the best card that can still earn its bonus. If every card is full, the best of them is still shown at its base rate. No Firestore rules changed.
+
+## 🧹 Cleaner Settings (v1.24.0)
+
+Settings & Card Wallet is now three icon tabs with a Save button that stays in view:
+- **Cards:** one row per physical card, grouped by bank (UOB, DBS, Citi, OCBC, HSBC, Maybank), with the card art and an on/off switch. The UOB Preferred Visa, Visa Signature and Lady's Solitaire are one row each instead of two; their channels (tap / online, contactless / overseas, dining / travel) sit under the arrow, so you can still keep just one on. Tap a card for its own settings: annual fee renewal month, KrisFlyer UOB membership year, Citi approval month, and the statement start day for Visa Signature and Citi Rewards. The renewal and start-day boxes that used to sit below the wallet are now inside those cards, and small chips show what is set.
+- **Dates:** an overview of every renewal (soonest first, "next month", "in 5 mo") and statement start day. Tap one to edit it on its card. Renewal months repeat every year, so only the month matters.
+- **Data:** JSON backup, Ledger CSV, Restore and Import statement as icon tiles, the "Transaction date vs posting date" guide, and the app version.
+
+Nothing about how settings are stored changed: the same fields are saved, and no Firestore rules changed.

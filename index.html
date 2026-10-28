@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.23.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.24.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.23.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.24.0</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -534,92 +534,49 @@
 
   <!-- MODAL: SETTINGS -->
   <div class="modal-overlay" id="settingsOverlay">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.15rem;">Settings & Card Wallet</h2>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-outlined" style="color:var(--primary);">tune</span>
+          <h2 style="font-size:1.15rem;">Settings</h2>
+        </div>
         <span class="material-symbols-outlined" id="btnCloseSettings" style="cursor:pointer;">close</span>
       </div>
 
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
-          Data Backup & Portability
-        </label>
-        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
-          Export your complete ledger and bank vault snapshot to your local device.
-        </p>
-        <div class="backup-btn-row">
-          <button class="btn-backup" id="btnExportJSON">
-            <span class="material-symbols-outlined" style="font-size:18px;">download</span> JSON Backup
-          </button>
-          <button class="btn-backup" id="btnExportCSV">
-            <span class="material-symbols-outlined" style="font-size:18px;">table_view</span> Ledger CSV
-          </button>
+      <div class="set-tabs" role="tablist">
+        <button type="button" class="set-tab active" data-tab="cards" role="tab" aria-selected="true"><span class="material-symbols-outlined">credit_card</span><span>Cards</span></button>
+        <button type="button" class="set-tab" data-tab="dates" role="tab" aria-selected="false"><span class="material-symbols-outlined">event_repeat</span><span>Dates</span></button>
+        <button type="button" class="set-tab" data-tab="data" role="tab" aria-selected="false"><span class="material-symbols-outlined">database</span><span>Data</span></button>
+      </div>
+
+      <div data-panel="cards">
+        <p class="hm-note" style="margin-bottom:8px;"><span class="material-symbols-outlined" style="font-size:15px; vertical-align:-3px;">wallet</span> Switch on the cards you hold. Cards that are off are hidden from caps and the recommender. Tap a card for its renewal month and statement start day.</p>
+        <div class="wal-list" id="cardChecklistContainer"></div>
+      </div>
+
+      <div data-panel="dates" hidden>
+        <p class="hm-note" style="margin-bottom:8px;"><span class="material-symbols-outlined" style="font-size:15px; vertical-align:-3px;">notifications_active</span> Renewal months drive the home-screen alert before UOB auto-deducts an annual fee. Tap a row to edit it on the card.</p>
+        <div class="wal-dates" id="setDatesList"></div>
+      </div>
+
+      <div data-panel="data" hidden>
+        <div class="set-tiles">
+          <button type="button" class="set-tile" id="btnExportJSON"><span class="material-symbols-outlined">download</span><b>JSON backup</b><small>Ledger + balances</small></button>
+          <button type="button" class="set-tile" id="btnExportCSV"><span class="material-symbols-outlined">table_view</span><b>Ledger CSV</b><small>Open in a spreadsheet</small></button>
+          <button type="button" class="set-tile" id="btnImportJSON"><span class="material-symbols-outlined">upload</span><b>Restore backup</b><small>From a JSON file</small></button>
+          <button type="button" class="set-tile" id="btnOpenStatementImport"><span class="material-symbols-outlined">upload_file</span><b>Import statement</b><small>CSV, XLS or PDF</small></button>
         </div>
-        <button class="btn-backup" id="btnImportJSON" style="width:100%; margin-top:10px;">
-          <span class="material-symbols-outlined" style="font-size:18px;">upload</span> Restore from JSON Backup
-        </button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
-        <button class="btn-backup" id="btnOpenStatementImport" style="width:100%; margin-top:10px;">
-          <span class="material-symbols-outlined" style="font-size:18px;">upload_file</span> Import a bank statement
-        </button>
+        <details class="set-info"><summary><span class="material-symbols-outlined">info</span> About backups and imports</summary>
+          <p class="hm-note">JSON backup is your complete ledger and bank vault snapshot, saved to this device. Restore puts a backup file back. Statement import compares a bank file with your list and changes nothing until you tick the lines you want.</p>
+        </details>
+        <button type="button" class="btn-backup" id="btnSetPostingInfo" style="width:100%; margin-top:10px;"><span class="material-symbols-outlined" style="font-size:18px;">event_note</span> Transaction date vs posting date</button>
+        <div class="hm-note" id="setVersion" style="text-align:center; margin-top:12px;"></div>
       </div>
 
-      <div style="background: rgba(158, 202, 255, 0.05); padding: 12px; border-radius: 14px; border: 1px solid var(--outline);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--primary); display:block;">
-          My Card Wallet (Active Cards)
-        </label>
-        <p style="font-size:0.75rem; color:#94a3b8; margin: 2px 0 8px;">
-          Uncheck cards you do not hold. Unchecked cards are hidden from caps and recommender.
-        </p>
-        <div class="checklist-grid" id="cardChecklistContainer"></div>
+      <div class="set-footer" id="setFooter">
+        <button class="btn-submit" id="btnSaveSettings"><span class="material-symbols-outlined" style="font-size:19px; vertical-align:-4px;">check</span> Save Settings</button>
       </div>
-
-      <div style="background: rgba(239, 68, 68, 0.08); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
-        <label style="font-size:0.85rem; font-weight:700; color:var(--danger); display:block; margin-bottom:4px;">
-          UOB Auto-Deduction Defense (Card Renewal Months)
-        </label>
-        <div class="form-group">
-          <label>UOB Lady's Solitaire Renewal Month</label>
-          <input type="month" id="uobLsRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB Visa Signature Renewal Month</label>
-          <input type="month" id="uobVsRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB Preferred Visa Renewal Month</label>
-          <input type="month" id="uobPpvRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>UOB PRVI Miles Renewal Month</label>
-          <input type="month" id="uobPrviRenewalInput" class="form-control">
-        </div>
-        <div class="form-group" style="margin-top:6px;">
-          <label>KrisFlyer UOB Membership Year Start (month)</label>
-          <input type="month" id="kfUobRenewalInput" class="form-control">
-        </div>
-      </div>
-
-      <div style="background: rgba(158, 202, 255, 0.08); padding: 12px; border-radius: 12px; border: 1px solid var(--primary-container);">
-        <label style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block; margin-bottom:4px;">
-          Citi Rewards Approval Date (5-Year Cycle)
-        </label>
-        <input type="month" id="citiApprovalInput" class="form-control">
-      </div>
-
-      <div class="form-group">
-        <label>UOB Visa Signature: day each statement cycle STARTS (1 - 31)</label>
-        <div class="hm-note">That is the day after your statement date. Statement date 24th means enter 25.</div>
-        <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
-      </div>
-
-      <div class="form-group">
-        <label>Citi Rewards: day each statement cycle STARTS (1 - 31)</label>
-        <div class="hm-note">That is the day after your statement date. Statement date 28th means enter 29.</div>
-        <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
-      </div>
-
-      <button class="btn-submit" id="btnSaveSettings">Save Settings</button>
     </div>
   </div>
 
@@ -744,7 +701,7 @@
     // service worker once and reloads (a half-applied update leaves a blank page). (3) If it still fails, shows what went wrong on screen
     // instead of a blank page, with a Copy button. Add ?debug to the address to see the panel and the error log at any time. Your data lives in Firebase and is not touched.
     (function () {
-      var VER = 'v1.23.1', log = [];
+      var VER = 'v1.24.0', log = [];
       function note(m) { log.push(String(m).slice(0, 400)); }
       window.addEventListener('error', function (e) {
         var t = e.target && e.target !== window && (e.target.src || e.target.href);
@@ -782,6 +739,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.23.1"></script>
+  <script type="module" src="js/app.js?v=1.24.0"></script>
 </body>
 </html>

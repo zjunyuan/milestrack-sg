@@ -16,6 +16,7 @@ import { initStatementImport } from "./statement-import.js";
 import { initVaultGuard } from "./vault-guard.js";
 import { initKrisPlusBrowser } from "./krisplus-browse.js";
 import { initPostingUi } from "./posting-ui.js";
+import { initSettingsUi } from "./settings-ui.js";
 import { 
   renderPresets, 
   renderCards, 
@@ -257,6 +258,7 @@ initStatementImport();
 initVaultGuard();
 initKrisPlusBrowser();
 initPostingUi();
+initSettingsUi();
 document.getElementById('recAmount')?.addEventListener('input', runRecommendation);
 document.getElementById('contactlessSwitch')?.addEventListener('change', runRecommendation);
 document.getElementById('cardSelect')?.addEventListener('change', onCardSelectChange);

@@ -16,6 +16,7 @@ import {
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
+import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
@@ -1017,16 +1018,7 @@ function downloadFile(fileName, content, mime) {
 }
 
 export function openSettingsModal() {
-  // Card wallet checklist
-  const list = document.getElementById('cardChecklistContainer');
-  if (list) {
-    list.innerHTML = ALL_MASTER_CARDS.map(c => `
-      <label class="checklist-item">
-        <input type="checkbox" class="card-wallet-check" value="${c.id}" ${state.enabledCardIds.includes(c.id) ? 'checked' : ''}>
-        <span>${c.name}</span>
-      </label>
-    `).join('');
-  }
+  renderCardWallet();   // card rows, with the per-card inputs inside them
 
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
   setVal('uobLsRenewalInput', state.uobRenewals.solitaire);
@@ -1039,6 +1031,7 @@ export function openSettingsModal() {
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
   setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
   setVal('citiCutoff', citi?.cutoffDay ?? 15);
+  prepareSettingsSheet();
 
   document.getElementById('settingsOverlay')?.classList.add('open');
 }
@@ -1074,6 +1067,7 @@ export async function saveSettings() {
   };
 
   const btn = document.getElementById('btnSaveSettings');
+  const btnHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerText = 'Saving...'; }
   try {
     // The Firestore settings listener applies these values and re-renders.
@@ -1083,7 +1077,7 @@ export async function saveSettings() {
     console.error('Save settings failed:', e);
     alert('Could not save settings: ' + e.message);
   } finally {
-    if (btn) { btn.disabled = false; btn.innerText = 'Save Settings'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
   }
 }
 
