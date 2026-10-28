@@ -249,3 +249,5 @@ DBS card CSVs (Transaction Date, Description, Debit Amount, Credit Amount, Trans
 ## ↩️ Undo an import (v1.20.1)
 
 Every import is tagged. Open "Import a bank statement" and, if there is a previous import, a note at the top shows what it did with an **Undo last import** button: the lines it added are deleted, and lines it changed (amount replaced, or "keep mine" notes) are put back as they were. Points balances only move for lines that were counted into them, i.e. if you ticked "add to my bank points balances". Tap it again to step back through earlier imports. You can still delete a single line with the bin icon in Recent Transactions; deleting an imported line no longer takes points off your balance if the import never added them. No Firestore rules changed. Imports made on v1.20.0 carry no tag and can only be deleted line by line.
+
+**Statement cycle day:** the setting is the day a cycle *starts*, i.e. the day after your statement date (statement date 28th means enter 29). If it is set to your statement date, the last day of the cycle already counts as the next cycle and spend can look like it vanished. The settings labels now say this.
