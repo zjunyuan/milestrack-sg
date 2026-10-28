@@ -299,7 +299,7 @@ export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   if (hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4])) return remembered[hint.last4];
   const n = hint.name.toLowerCase();
   const pick = id => (enabledIds.includes(id) ? id : "");
-  if (/vantage/.test(n)) return pick("dbs-vantage");
+  if (/vantage|visa platinum/.test(n)) return pick("dbs-vantage");   // the user's "VISA Platinum" statements are the Vantage card
   if (/altitude/.test(n)) return pick("dbs-altitude");
   if (/yuu/.test(n)) return pick("dbs-yuu");
   if (/woman|mastercard world|world mastercard/.test(n)) return pick("dbs-wwmc");
