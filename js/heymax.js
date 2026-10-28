@@ -14,7 +14,7 @@ export const HEYMAX_VERIFIED = "Milelion May 2025 (MCC); HeyMax list and use typ
 export const URGENT_DAYS = 7;       // show the banner when a cycle has this many days or fewer left
 export const MIN_HEADROOM = 100;    // ...and at least this much bonus room is unspent
 
-// Cards reported as no longer working on HeyMax. Still listed, with a warning.
+// Cards reported as no longer working on HeyMax. Counted like any other card, with a warning.
 export const UNVERIFIED_CARDS = { "dbs-wwmc": "A 2026 reader comment says DBS Woman's World no longer works on HeyMax. Check before relying on it." };
 
 // [name, Max Miles per S$1, tags]. "≤" = "up to". `store` = HeyMax marks it in-store only.
@@ -76,7 +76,7 @@ export function headroomRows({ cards, candidates, enabledIds, now = new Date(), 
 }
 
 export function urgentSummary(rows) {
-  const u = rows.filter(r => r.urgent && !r.unverified && r.remaining >= MIN_HEADROOM);
+  const u = rows.filter(r => r.urgent && r.remaining >= MIN_HEADROOM);
   return { rows: u, amount: u.reduce((s, r) => s + r.remaining, 0), miles: u.reduce((s, r) => s + r.miles, 0), days: u.length ? Math.min(...u.map(r => r.daysLeft)) : null };
 }
 
@@ -123,7 +123,7 @@ export function renderHeymaxBanner() {
 export function openHeymaxSheet() {
   const rows = currentRows();
   const sum = urgentSummary(rows);
-  const plan = sum.rows.length ? sum.rows : rows.filter(r => !r.unverified);
+  const plan = sum.rows.length ? sum.rows : rows;
   const planAmt = plan.reduce((s, r) => s + r.remaining, 0);
   const body = document.getElementById("heymaxBody");
   if (!body) return;
@@ -137,7 +137,7 @@ export function openHeymaxSheet() {
             <div class="hm-sub">S$${fmtNum(r.remaining, 2)} of ${r.rate} mpd room left (S$${fmtNum(r.spend, 2)} of S$${fmtNum(r.card.monthlyCap)} used)</div>
             <div class="hm-sub ${r.urgent ? "hm-warn" : ""}">${r.urgent ? "⏳ " : ""}Cycle ends ${r.endLabel} (${r.daysLeft}d left)</div>
             ${r.belowMin ? `<div class="hm-sub hm-warn">Also reaches the S$${fmtNum(minSpendGate(r.card, { amount: r.remaining, rate: r.rate }).min)} minimum${r.lift ? `, lifting your earlier S$${fmtNum(r.spend, 2)} to ${r.rate} mpd (+${fmtNum(Math.round(r.lift))} mi)` : ""}.</div>` : ""}
-            ${r.warn ? `<div class="hm-sub hm-warn">⚠️ ${escapeHtml(r.warn)}${r.unverified ? " Not counted in the plan." : ""}</div>` : ""}
+            ${r.warn ? `<div class="hm-sub hm-warn">⚠️ ${escapeHtml(r.warn)}</div>` : ""}
           </div>
           <div class="hm-miles">+${fmtNum(Math.round(r.miles))} mi</div>
         </div>`).join("")}
