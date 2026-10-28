@@ -212,14 +212,18 @@ function appendKrisPlusNote() {
 function renderRecommendation() {
   renderRecommendationCore();
   appendKrisPlusNote();
-  // No amount typed yet: the result is worked out on S$100 as an example, so say so.
+  // No amount typed yet: the result is worked out on S$100 as an example. Say so at the top, dim the amounts and hide the Log buttons,
+  // so S$83.96 is not mistaken for what to charge.
   const area = document.getElementById('recResultArea');
   const typed = (document.getElementById('recAmount')?.value || '').trim();
-  if (area && !typed && area.querySelector('.rec-winner-title, .cascade-step')) {
+  const isExample = !!area && !typed && !!area.querySelector('.card-tile');
+  area?.classList.toggle('rec-example', isExample);
+  if (isExample) {
     const note = document.createElement('div');
-    note.className = 'hm-note rec-eg-note';
-    note.textContent = 'Shown for S$100 as an example. Enter your amount above for exact miles and splits.';
-    area.appendChild(note);
+    note.className = 'rec-eg-note';
+    note.innerHTML = '📝 <b>Example for S$100.</b> Enter your amount above to see what to charge on each card.';
+    const ctx = area.querySelector('.rec-context');
+    if (ctx) ctx.after(note); else area.prepend(note);
   }
 }
 
