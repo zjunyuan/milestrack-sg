@@ -547,9 +547,9 @@ export function checkUobFeeDefense() {
 
     if (diffDays <= 45 && diffDays >= 0) {
       container.innerHTML += `
-        <div class="fee-alert-card">
-          <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:20px;">warning</span> UOB Auto-Deduction Alert: ${card.name}</div>
-          <div class="fee-alert-desc">Renewal in <b>${diffDays} days</b>. UOB will automatically deduct <b>${fmtNum(card.pts)} UNI$ (${card.miles} miles)</b> for ${card.fee} fee!</div>
+        <div class="fee-alert-card${diffDays <= 14 ? ' is-soon' : ''}">
+          <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:19px;">event_repeat</span> UOB Auto-Deduction Alert: ${card.name}</div>
+          <div class="fee-alert-desc">Renewal in <b>${diffDays} days</b>. UOB will automatically deduct <b>${fmtNum(card.pts)} UNI$ (${card.miles} miles)</b> for ${card.fee} fee.</div>
         </div>
       `;
     }
