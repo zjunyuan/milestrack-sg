@@ -899,3 +899,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .vault-chip-empty { color: #94a3b8; }
 
 .summary-card .total-miles { font-size: 1.9rem; }
+
+/* Header tidy: balances editing lives in the Vault tab; History is a bottom-nav tab on phones. */
+#btnHeaderVault { display: none !important; }
+@media (max-width: 899px) {
+  #btnHeaderHistory { display: none !important; }
+}
