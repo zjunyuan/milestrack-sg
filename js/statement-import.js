@@ -7,7 +7,7 @@ import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
@@ -33,7 +33,7 @@ function lookupBrand(merchant) {
 }
 const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
 
-const S = { flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
+const S = { chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, fileName: "" };
 
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
@@ -103,12 +103,21 @@ function recompute() {
   const fam = familyOf(S.card.id);
   const existing = state.transactions.filter(t => fam.includes(t.cardId));
   const m = matchLines(lines, existing, { cardId: keyCardId() });
-  S.results = m.results; S.missing = m.missing; S.choice = {};
+  S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {};
+  if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs") S.chan[i] = guessEntry(r.line); });
   m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : r.status === "differs" ? "statement" : "skip"; });
   renderReview();
 }
-// Foreign-currency lines on a card with a separate FCY entry go to that entry.
-function targetCard(line) {
+// Online-vs-tap (PPV) or dining-vs-travel (Lady's) cannot be read from a statement: a per-line choice, guessed for PPV.
+function entryLabel(id) { return ALL_MASTER_CARDS.find(c => c.id === id)?.name || id; }
+function guessEntry(line) {
+  const fam = familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id));
+  if (S.card.id.startsWith("uob-ppv")) { const want = looksOnline(line.desc) ? "uob-ppv-online" : "uob-ppv-contactless"; return fam.includes(want) ? want : S.card.id; }
+  return S.card.id;
+}
+// Foreign-currency lines on a card with a separate FCY entry go to that entry; channel-split cards use the per-line choice.
+function targetCard(line, i) {
+  if (i !== undefined && S.chan[i]) { const c = ALL_MASTER_CARDS.find(x => x.id === S.chan[i]); if (c) return c; }
   const sib = FX_SIBLING[S.card.id];
   return line.fx && sib && state.enabledCardIds.includes(sib) ? ALL_MASTER_CARDS.find(c => c.id === sib) : S.card;
 }
@@ -129,7 +138,7 @@ function rowHtml(r, i) {
   if (r.status === "new") {
     return `<div class="st-line st-new">${head}
       ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
-      ${targetCard(l).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l).name)}</div>` : ""}
+      ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
   return `<div class="st-line">${head}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
@@ -146,7 +155,10 @@ function renderReview() {
     const items = S.results.map((r, i) => r.status === status ? rowHtml(r, i) : "").join("");
     return items ? `<details class="st-group" ${open ? "open" : ""}><summary>${title}</summary>${items}</details>` : "";
   };
-  box.innerHTML = `
+  const ids = familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id));
+  const bulk = isChannelSplit(S.card.id) && ids.length > 1 ? `<div class="hm-note"><b>Which entry does this spend belong to?</b> The statement doesn't say whether a purchase was online or by tap, so I guessed from the merchant name. Check each line, or set them all:
+      <select class="form-control" id="stBulk"><option value="">Set all new lines to…</option><option value="__guess">Guess from the merchant name</option>${ids.map(id => `<option value="${id}">${escapeHtml(entryLabel(id))}</option>`).join("")}</select></div>` : "";
+  box.innerHTML = `${bulk}
     <div class="st-summary">
       <span><b>${n.new}</b> new</span><span><b>${n.differs}</b> differ</span><span><b>${n.matched}</b> already logged</span><span><b>${n.credit}</b> credits skipped</span>
     </div>
@@ -157,6 +169,12 @@ function renderReview() {
     ${S.missing.length ? `<details class="st-group"><summary>🕓 Logged by you, not on this statement (${S.missing.length})</summary>
       ${S.missing.map(t => `<div class="st-line"><div class="st-line-main"><b>${escapeHtml(t.desc)}</b><span class="st-amt">${money(Number(t.amt))}</span></div><div class="st-sub">${dateLabel(t.timestamp)}. Possibly not posted yet, or logged on the wrong card. Left untouched.</div></div>`).join("")}</details>` : ""}`;
   box.querySelectorAll(".st-add").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.checked ? "add" : "skip"; updateApplyLabel(); }));
+  box.querySelectorAll(".st-chan").forEach(el => el.addEventListener("change", () => { S.chan[el.dataset.i] = el.value; }));
+  $("stBulk")?.addEventListener("change", e => {
+    const v = e.target.value; if (!v) return;
+    S.results.forEach((r, i) => { if (r.status === "new") S.chan[i] = v === "__guess" ? guessEntry(r.line) : v; });
+    renderReview();
+  });
   box.querySelectorAll(".st-choice").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.value; updateApplyLabel(); }));
   updateApplyLabel();
 }
@@ -246,7 +264,7 @@ async function applyImport() {
       const r = S.results[i], c = S.choice[i], l = r.line;
       const makeNew = (r.status === "new" && c === "add") || (r.status === "differs" && c === "new");
       if (makeNew) {
-        const tCard = targetCard(l);
+        const tCard = targetCard(l, i);
         const bucket = tCard.id + cycleBucket(tCard, l.ts);
         const est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
         bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
@@ -301,7 +319,7 @@ function afterRows(rows, fileName = "") {
   const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered());
   if (guess) { $("stCard").value = guess; S.card = ALL_MASTER_CARDS.find(c => c.id === guess); }
   const fam = familyOf(S.card.id);
-  const famNote = fam.length > 1 ? ` This card has separate entries in the app (${fam.map(id => ALL_MASTER_CARDS.find(c => c.id === id)?.name).filter(Boolean).join(" / ")}). Lines go to the one selected above${FX_SIBLING[S.card.id] ? ", foreign-currency lines to the FCY entry" : ""}; duplicates are checked across all of them.` : "";
+  const famNote = fam.length > 1 ? ` This card has separate entries in the app (${fam.map(id => ALL_MASTER_CARDS.find(c => c.id === id)?.name).filter(Boolean).join(" / ")}). ${isChannelSplit(S.card.id) ? " Choose the entry on each line (or set them all at the top of the list)" : " Lines go to the one selected above" + (FX_SIBLING[S.card.id] ? ", foreign-currency lines to the FCY entry" : "")}; duplicates are checked across all of them.` : "";
   $("stCardHint").textContent = (S.hint
     ? (guess ? `Detected "${S.hint.name || "card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}, so I picked ${S.card.name}. Change it if that's wrong.` : `The file says "${S.hint.name || "a card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}. Please pick the matching card above.`)
     : "") + famNote;

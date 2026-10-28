@@ -313,6 +313,12 @@ export const CARD_FAMILIES = [
   ["uob-ls-dining", "uob-ls-travel"]
 ];
 export const familyOf = (id) => CARD_FAMILIES.find(f => f.includes(id)) || [id];
+// Cards whose entries are channels/categories the statement cannot tell apart: the user picks per line (online vs tap, dining vs travel).
+export const CHANNEL_SPLIT = ["uob-ppv-contactless", "uob-ls-dining"];                  // first id of each family
+export const isChannelSplit = (id) => CHANNEL_SPLIT.includes(familyOf(id)[0]);
+// Best guess for "online" from the merchant text: web/app payments carry .com, a "*" prefix or a well-known online brand.
+const ONLINE_RE = /\.com|\.sg\b|www\.|\*|online|paypal|amzn|amazon|shopee|lazada|grab|gojek|foodpanda|deliveroo|apple\.com|google|netflix|spotify|agoda|booking|klook|taobao|aliexpress|shein|zalora|qoo10|carousell|expedia|trip\.com|airbnb|ebay|steam|openai|anthropic/i;
+export const looksOnline = (desc) => ONLINE_RE.test(String(desc || ""));
 export const FX_SIBLING = { "uob-vs-contactless": "uob-vs-fcy" };   // foreign-currency lines go to the FCY entry
 
 // What the file says about its card: DBS ("Card Transaction Details For:","DBS Vantage ... 7736"), UOB ("Account Type:",
