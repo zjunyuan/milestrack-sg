@@ -46,6 +46,8 @@ import {
   switchTab
 } from "./ui.js";
 
+window.__milesBooted = true;   // tells the watchdog in index.html that the app started
+
 // Initialize Version Tags
 const authVer = document.getElementById("authVersionTag");
 const headerVer = document.getElementById("headerVersionTag");
