@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.20.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.20.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.20.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.20.1</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -450,6 +450,7 @@
         <span class="material-symbols-outlined" id="btnCloseStatement" style="cursor:pointer;">close</span>
       </div>
       <p style="font-size:0.78rem; color:#94a3b8;">Works with a statement downloaded before the month ends. The file is read on your device and is not uploaded; only the lines you choose to import are saved. New lines are added, lines already in your list are left alone, and lines whose amount disagrees are shown for you to decide.</p>
+      <div id="stmtUndo" class="hm-note" style="display:none;"></div>
       <label class="st-col"><span>Card on the statement</span><select id="stCard" class="form-control"></select></label>
       <div id="stCardHint" class="hm-note"></div>
       <label class="st-col"><span>Statement file (CSV, Excel .xls or PDF)</span><input type="file" id="stFile" accept=".csv,text/csv,.xls,application/vnd.ms-excel,.pdf,application/pdf" class="form-control"></label>
@@ -573,12 +574,14 @@
       </div>
 
       <div class="form-group">
-        <label>UOB Visa Signature Statement Cutoff Day (1 - 31)</label>
+        <label>UOB Visa Signature: day each statement cycle STARTS (1 - 31)</label>
+        <div class="hm-note">That is the day after your statement date. Statement date 24th means enter 25.</div>
         <input type="number" id="uobVsCutoff" class="form-control" min="1" max="31">
       </div>
 
       <div class="form-group">
-        <label>Citi Rewards Statement Cutoff Day (1 - 31)</label>
+        <label>Citi Rewards: day each statement cycle STARTS (1 - 31)</label>
+        <div class="hm-note">That is the day after your statement date. Statement date 28th means enter 29.</div>
         <input type="number" id="citiCutoff" class="form-control" min="1" max="31">
       </div>
 
@@ -702,6 +705,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.20.0"></script>
+  <script type="module" src="js/app.js?v=1.20.1"></script>
 </body>
 </html>

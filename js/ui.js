@@ -653,7 +653,8 @@ export async function deleteTransaction(txId) {
   if (!tx || !confirm(`Delete "${tx.desc}" ($${fmtNum(Number(tx.amt || 0), 2)})?`)) return;
 
   const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
-  if (card && state.myVault[card.vaultKey]) {
+  const neverCounted = tx.source === "statement" && !tx.vaultCounted;     // imported without ticking "add to balances"
+  if (card && !neverCounted && state.myVault[card.vaultKey]) {
     const rawPts = Number(tx.earnedRawPoints) || Math.round((Number(tx.miles) || 0) / (state.myVault[card.vaultKey]?.ratio || 1));
     state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) - rawPts);
     await updateVaultDoc(state.myVaultKey, state.myVault);
