@@ -197,3 +197,8 @@ UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v
 - **Card artwork is larger** (real cards are 1.586:1): 96x61 in the card list (80x51 on small phones), 128x81 on the recommendation itself, 64x40 per step in a split, and 140x88 in the card detail sheet. The recommended card is now shown with its picture.
 - **Earning profile & rules** in the card detail sheet is filled in: bonus and base mpd, any spend tiers or minimums, cap, channel (online, in-person, contactless only), whether the card is blacklist or whitelist, upcoming rate changes, the card's hint, and its bonus categories.
 - **Renames:** the main total reads **Zhangs Total Miles**; the Household vault is labelled **Zhangs** and Sister is **Minsi**. Vault IDs are unchanged, so no data moves.
+
+
+## 🔢 Thousands Separators (v1.17.0)
+
+Dollar amounts and miles now show commas everywhere (for example $1,111.00 spent, Cap: $1,000, +5,358 mi), including caps, remaining space, progress notices, transactions, the archive, reconcile and the recommendation. CSV exports and amount inputs stay plain numbers. The formatting lives in `js/format.js`.

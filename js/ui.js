@@ -1,3 +1,4 @@
+import { fmtNum, fmtAuto } from "./format.js";
 import { tierStatus } from "./tiers.js";
 import { 
   ALL_MASTER_CARDS, 
@@ -200,7 +201,7 @@ export function renderCards() {
       const minSpendPct = (1000 / card.monthlyCap) * 100;
       markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;"></div>`;
       barColor = currentSpend < 1000 ? 'var(--warning)' : 'var(--accent)';
-      statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${minDeficit.toFixed(0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met!</span>`;
+      statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${fmtNum(minDeficit, 0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met!</span>`;
     } else if (card.tierRule) {
       const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
       tierInfo = ts;
@@ -211,7 +212,7 @@ export function renderCards() {
     } else if (card.id === 'dbs-yuu') {
       const yuuProgress = getYuuMerchantProgress(card);
       barColor = (currentSpend >= 800 && yuuProgress.isEligible) ? 'var(--accent)' : 'var(--warning)';
-      statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${Math.max(0, 800 - currentSpend).toFixed(0)} min left`;
+      statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 0)} min left`;
     }
 
     const thumbHtml = cardThumbHtml(card);
@@ -235,8 +236,8 @@ export function renderCards() {
         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
       </div>
       <div class="card-stats">
-        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + tierInfo.spent.toFixed(2) + ' SIA Group spend' : '$' + currentSpend.toFixed(2) + ' spent'}</span>
-        <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${card.monthlyCap} (${pct}%)`)}</span>
+        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent'}</span>
+        <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${fmtAuto(card.monthlyCap)} (${pct}%)`)}</span>
       </div>
     `;
     cardEl.addEventListener('click', () => openCardDetailModal(card.id));
@@ -279,9 +280,9 @@ export function openCardDetailModal(cardId) {
   }
   document.getElementById('modalCardName').innerText = card.name;
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
-  document.getElementById('modalCardSpent').innerText = `$${currentSpend.toFixed(2)}`;
-  document.getElementById('modalCardSpentSub').innerText = isUncapped ? 'Uncapped capacity' : `${pct.toFixed(0)}% of $${card.monthlyCap}`;
-  document.getElementById('modalCardRemaining').innerText = isUncapped ? 'Unlimited' : `$${remaining.toFixed(2)}`;
+  document.getElementById('modalCardSpent').innerText = `$${fmtNum(currentSpend, 2)}`;
+  document.getElementById('modalCardSpentSub').innerText = isUncapped ? 'Uncapped capacity' : `${pct.toFixed(0)}% of $${fmtAuto(card.monthlyCap)}`;
+  document.getElementById('modalCardRemaining').innerText = isUncapped ? 'Unlimited' : `$${fmtNum(remaining, 2)}`;
   document.getElementById('modalCardDaysLeft').innerText = `Cycle resets in ${daysLeft} days`;
 
   const progressFill = document.getElementById('modalCardProgressFill');
@@ -300,12 +301,12 @@ export function openCardDetailModal(cardId) {
       txListEl.innerHTML += `
         <div class="tx-item" style="padding:8px 12px; margin-bottom:0; background:rgba(0,0,0,0.25);">
           <div><div class="tx-desc" style="font-size:0.85rem;">${tx.desc}</div><div class="tx-meta" style="font-size:0.7rem;">${tx.date}</div></div>
-          <div><div class="tx-miles" style="font-size:0.85rem;">+${tx.miles} mi</div><div class="tx-amt" style="font-size:0.7rem;">$${Number(tx.amt || 0).toFixed(2)}</div></div>
+          <div><div class="tx-miles" style="font-size:0.85rem;">+${fmtNum(tx.miles)} mi</div><div class="tx-amt" style="font-size:0.7rem;">$${fmtNum(Number(tx.amt || 0), 2)}</div></div>
         </div>
       `;
     });
   }
-  document.getElementById('modalCardTxTotalMiles').innerText = `+${cycleMilesSum.toLocaleString()} miles earned`;
+  document.getElementById('modalCardTxTotalMiles').innerText = `+${fmtNum(cycleMilesSum)} miles earned`;
 
   const btnLog = document.getElementById('btnQuickLogCard');
   btnLog.onclick = () => {
@@ -331,13 +332,13 @@ export function renderVault() {
     container.innerHTML += `
       <div class="vault-item">
         <span class="vault-label">${item.name}</span>
-        <div class="vault-miles-big">${equivMiles.toLocaleString()} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
+        <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
+        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>
       </div>
     `;
   }
 
-  document.getElementById('myTotalVaultMiles').innerText = `${myGrandTotalMiles.toLocaleString()} mi`;
+  document.getElementById('myTotalVaultMiles').innerText = `${fmtNum(myGrandTotalMiles)} mi`;
   renderExpiryRadar();
   checkUobFeeDefense();
   updateTravelGoal(myGrandTotalMiles);
@@ -362,10 +363,10 @@ export function updateTravelGoal(personalTotalMiles) {
   if (!unlockedTier) {
     const firstTier = KRISFLYER_4PAX_TIERS[0];
     destEl.innerHTML = `Starting accumulation`;
-    progEl.innerHTML = `Need <b>${(firstTier.totalMiles - personalTotalMiles).toLocaleString()}</b> more miles for 4x Return to <b>${firstTier.name}</b>`;
+    progEl.innerHTML = `Need <b>${fmtNum((firstTier.totalMiles - personalTotalMiles))}</b> more miles for 4x Return to <b>${firstTier.name}</b>`;
   } else {
     destEl.innerHTML = `🎉 Unlocked: <b>${unlockedTier.name}</b>`;
-    progEl.innerHTML = nextTier ? `Need <b>${(nextTier.totalMiles - personalTotalMiles).toLocaleString()}</b> more miles for <b>${nextTier.name}</b>` : `🌟 Top tier reached!`;
+    progEl.innerHTML = nextTier ? `Need <b>${fmtNum((nextTier.totalMiles - personalTotalMiles))}</b> more miles for <b>${nextTier.name}</b>` : `🌟 Top tier reached!`;
   }
 }
 
@@ -418,8 +419,8 @@ export function renderTransactions() {
         <div class="tx-meta">${card.name} • ${tx.date}</div>
       </div>
       <div>
-        <div class="tx-miles">+${tx.miles} mi</div>
-        <div class="tx-amt">$${Number(tx.amt || 0).toFixed(2)}</div>
+        <div class="tx-miles">+${fmtNum(tx.miles)} mi</div>
+        <div class="tx-amt">$${fmtNum(Number(tx.amt || 0), 2)}</div>
       </div>
       <div class="tx-actions">
         <button class="btn-tx-action btn-edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button>
@@ -451,7 +452,7 @@ export function renderCategoryTracker() {
       const spent = Number(c.currentSpend) || 0;
       if (!isUncapped) catTotalCap += cap;
       catTotalSpent += spent;
-      chips.push(`<span class="category-chip">${c.bank} ${c.name.split(' ')[1] || ''}: <b>$${spent.toFixed(0)}</b>/${isUncapped ? '∞' : '$' + cap}</span>`);
+      chips.push(`<span class="category-chip">${c.bank} ${c.name.split(' ')[1] || ''}: <b>$${fmtNum(spent, 0)}</b>/${isUncapped ? '∞' : '$' + fmtAuto(cap)}</span>`);
     });
 
     const catRemaining = Math.max(0, catTotalCap - catTotalSpent);
@@ -462,11 +463,11 @@ export function renderCategoryTracker() {
       <div class="category-card">
         <div class="category-header">
           <div class="category-title"><span>${cat.icon}</span><span>${cat.name}</span></div>
-          <span style="font-size:0.8rem; font-weight:700; color:${pct >= 90 ? 'var(--danger)' : 'var(--accent)'};">$${catRemaining.toFixed(0)} left</span>
+          <span style="font-size:0.8rem; font-weight:700; color:${pct >= 90 ? 'var(--danger)' : 'var(--accent)'};">$${fmtNum(catRemaining, 0)} left</span>
         </div>
         <div class="progress-bar-bg" style="height:7px;"><div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
         <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
-          <span>$${catTotalSpent.toFixed(2)} spent of $${catTotalCap.toLocaleString()}</span>
+          <span>$${fmtNum(catTotalSpent, 2)} spent of $${fmtNum(catTotalCap)}</span>
           <span>${pct}% pooled cap used</span>
         </div>
         <div class="category-chip-container">${chips.join('')}</div>
@@ -503,10 +504,10 @@ export function renderAllVaultsTally() {
             <div class="vault-row-meta">Synced live</div>
           </div>
         </div>
-        <div class="vault-row-miles">${miles.toLocaleString()} mi</div>
+        <div class="vault-row-miles">${fmtNum(miles)} mi</div>
       </div>`;
   }).join('');
-  if (grandTotalEl) grandTotalEl.textContent = `${grandTotal.toLocaleString()} mi`;
+  if (grandTotalEl) grandTotalEl.textContent = `${fmtNum(grandTotal)} mi`;
 }
 
 export function checkUobFeeDefense() {
@@ -535,7 +536,7 @@ export function checkUobFeeDefense() {
       container.innerHTML += `
         <div class="fee-alert-card">
           <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:20px;">warning</span> UOB Auto-Deduction Alert: ${card.name}</div>
-          <div class="fee-alert-desc">Renewal in <b>${diffDays} days</b>. UOB will automatically deduct <b>${card.pts.toLocaleString()} UNI$ (${card.miles} miles)</b> for ${card.fee} fee!</div>
+          <div class="fee-alert-desc">Renewal in <b>${diffDays} days</b>. UOB will automatically deduct <b>${fmtNum(card.pts)} UNI$ (${card.miles} miles)</b> for ${card.fee} fee!</div>
         </div>
       `;
     }
@@ -560,7 +561,7 @@ export function renderExpiryRadar() {
     const diffDays = Math.max(0, Math.ceil((item.expiry - now) / (1000 * 60 * 60 * 24)));
     container.innerHTML += `
       <div class="radar-item">
-        <div><div style="font-size:0.85rem; font-weight:600;">${item.name}</div><div style="font-size:0.75rem; color:#94a3b8;">${Number(item.pts).toLocaleString()} pts</div></div>
+        <div><div style="font-size:0.85rem; font-weight:600;">${item.name}</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(Number(item.pts))} pts</div></div>
         <span class="radar-badge ${diffDays <= 90 ? 'badge-crit' : 'badge-safe'}">${diffDays}d left</span>
       </div>
     `;
@@ -647,7 +648,7 @@ export function openEditModal(txId) {
 
 export async function deleteTransaction(txId) {
   const tx = state.transactions.find(t => t.id === txId);
-  if (!tx || !confirm(`Delete "${tx.desc}" ($${Number(tx.amt || 0).toFixed(2)})?`)) return;
+  if (!tx || !confirm(`Delete "${tx.desc}" ($${fmtNum(Number(tx.amt || 0), 2)})?`)) return;
 
   const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
   if (card && state.myVault[card.vaultKey]) {
@@ -853,7 +854,7 @@ export function renderArchiveData() {
 
   document.getElementById('archiveTotalSpent').innerText = `$${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById('archiveTxnCount').innerText = `${scopedTxns.length} transactions (${isFullYear ? `Year ${targetYear}` : '1 Month'})`;
-  document.getElementById('archiveTotalMiles').innerText = `+${Math.round(totalMiles).toLocaleString()} mi`;
+  document.getElementById('archiveTotalMiles').innerText = `+${fmtNum(Math.round(totalMiles))} mi`;
   document.getElementById('archiveBlendedMpd').innerText = `${blendedMpd} blended mpd`;
 
   const listEl = document.getElementById('archiveCardBreakdownList');
@@ -888,10 +889,10 @@ export function renderArchiveData() {
       if (card.id.startsWith('uob-vs')) {
         const isMet = stmt.spent >= 1000;
         statusBadge = isMet 
-          ? `<span style="color:var(--accent); font-weight:700;">✅ S$1k Min Spend Met ($${stmt.spent.toFixed(0)})</span>` 
-          : `<span style="color:var(--danger); font-weight:700;">⚠️ Min Spend Missed ($${stmt.spent.toFixed(0)} / $1,000)</span>`;
+          ? `<span style="color:var(--accent); font-weight:700;">✅ S$1k Min Spend Met ($${fmtNum(stmt.spent, 0)})</span>` 
+          : `<span style="color:var(--danger); font-weight:700;">⚠️ Min Spend Missed ($${fmtNum(stmt.spent, 0)} / $1,000)</span>`;
       } else {
-        statusBadge = `<span>Bill Window: $${stmt.spent.toFixed(0)} / $${card.monthlyCap}</span>`;
+        statusBadge = `<span>Bill Window: $${fmtNum(stmt.spent, 0)} / $${fmtAuto(card.monthlyCap)}</span>`;
       }
 
       statementAuditHtml = `
@@ -908,13 +909,13 @@ export function renderArchiveData() {
       <div style="background:var(--surface-variant); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="font-size:0.85rem; font-weight:700; color:#fff;">${card.name}</span>
-          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);">+${item.miles.toLocaleString()} mi</span>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--accent);">+${fmtNum(item.miles)} mi</span>
         </div>
         <div class="progress-bar-bg" style="height:5px;">
           <div class="progress-bar-fill" style="width:${capPct}%; background:${capPct >= 100 && !isUncapped ? 'var(--danger)' : 'var(--primary)'};"></div>
         </div>
         <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#94a3b8;">
-          <span>Charged $${item.spent.toFixed(2)} ${isUncapped ? '(Uncapped)' : `(Cap: $${cumulativeCap.toLocaleString()} • ${capPct}%)`}</span>
+          <span>Charged $${fmtNum(item.spent, 2)} ${isUncapped ? '(Uncapped)' : `(Cap: $${fmtAuto(cumulativeCap)} • ${capPct}%)`}</span>
           <span><b>${cardBlendedMpd} mpd</b> (${item.txCount} txns)</span>
         </div>
         ${statementAuditHtml}
@@ -1270,7 +1271,7 @@ export function renderReconcileView() {
   });
 
   const loggedSpend = activeTxns.reduce((sum, t) => sum + (Number(t.amt) || 0), 0);
-  document.getElementById('reconcileAppSpend').innerText = `$${loggedSpend.toFixed(2)}`;
+  document.getElementById('reconcileAppSpend').innerText = `$${fmtNum(loggedSpend, 2)}`;
   document.getElementById('reconcileTxnCount').innerText = `${activeTxns.length} txns logged`;
 
   updateReconcileDelta(loggedSpend);
@@ -1290,8 +1291,8 @@ export function renderReconcileView() {
             <div class="tx-meta" style="font-size:0.68rem;">${tx.date}</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-weight:700;">$${Number(tx.amt || 0).toFixed(2)}</div>
-            <div style="color:var(--accent); font-size:0.68rem;">+${tx.miles} mi</div>
+            <div style="font-weight:700;">$${fmtNum(Number(tx.amt || 0), 2)}</div>
+            <div style="color:var(--accent); font-size:0.68rem;">+${fmtNum(tx.miles)} mi</div>
           </div>
         </div>
       `;
@@ -1300,7 +1301,7 @@ export function renderReconcileView() {
 
   const vaultObj = state.myVault[card.vaultKey];
   document.getElementById('reconcileVaultLabel').innerText = `${vaultObj?.name || 'Points'} Balance`;
-  document.getElementById('reconcileVaultPtsDisplay').innerText = `${Number(vaultObj?.points || 0).toLocaleString()} ${vaultObj?.unit || 'pts'}`;
+  document.getElementById('reconcileVaultPtsDisplay').innerText = `${fmtNum(Number(vaultObj?.points || 0))} ${vaultObj?.unit || 'pts'}`;
 }
 
 export function updateReconcileDelta(appSpend) {
@@ -1320,10 +1321,10 @@ export function updateReconcileDelta(appSpend) {
     deltaBadge.innerText = `✅ Matched ($0.00 difference)`;
     deltaBadge.style.color = 'var(--accent)';
   } else if (diff < 0) {
-    deltaBadge.innerText = `⚠️ -$${Math.abs(diff).toFixed(2)} (Missing from app)`;
+    deltaBadge.innerText = `⚠️ -$${fmtNum(Math.abs(diff), 2)} (Missing from app)`;
     deltaBadge.style.color = 'var(--danger)';
   } else {
-    deltaBadge.innerText = `⚠️ +$${diff.toFixed(2)} (Over-logged in app)`;
+    deltaBadge.innerText = `⚠️ +$${fmtNum(diff, 2)} (Over-logged in app)`;
     deltaBadge.style.color = 'var(--warning)';
   }
 }
