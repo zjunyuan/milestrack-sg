@@ -230,11 +230,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 .total-miles { font-size: 2.3rem; font-weight: 800; color: #fff; margin: 2px 0; }
 .summary-subtext { display: flex; justify-content: space-between; font-size: 0.85rem; color: #cbd5e1; }
 
-.sister-card { background: var(--surface); border: 1px solid rgba(192, 132, 252, 0.25); border-radius: 20px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
-.sister-info { display: flex; flex-direction: column; gap: 2px; }
-.sister-title { font-size: 0.75rem; text-transform: uppercase; color: var(--purple); font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
-.sister-miles { font-size: 1.35rem; font-weight: 800; color: #fff; }
-.btn-view-peer { background: rgba(192, 132, 252, 0.15); color: var(--purple); border: 1px solid rgba(192, 132, 252, 0.4); padding: 7px 14px; border-radius: 10px; font-weight: 600; font-size: 0.8rem; cursor: pointer; }
 
 .travel-goal-badge { background: rgba(158, 202, 255, 0.12); border: 1px solid rgba(158, 202, 255, 0.3); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; margin-top: 4px; }
 .travel-goal-header { font-size: 0.72rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
@@ -519,3 +514,132 @@ input:checked + .slider:before { transform: translateX(22px); }
 .btn-update-reload:active {
   opacity: 0.8;
 }
+
+/* Multi-vault tally (v1.9.0) */
+.vault-tally-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.vault-tally-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 8px;
+}
+
+.vault-tally-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vault-tally-title .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.vault-tally-grand-total {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.vault-tally-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vault-tally-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.vault-tally-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vault-row-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vault-row-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.vault-row-dot.household { background: var(--primary); }
+.vault-row-dot.sister { background: var(--purple); }
+.vault-row-dot.ellice { background: var(--fcy-cyan); }
+.vault-row-dot.eugene { background: var(--gold); }
+.vault-row-dot.test { background: var(--accent); }
+
+.vault-row-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.vault-row-meta {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.vault-row-miles {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: right;
+}
+
+/* Retailer typeahead + corrections (v1.10.0) */
+.retailer-suggest { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 40; background: var(--surface-variant); border: 1px solid var(--outline); border-radius: 12px; max-height: 300px; overflow-y: auto; box-shadow: 0 10px 28px rgba(0,0,0,0.55); padding: 4px; }
+.retailer-suggest[hidden] { display: none; }
+.rs-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+.rs-item:hover, .rs-item.active { background: rgba(158, 202, 255, 0.14); }
+.rs-name { font-weight: 600; color: #fff; white-space: nowrap; flex-shrink: 0; max-width: 62%; overflow: hidden; text-overflow: ellipsis; }
+.rs-cat { color: #94a3b8; font-size: 0.72rem; margin-left: auto; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 0; }
+.rs-tag { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; padding: 2px 6px; border-radius: 6px; background: rgba(148,163,184,0.18); color: #94a3b8; white-space: nowrap; flex-shrink: 0; }
+.rs-item .rs-name + .rs-tag { margin-left: auto; }
+.rs-tag.rs-medium { background: rgba(251,191,36,0.15); color: var(--gold); }
+.rs-tag.rs-low { background: rgba(239,68,68,0.15); color: var(--danger); }
+.rs-tag.rs-ok { background: rgba(74,222,128,0.15); color: var(--accent); }
+.rs-tag.rs-promo { background: rgba(192,132,252,0.18); color: var(--purple); }
+
+.retailer-tools { display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px; margin-top: 2px; }
+.rt-line { font-size: 0.74rem; line-height: 1.4; color: #94a3b8; }
+.rt-line.rt-warn { color: var(--gold); }
+.rt-line.rt-ok { color: var(--accent); }
+.rt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.72rem; color: #94a3b8; }
+.rt-chip { background: rgba(158,202,255,0.1); border: 1px solid rgba(158,202,255,0.3); color: var(--primary); border-radius: 999px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; cursor: pointer; }
+.rt-chip:hover { background: rgba(158,202,255,0.2); }
+.rt-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.rt-link { background: none; border: none; padding: 0; color: var(--primary); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.rt-link.rt-danger { color: var(--danger); }
+.rt-panel { display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.22); border-radius: 12px; padding: 10px; }
+.rt-panel[hidden] { display: none; }
+.rt-panel label { font-size: 0.72rem; color: #94a3b8; }
+

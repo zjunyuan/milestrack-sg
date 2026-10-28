@@ -25,9 +25,14 @@ import {
   firebaseConfig, 
   PRIMARY_EMAILS, 
   SISTER_EMAILS, 
+  ELLICE_EMAILS,
+  EUGENE_EMAILS,
+  TEST_EMAILS,
+  ALL_VAULT_KEYS,
   DEFAULT_VAULT, 
   ALL_MASTER_CARDS 
 } from "./config.js";
+import { isKnownMcc } from "./mcc.js";
 import { state } from "./state.js";
 
 export let auth, db, googleProvider;
@@ -36,6 +41,9 @@ export function resolveVaultKey(email = "") {
   const clean = email.toLowerCase().trim();
   if (PRIMARY_EMAILS.includes(clean)) return "primary";
   if (SISTER_EMAILS.includes(clean)) return "sister";
+  if (ELLICE_EMAILS.includes(clean)) return "ellice";
+  if (EUGENE_EMAILS.includes(clean)) return "eugene";
+  if (TEST_EMAILS.includes(clean)) return "test";
   return clean.replace(/[^a-zA-Z0-9]/g, "_");
 }
 
@@ -53,8 +61,7 @@ export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
       sessionStorage.removeItem('auth_in_progress');
       const resolvedKey = resolveVaultKey(user.email);
       state.myVaultKey = resolvedKey;
-      state.peerVaultKey = (resolvedKey === "sister") ? "primary" : "sister";
-
+      state.userRole = ALL_VAULT_KEYS.includes(resolvedKey) ? resolvedKey.toUpperCase() : "GUEST";
       if (onAuthSuccess) onAuthSuccess(user);
       await checkAndMigrateSharedVault();
       subscribeToCloudData();
@@ -133,12 +140,17 @@ export function subscribeToCloudData() {
     }
   }, (err) => console.error("My vault error:", err));
 
-  onSnapshot(doc(db, "milestrack_vaults", state.peerVaultKey), (docSnap) => {
-    if (docSnap.exists()) {
-      state.peerVault = { ...DEFAULT_VAULT, ...docSnap.data() };
-      window.dispatchEvent(new CustomEvent('peer-vault-updated'));
-    }
-  }, (err) => console.error("Peer vault error:", err));
+  // Household admin: live-listen to every vault for the all-vaults tally.
+  if (state.userRole === "PRIMARY") {
+    ALL_VAULT_KEYS.forEach((key) => {
+      onSnapshot(doc(db, "milestrack_vaults", key), (docSnap) => {
+        state.allVaultsData[key] = docSnap.exists()
+          ? { ...DEFAULT_VAULT, ...docSnap.data() }
+          : { ...DEFAULT_VAULT };
+        window.dispatchEvent(new CustomEvent('all-vaults-updated'));
+      }, (err) => console.error(`Vault ${key} listener error:`, err));
+    });
+  }
 
   onSnapshot(doc(db, "milestrack_settings", state.myVaultKey), (docSnap) => {
     if (docSnap.exists()) {
@@ -158,6 +170,19 @@ export function subscribeToCloudData() {
       window.dispatchEvent(new CustomEvent('settings-updated'));
     }
   });
+
+  // Household-shared merchant corrections (brand -> MCC)
+  onSnapshot(collection(db, "milestrack_merchants"), (snap) => {
+    const next = {};
+    snap.forEach((d) => {
+      const v = d.data() || {};
+      if (typeof v.name === "string" && v.name && isKnownMcc(v.mcc)) {
+        next[d.id] = { name: v.name, mcc: v.mcc, aliases: Array.isArray(v.aliases) ? v.aliases.filter(a => typeof a === "string") : [] };
+      }
+    });
+    state.merchantOverrides = next;
+    window.dispatchEvent(new CustomEvent('merchants-updated'));
+  }, (err) => console.error("Merchants listener error:", err));
 
   const txQuery = query(
     collection(db, "milestrack_txns"), 
@@ -191,4 +216,12 @@ export async function updateVaultDoc(targetVaultKey, vaultPayload) {
 
 export async function updateSettingsDoc(targetVaultKey, settingsPayload) {
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), settingsPayload);
+}
+
+export async function saveMerchantOverride(slug, data) {
+  await setDoc(doc(db, "milestrack_merchants", slug), data);
+}
+
+export async function deleteMerchantOverride(slug) {
+  await deleteDoc(doc(db, "milestrack_merchants", slug));
 }

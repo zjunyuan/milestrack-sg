@@ -1,0 +1,62 @@
+// MilesTrack SG - Firestore security rules (v1.10.0)
+// Paste into: Firebase console > Firestore Database > Rules > Publish.
+// Keep the email lists in sync with js/config.js.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() { return request.auth.token.email; }
+
+    function isPrimary() { return signedIn() && email() in ["zjunyuan@gmail.com",
+  "eunice.er.yc@gmail.com"]; }
+    function isSister()  { return signedIn() && email() in ["minsyyy@gmail.com"]; }
+    function isEllice()  { return signedIn() && email() in ["ellicee@gmail.com"]; }
+    function isEugene()  { return signedIn() && email() in ["geneer@gmail.com"]; }
+    function isTest()    { return signedIn() && email() in ["junyuanxeunice@gmail.com"]; }
+    function isMember()  { return isPrimary() || isSister() || isEllice() || isEugene() || isTest(); }
+
+    // Can this user read/write data belonging to vault `key`?
+    function canAccess(key) {
+      return (isPrimary() && key in ['household', 'primary'])
+          || (isSister() && key == 'sister')
+          || (isEllice() && key == 'ellice')
+          || (isEugene() && key == 'eugene')
+          || (isTest()   && key == 'test');
+    }
+
+    match /milestrack_vaults/{vaultId} {
+      allow read: if isPrimary() || canAccess(vaultId);   // household admin reads every vault for the tally
+      allow write: if canAccess(vaultId);
+    }
+
+    match /milestrack_txns/{txnId} {
+      allow read:   if isPrimary() || canAccess(resource.data.owner);
+      allow create: if canAccess(request.resource.data.owner);
+      allow update: if canAccess(resource.data.owner) && canAccess(request.resource.data.owner);
+      allow delete: if isPrimary() || canAccess(resource.data.owner);
+    }
+
+    // Settings docs are keyed by vault ID (the app uses myVaultKey)
+    match /milestrack_settings/{docId} {
+      allow read, write: if canAccess(docId);
+    }
+
+    // Household-shared retailer -> MCC corrections (v1.10.0).
+    // Any household member can read and fix them; shape is validated.
+    match /milestrack_merchants/{slug} {
+      allow read: if isMember();
+      allow create, update: if isMember()
+        && slug.matches('^[a-z0-9-]{1,60}$')
+        && request.resource.data.keys().hasOnly(['name', 'mcc', 'aliases', 'updatedBy', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.mcc is string && request.resource.data.mcc.size() == 4
+        && (!('aliases' in request.resource.data)
+            || (request.resource.data.aliases is list && request.resource.data.aliases.size() <= 10));
+      allow delete: if isMember();
+    }
+  }
+}

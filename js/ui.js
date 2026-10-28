@@ -3,7 +3,11 @@ import {
   DEFAULT_PRESETS, 
   CATEGORY_POOLS, 
   KRISFLYER_4PAX_TIERS, 
-  detectYuuMerchant 
+  detectYuuMerchant,
+  ALL_VAULT_KEYS,
+  VAULT_LABELS,
+  APP_VERSION,
+  DEFAULT_VAULT
 } from "./config.js";
 import { state } from "./state.js";
 import { 
@@ -407,26 +411,35 @@ export function renderCategoryTracker() {
   if (mobileContainer) mobileContainer.innerHTML = html;
 }
 
-export function renderSisterVaultModal() {
-  const container = document.getElementById('sisterVaultContainer');
-  let peerGrandTotal = 0;
-  if (container) container.innerHTML = '';
+export function renderAllVaultsTally() {
+  const card = document.getElementById('allVaultsTallyCard');
+  const container = document.getElementById('allVaultsList');
+  const grandTotalEl = document.getElementById('allVaultsGrandTotal');
+  if (!card || !container) return;
 
-  for (const [key, item] of Object.entries(state.peerVault)) {
-    const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
-    peerGrandTotal += equivMiles;
-    if (container) {
-      container.innerHTML += `
-        <div class="vault-item" style="border-color: rgba(192, 132, 252, 0.2);">
-          <span class="vault-label" style="color:var(--purple);">${item.name}</span>
-          <div class="vault-miles-big">${equivMiles.toLocaleString()} <span class="vault-miles-unit" style="color:var(--purple);">miles</span></div>
-          <span class="vault-raw-pts">${Number(item.points || 0).toLocaleString()} ${item.unit}</span>
+  // Only the household admin sees every vault.
+  card.style.display = state.userRole === 'PRIMARY' ? 'flex' : 'none';
+  if (state.userRole !== 'PRIMARY') return;
+
+  let grandTotal = 0;
+  container.innerHTML = ALL_VAULT_KEYS.map((key) => {
+    const vault = state.allVaultsData[key] || {};
+    const miles = Object.values(vault).reduce(
+      (sum, item) => sum + Math.floor((Number(item?.points) || 0) * (Number(item?.ratio) || 1)), 0);
+    grandTotal += miles;
+    return `
+      <div class="vault-tally-row">
+        <div class="vault-row-info">
+          <span class="vault-row-dot ${key === 'primary' ? 'household' : key}"></span>
+          <div>
+            <div class="vault-row-name">${VAULT_LABELS[key] || key}</div>
+            <div class="vault-row-meta">Synced live</div>
+          </div>
         </div>
-      `;
-    }
-  }
-  const disp = document.getElementById('sisterMilesDisplay');
-  if (disp) disp.innerText = `${peerGrandTotal.toLocaleString()} miles`;
+        <div class="vault-row-miles">${miles.toLocaleString()} mi</div>
+      </div>`;
+  }).join('');
+  if (grandTotalEl) grandTotalEl.textContent = `${grandTotal.toLocaleString()} mi`;
 }
 
 export function checkUobFeeDefense() {
@@ -536,15 +549,6 @@ export function closeModal() {
 
 export function closeCardDetailModal() { 
   document.getElementById('cardDetailOverlay')?.classList.remove('open'); 
-}
-
-export function openSisterVaultModal() { 
-  renderSisterVaultModal(); 
-  document.getElementById('sisterVaultOverlay')?.classList.add('open'); 
-}
-
-export function closeSisterVaultModal() { 
-  document.getElementById('sisterVaultOverlay')?.classList.remove('open'); 
 }
 
 export function openEditModal(txId) {
@@ -900,6 +904,225 @@ export function exportArchiveMonthCSV() {
   a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/* ==========================================================================
+   SETTINGS & BACKUP
+   ========================================================================== */
+
+function downloadFile(fileName, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function openSettingsModal() {
+  // Card wallet checklist
+  const list = document.getElementById('cardChecklistContainer');
+  if (list) {
+    list.innerHTML = ALL_MASTER_CARDS.map(c => `
+      <label class="checklist-item">
+        <input type="checkbox" class="card-wallet-check" value="${c.id}" ${state.enabledCardIds.includes(c.id) ? 'checked' : ''}>
+        <span>${c.name}</span>
+      </label>
+    `).join('');
+  }
+
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  setVal('uobLsRenewalInput', state.uobRenewals.solitaire);
+  setVal('uobVsRenewalInput', state.uobRenewals.visaSig);
+  setVal('uobPpvRenewalInput', state.uobRenewals.ppv);
+  setVal('uobPrviRenewalInput', state.uobRenewals.prvi);
+  setVal('citiApprovalInput', state.citiApprovalDate);
+  const vs = ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'));
+  const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
+  setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
+  setVal('citiCutoff', citi?.cutoffDay ?? 15);
+
+  document.getElementById('settingsOverlay')?.classList.add('open');
+}
+
+export function closeSettingsModal() {
+  document.getElementById('settingsOverlay')?.classList.remove('open');
+}
+
+export async function saveSettings() {
+  const val = (id) => document.getElementById(id)?.value || '';
+  const clampDay = (v, fallback) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? Math.min(31, Math.max(1, n)) : fallback;
+  };
+
+  const enabledCards = [...document.querySelectorAll('.card-wallet-check:checked')].map(el => el.value);
+  if (enabledCards.length === 0) return alert('Keep at least one card enabled.');
+
+  const payload = {
+    enabledCards,
+    citiApprovalDate: val('citiApprovalInput') || state.citiApprovalDate,
+    uobRenewals: {
+      solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
+      visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
+      ppv: val('uobPpvRenewalInput') || state.uobRenewals.ppv,
+      prvi: val('uobPrviRenewalInput') || state.uobRenewals.prvi
+    },
+    cutoffDays: {
+      uobVs: clampDay(val('uobVsCutoff'), 18),
+      citi: clampDay(val('citiCutoff'), 15)
+    }
+  };
+
+  const btn = document.getElementById('btnSaveSettings');
+  if (btn) { btn.disabled = true; btn.innerText = 'Saving...'; }
+  try {
+    // The Firestore settings listener applies these values and re-renders.
+    await updateSettingsDoc(state.myVaultKey, payload);
+    closeSettingsModal();
+  } catch (e) {
+    console.error('Save settings failed:', e);
+    alert('Could not save settings: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = 'Save Settings'; }
+  }
+}
+
+export function exportJSONBackup() {
+  const backup = {
+    app: 'MilesTrack SG',
+    version: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    vault: state.myVaultKey,
+    balances: state.myVault,
+    settings: {
+      enabledCards: state.enabledCardIds,
+      citiApprovalDate: state.citiApprovalDate,
+      uobRenewals: state.uobRenewals,
+      cutoffDays: {
+        uobVs: ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'))?.cutoffDay ?? 18,
+        citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15
+      }
+    },
+    transactions: state.transactions
+  };
+  const stamp = new Date().toLocaleDateString('en-CA');
+  downloadFile(`milestrack_backup_${state.myVaultKey}_${stamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
+}
+
+// Validates a parsed backup file. Returns { error } or { balances, settings, txns, skipped }.
+function parseBackup(data) {
+  if (!data || typeof data !== 'object' || data.app !== 'MilesTrack SG') {
+    return { error: 'This is not a MilesTrack SG backup file.' };
+  }
+  const knownCards = new Set(ALL_MASTER_CARDS.map(c => c.id));
+  const balances = {};
+  for (const [key, item] of Object.entries(data.balances || {})) {
+    if (!(key in DEFAULT_VAULT)) continue;                    // ignore unknown currencies
+    const pts = Number(item?.points);
+    if (!Number.isFinite(pts) || pts < 0) continue;
+    balances[key] = { ...DEFAULT_VAULT[key], points: pts };  // keep ratio/rule/unit from the app
+  }
+
+  const txns = [];
+  let skipped = 0;
+  for (const t of Array.isArray(data.transactions) ? data.transactions : []) {
+    const id = String(t?.id ?? t?.firestoreId ?? '');
+    if (!id || !/^[\w-]+$/.test(id) || !knownCards.has(t.cardId) || !Number.isFinite(Number(t.amt))) {
+      skipped++;
+      continue;
+    }
+    const { firestoreId, ...rest } = t;
+    txns.push({ ...rest, id, owner: state.myVaultKey });
+  }
+
+  const s = data.settings || {};
+  const settings = {
+    enabledCards: Array.isArray(s.enabledCards) ? s.enabledCards.filter(id => knownCards.has(id)) : null,
+    citiApprovalDate: /^\d{4}-\d{2}$/.test(s.citiApprovalDate || '') ? s.citiApprovalDate : null,
+    uobRenewals: s.uobRenewals && typeof s.uobRenewals === 'object' ? s.uobRenewals : null,
+    cutoffDays: s.cutoffDays && typeof s.cutoffDays === 'object' ? s.cutoffDays : null
+  };
+  return { balances, settings, txns, skipped };
+}
+
+export async function importJSONBackup(file) {
+  if (!file) return;
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return alert('That file is not valid JSON.');
+  }
+  const parsed = parseBackup(data);
+  if (parsed.error) return alert(parsed.error);
+
+  const { balances, settings, txns, skipped } = parsed;
+  const ownerNote = data.vault && data.vault !== state.myVaultKey
+    ? `\n\n⚠️ This backup came from the "${data.vault}" vault. It will be restored into YOUR vault ("${state.myVaultKey}").`
+    : '';
+  const ok = confirm(
+    `Restore backup from ${data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'unknown date'}?\n\n` +
+    `• ${Object.keys(balances).length} point balances (replaces current balances)\n` +
+    `• ${txns.length} transactions (added or overwritten by ID, nothing is deleted)\n` +
+    `• Card wallet & settings` +
+    (skipped ? `\n• ${skipped} invalid transactions will be skipped` : '') +
+    ownerNote
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById('btnImportJSON');
+  if (btn) btn.disabled = true;
+  try {
+    if (Object.keys(balances).length) {
+      state.myVault = { ...DEFAULT_VAULT, ...balances };
+      await updateVaultDoc(state.myVaultKey, state.myVault);
+    }
+    const payload = {
+      enabledCards: settings.enabledCards?.length ? settings.enabledCards : state.enabledCardIds,
+      citiApprovalDate: settings.citiApprovalDate || state.citiApprovalDate,
+      uobRenewals: { ...state.uobRenewals, ...(settings.uobRenewals || {}) },
+      cutoffDays: {
+        uobVs: Number(settings.cutoffDays?.uobVs) || 18,
+        citi: Number(settings.cutoffDays?.citi) || 15
+      }
+    };
+    await updateSettingsDoc(state.myVaultKey, payload);
+
+    for (let i = 0; i < txns.length; i += 25) {
+      await Promise.all(txns.slice(i, i + 25).map(t => saveTxToFirestore(t.id, t)));
+    }
+    closeSettingsModal();
+    alert(`Restore complete: ${txns.length} transactions restored.`);
+  } catch (e) {
+    console.error('Import failed:', e);
+    alert('Restore failed part-way: ' + e.message + '\nYour backup file is unchanged; you can retry.');
+  } finally {
+    if (btn) btn.disabled = false;
+    const input = document.getElementById('importFileInput');
+    if (input) input.value = '';
+  }
+}
+
+export function exportLedgerCSV() {
+  if (!state.transactions.length) return alert('No transactions to export yet.');
+  const headers = ["Date", "Description", "Card Slot", "Amount (SGD)", "Earned Miles", "Category"];
+  const rows = state.transactions.map(t => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === t.cardId) || { name: t.cardId };
+    return [
+      `"${t.date ?? ''}"`,
+      `"${(t.desc || '').replace(/"/g, '""')}"`,
+      `"${card.name}"`,
+      Number(t.amt || 0).toFixed(2),
+      t.miles,
+      t.bonusCategory || 'bonus'
+    ].join(',');
+  });
+  const stamp = new Date().toLocaleDateString('en-CA');
+  downloadFile(`milestrack_ledger_${state.myVaultKey}_${stamp}.csv`, [headers.join(','), ...rows].join('\n'), 'text/csv;charset=utf-8;');
 }
 
 // Monthly Statement Reconciliation Engine

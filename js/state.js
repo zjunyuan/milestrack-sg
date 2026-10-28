@@ -2,19 +2,21 @@ import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
 
 export const state = {
   currentUser: null,
+  userRole: "GUEST",      // PRIMARY | SISTER | ELLICE | EUGENE | TEST | GUEST
+  allVaultsData: {},      // PRIMARY only: live copy of every vault doc
   myVaultKey: "primary",
-  peerVaultKey: "sister",
   currentChannel: "inperson",
   isKrisPlusMode: false,
   isOverseasMode: false,
   isSingleSwipeMode: false,
+  merchantOverrides: {},   // household brand->MCC corrections (Firestore milestrack_merchants)
+  selectedRetailer: null,  // { name, mcc } picked from the typeahead or an alt-category chip
   txSearchQuery: "",
   txCardFilter: "ALL",
   enabledCardIds: ALL_MASTER_CARDS.map(c => c.id),
   cards: ALL_MASTER_CARDS,
   transactions: [],
   myVault: { ...DEFAULT_VAULT },
-  peerVault: { ...DEFAULT_VAULT },
   citiApprovalDate: "2023-01",
   uobRenewals: {
     solitaire: "2023-11",

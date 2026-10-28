@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.8.7";
+export const APP_VERSION = "v1.11.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -8,6 +8,20 @@ export const PRIMARY_EMAILS = [
 export const SISTER_EMAILS = [
   "minsyyy@gmail.com"
 ];
+
+export const ELLICE_EMAILS = ["ellicee@gmail.com"];
+export const EUGENE_EMAILS = ["geneer@gmail.com"];
+export const TEST_EMAILS = ["junyuanxeunice@gmail.com"];
+
+// Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
+export const ALL_VAULT_KEYS = ["primary", "sister", "ellice", "eugene", "test"];
+export const VAULT_LABELS = {
+  primary: "Household",
+  sister: "Sister",
+  ellice: "Ellice",
+  eugene: "Eugene",
+  test: "Test"
+};
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDnx1mvY8dRPsvtgHLjZvoAFkE1JmAbACk",

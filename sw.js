@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.9.0';
+const CACHE_NAME = 'milestrack-cache-v1.11.0';
 
 const CORE_ASSETS = [
   './',
@@ -10,6 +10,10 @@ const CORE_ASSETS = [
   './js/firebase.js',
   './js/recommender.js',
   './js/ui.js',
+  './js/retailers.js',
+  './js/mcc.js',
+  './js/mcc-names.js',
+  './js/merchants.js',
   './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

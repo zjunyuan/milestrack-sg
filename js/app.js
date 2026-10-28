@@ -1,4 +1,4 @@
-import { APP_VERSION, ALL_MASTER_CARDS } from "./config.js";
+import { APP_VERSION, ALL_MASTER_CARDS, VAULT_LABELS } from "./config.js";
 import { state } from "./state.js";
 import { 
   initFirebase, 
@@ -10,13 +10,20 @@ import {
   runRecommendation, 
   updateShellNettCalc 
 } from "./recommender.js";
+import { initRetailerSuggest } from "./merchants.js";
 import { 
   renderPresets, 
   renderCards, 
   renderVault, 
   renderCategoryTracker, 
   renderTransactions, 
-  renderSisterVaultModal,
+  renderAllVaultsTally,
+  openSettingsModal,
+  closeSettingsModal,
+  saveSettings,
+  exportJSONBackup,
+  importJSONBackup,
+  exportLedgerCSV,
   renderExpiryRadar,
   checkUobFeeDefense,
   renderReconcileView,
@@ -26,8 +33,6 @@ import {
   openModal,
   closeModal,
   closeCardDetailModal,
-  openSisterVaultModal,
-  closeSisterVaultModal,
   openArchiveModal,
   closeArchiveModal,
   openReconcileModal,
@@ -51,21 +56,13 @@ function onAuthSuccess(user) {
   document.getElementById('mainApp').style.display = 'flex';
   document.getElementById('fabButton').style.display = 'flex';
   document.getElementById('syncStatusIndicator').innerText = "● Cloud Connected";
-  document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email} (${state.myVaultKey === 'primary' ? 'Household' : 'Sister'})`;
+  document.getElementById('signedInUserDisplay').innerText = `Signed in: ${user.email} (${VAULT_LABELS[state.myVaultKey] || state.myVaultKey})`;
 
-  if (state.myVaultKey === "sister") {
-    document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Household Vault (Brother)';
-    document.getElementById('peerModalTitle').innerText = "Household Points Vault (Brother)";
-    document.getElementById('warChestTitle').innerText = "My Personal Mileage War Chest";
-    document.getElementById('cardBonusTitle').innerText = "My Monthly Bonus Caps";
-    document.getElementById('vaultSectionTitle').innerText = "My Bank Points Vault";
-  } else {
-    document.getElementById('peerCardTitle').innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">family_restroom</span> Sister\'s Vault (Separate)';
-    document.getElementById('peerModalTitle').innerText = "Sister's Points Vault (Separate)";
-    document.getElementById('warChestTitle').innerText = "Household Mileage War Chest";
-    document.getElementById('cardBonusTitle').innerText = "Household Monthly Bonus Caps";
-    document.getElementById('vaultSectionTitle').innerText = "Household Bank Points Vault";
-  }
+  // Household admin sees household titles; everyone else sees "My ..."
+  const isHousehold = state.myVaultKey === "primary";
+  document.getElementById('warChestTitle').innerText = isHousehold ? "Household Mileage War Chest" : "My Personal Mileage War Chest";
+  document.getElementById('cardBonusTitle').innerText = isHousehold ? "Household Monthly Bonus Caps" : "My Monthly Bonus Caps";
+  document.getElementById('vaultSectionTitle').innerText = isHousehold ? "Household Bank Points Vault" : "My Bank Points Vault";
 
   renderPresets();
   renderCards();
@@ -85,9 +82,9 @@ window.addEventListener('vault-updated', () => {
   renderCards();
 });
 
-window.addEventListener('peer-vault-updated', () => {
-  renderSisterVaultModal();
-});
+window.addEventListener('all-vaults-updated', renderAllVaultsTally);
+
+window.addEventListener('merchants-updated', runRecommendation);
 
 window.addEventListener('settings-updated', () => {
   renderCards();
@@ -136,7 +133,6 @@ document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async
   document.getElementById('vaultOverlay')?.classList.remove('open');
 });
 
-document.getElementById('btnOpenPeerVault')?.addEventListener('click', openSisterVaultModal);
 document.getElementById('btnOpenVaultBalances')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
 document.getElementById('btnSummaryUpdateVault')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
 
@@ -147,9 +143,18 @@ document.getElementById('btnTabVault')?.addEventListener('click', () => switchTa
 document.getElementById('fabButton')?.addEventListener('click', openModal);
 document.getElementById('btnCloseModal')?.addEventListener('click', closeModal);
 document.getElementById('btnCloseCardDetail')?.addEventListener('click', closeCardDetailModal);
-document.getElementById('btnCloseSisterVault')?.addEventListener('click', closeSisterVaultModal);
 document.getElementById('btnCloseVault')?.addEventListener('click', () => document.getElementById('vaultOverlay')?.classList.remove('open'));
-document.getElementById('btnCloseSettings')?.addEventListener('click', () => document.getElementById('settingsOverlay')?.classList.remove('open'));
+document.getElementById('btnHeaderSettings')?.addEventListener('click', openSettingsModal);
+document.getElementById('btnOpenExpirySettings')?.addEventListener('click', openSettingsModal);
+document.getElementById('btnCloseSettings')?.addEventListener('click', closeSettingsModal);
+document.getElementById('btnSaveSettings')?.addEventListener('click', saveSettings);
+document.getElementById('btnExportJSON')?.addEventListener('click', exportJSONBackup);
+document.getElementById('btnExportCSV')?.addEventListener('click', exportLedgerCSV);
+document.getElementById('btnImportJSON')?.addEventListener('click', () => document.getElementById('importFileInput')?.click());
+document.getElementById('importFileInput')?.addEventListener('change', (e) => importJSONBackup(e.target.files[0]));
+document.getElementById('settingsOverlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'settingsOverlay') closeSettingsModal();
+});
 
 document.getElementById('btnSaveLedger')?.addEventListener('click', saveTransaction);
 
@@ -218,6 +223,7 @@ document.getElementById('btnClearMcc')?.addEventListener('click', () => {
   }
 });
 
+initRetailerSuggest();
 document.getElementById('recAmount')?.addEventListener('input', runRecommendation);
 document.getElementById('contactlessSwitch')?.addEventListener('change', runRecommendation);
 document.getElementById('cardSelect')?.addEventListener('change', onCardSelectChange);

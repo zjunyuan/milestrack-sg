@@ -1,6 +1,16 @@
 import { MCC_DATABASE, ALL_MASTER_CARDS } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, checkShellMerchantTrigger } from "./ui.js";
+import {
+  buildRetailerList,
+  findRetailerForInput,
+  searchRetailers,
+  normalizeText,
+  slugify,
+  escapeHtml
+} from "./retailers.js";
+import { saveMerchantOverride, deleteMerchantOverride } from "./firebase.js";
+import { getMccEntry, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
   if (card.engine === 'yuu-10') return Math.round(amount * rate);
@@ -43,6 +53,31 @@ export function checkOcbc6MpdPromo(input) {
   };
 }
 
+/* ==========================================================================
+   RETAILER LOOKUP (brand name -> MCC)
+   ========================================================================== */
+
+// Returns the retailer for typed text, honouring a typeahead pick / alt-category chip.
+function resolveRetailer(input) {
+  const sel = state.selectedRetailer;
+  if (sel && normalizeText(input) === normalizeText(sel.name)) {
+    const entry = buildRetailerList(state.merchantOverrides).find(r => normalizeText(r.name) === normalizeText(sel.name));
+    if (entry) return { ...entry, defaultMcc: entry.mcc, mcc: sel.mcc };
+  }
+  const found = findRetailerForInput(input, state.merchantOverrides);
+  return found ? { ...found, defaultMcc: found.mcc } : null;
+}
+
+// Called by the typeahead when the user picks a suggestion.
+export function selectRetailer(retailer) {
+  state.selectedRetailer = { name: retailer.name, mcc: retailer.mcc };
+  const input = document.getElementById('mccInput');
+  if (input) input.value = retailer.name;
+  const clearBtn = document.getElementById('btnClearMcc');
+  if (clearBtn) clearBtn.style.display = 'flex';
+  runRecommendation();
+}
+
 export function resolveMccEntry(input) {
   const clean = (input || '').trim().toLowerCase();
   if (!clean) return null;
@@ -51,15 +86,24 @@ export function resolveMccEntry(input) {
   if (promo) return promo;
 
   const codeMatch = clean.match(/\b\d{4}\b/);
-  if (codeMatch && MCC_DATABASE[codeMatch[0]]) {
-    return { code: codeMatch[0], ...MCC_DATABASE[codeMatch[0]] };
+  if (codeMatch) {
+    const byCode = getMccEntry(codeMatch[0]);   // curated rules, or a generated base-rate / excluded entry
+    if (byCode) return byCode;
   }
+
+  const retailer = resolveRetailer(clean);
+  const retailerEntry = retailer && getMccEntry(retailer.mcc);
+  if (retailerEntry) return { ...retailerEntry, retailer };
 
   for (const [code, item] of Object.entries(MCC_DATABASE)) {
     if (item.name.toLowerCase().includes(clean) || item.notes.toLowerCase().includes(clean)) {
       return { code, ...item };
     }
   }
+
+  // Typed category name ("cinema", "electronics"): resolve only when exactly one category matches.
+  const byName = findMccByName(clean);
+  if (byName) return getMccEntry(byName);
 
   if (state.isOverseasMode) {
     return {
@@ -101,7 +145,7 @@ export function getDaysUntilCycleEnd(card) {
   return 999;
 }
 
-export function runRecommendation() {
+function renderRecommendation() {
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -110,7 +154,12 @@ export function runRecommendation() {
   if (!resultArea) return;
 
   const effectiveChannel = state.isKrisPlusMode ? 'online' : state.currentChannel;
-  const mccData = resolveMccEntry(inputVal);
+  const resolvedMcc = resolveMccEntry(inputVal);
+  // For a known brand, label the result "Brand · Category" but log just the brand name.
+  const mccData = resolvedMcc && resolvedMcc.retailer
+    ? { ...resolvedMcc, name: `${escapeHtml(resolvedMcc.retailer.name)} · ${shortCategory(resolvedMcc.name)}` }
+    : resolvedMcc;
+  const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : (mccData && mccData.name);
 
   if (!mccData) {
     resultArea.innerHTML = `
@@ -158,7 +207,7 @@ export function runRecommendation() {
     resultArea.innerHTML = `
       <div class="mcc-tag-box" style="border-left-color:var(--danger);">
         <b>${mccData.code ? `MCC ${mccData.code} - ` : ''}${mccData.name}</b><br>
-        <span style="color:var(--danger);">${state.isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB contactless cards are excluded on Kris+." : ((effectiveChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : mccData.notes)}</span>
+        <span style="color:var(--danger);">${state.isKrisPlusMode ? "No eligible cards available for this Kris+ transaction. Note that Citi Rewards and UOB contactless cards are excluded on Kris+." : ((effectiveChannel === 'inperson' && !allowContactless) ? "No non-contactless cards earn bonus on this category. Consider turning on contactless tap." : (mccData.generated === 'baseline' ? `No everyday-spend card (Citi PremierMiles, DBS Vantage / Altitude, UOB PRVI, KrisFlyer UOB) is enabled in your card wallet, so there is no base-rate recommendation for MCC ${mccData.code}. Turn one on under Settings.` : mccData.notes))}</span>
       </div>
     `;
     return;
@@ -259,7 +308,7 @@ export function runRecommendation() {
     `;
 
     document.getElementById('btnApplySingleSwipeRec')?.addEventListener('click', () => {
-      applyRecommendation(winner.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${mccData.name}`);
+      applyRecommendation(winner.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${descName}`);
     });
 
     return;
@@ -400,7 +449,7 @@ export function runRecommendation() {
         `;
 
         buttonsHtml += `
-          <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${mccData.name} (Part ${idx + 1})">
+          <button class="btn-apply-rec" style="${idx > 0 ? 'background:var(--surface-variant); color:#fff; border:1px solid var(--outline);' : ''}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})">
             Log Part ${idx + 1} ($${step.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
           </button>
         `;
@@ -471,11 +520,172 @@ export function runRecommendation() {
   `;
 
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
-    applyRecommendation(singleCard.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${mccData.name}`);
+    applyRecommendation(singleCard.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${descName}`);
+  });
+}
+
+export function runRecommendation() {
+  renderRecommendation();
+  decorateRetailerTools();
+}
+
+/* ==========================================================================
+   RETAILER TOOLS: confidence note, alternative categories, household fixes
+   ========================================================================== */
+
+function prettyName(text) {
+  return text === text.toLowerCase()
+    ? text.replace(/(^|[\s-])([a-z])/g, (m, sep, ch) => sep + ch.toUpperCase())
+    : text;
+}
+
+async function saveMerchantFix({ name, mcc, aliases = [] }) {
+  const cleanName = (name || '').trim().slice(0, 60);
+  const slug = slugify(cleanName);
+  if (!cleanName || !slug) return alert('Please enter a retailer name.');
+  if (!isKnownMcc(mcc)) return alert('Please choose a category.');
+
+  const previous = state.merchantOverrides;
+  const merged = [...new Set(aliases.map(a => a.trim().slice(0, 60)).filter(a => a && normalizeText(a) !== normalizeText(cleanName)))].slice(0, 10);
+  // Optimistic: show the fix immediately; the Firestore listener confirms it.
+  state.merchantOverrides = { ...previous, [slug]: { name: cleanName, mcc, aliases: merged } };
+  state.selectedRetailer = { name: cleanName, mcc };
+  const input = document.getElementById('mccInput');
+  if (input) input.value = cleanName;
+  runRecommendation();
+
+  try {
+    await saveMerchantOverride(slug, { name: cleanName, mcc, aliases: merged, updatedBy: state.myVaultKey, updatedAt: Date.now() });
+  } catch (e) {
+    console.error('Saving merchant fix failed:', e);
+    state.merchantOverrides = previous;
+    runRecommendation();
+    alert('Could not save this correction: ' + e.message);
+  }
+}
+
+async function removeMerchantFix(slug) {
+  const previous = state.merchantOverrides;
+  const next = { ...previous };
+  delete next[slug];
+  state.merchantOverrides = next;
+  state.selectedRetailer = null;
+  runRecommendation();
+  try {
+    await deleteMerchantOverride(slug);
+  } catch (e) {
+    console.error('Removing merchant fix failed:', e);
+    state.merchantOverrides = previous;
+    runRecommendation();
+    alert('Could not remove this correction: ' + e.message);
+  }
+}
+
+function decorateRetailerTools() {
+  const resultArea = document.getElementById('recResultArea');
+  if (!resultArea) return;
+  resultArea.querySelector('#retailerTools')?.remove();
+
+  const input = (document.getElementById('mccInput')?.value || '').trim();
+  if (!input || /^\d{4}$/.test(input)) return;
+
+  const resolved = resolveMccEntry(input);
+  const retailer = resolved && resolved.retailer;
+  const isGenericFallback = resolved && (resolved.code === 'FCY-GEN' || resolved.code === 'KRISPLUS-PARTNER');
+  const isPromo = resolved && resolved.code === 'OCBC-6MPD';
+  if (isPromo) return;
+  if (!retailer && resolved && !isGenericFallback) return;   // matched a plain category name; nothing to correct
+  if (!retailer && input.length < 2) return;
+
+  const parts = [];
+  let panel = '';
+  let pickList = [];
+
+  if (retailer) {
+    const catShort = escapeHtml(shortCategory(resolved.name));
+    const note = retailer.note ? escapeHtml(retailer.note) : '';
+    if (retailer.source === 'household') {
+      parts.push(`<div class="rt-line rt-ok">✅ Confirmed by your household as MCC ${resolved.code}.</div>`);
+    } else if (retailer.conf === 'low') {
+      parts.push(`<div class="rt-line rt-warn">⚠️ <b>Unsure.</b> ${note ? note + ' ' : ''}Treated as ${catShort} (MCC ${resolved.code}). Check your statement after the first charge.</div>`);
+    } else if (retailer.conf === 'medium') {
+      parts.push(`<div class="rt-line rt-info">ℹ️ Usually MCC ${resolved.code}; can vary by outlet or app. ${note}</div>`);
+    } else if (note) {
+      parts.push(`<div class="rt-line rt-info">ℹ️ ${note}</div>`);
+    }
+
+    const options = [...new Set([retailer.defaultMcc, ...(retailer.alt || [])])]
+      .filter(code => code !== resolved.code && isKnownMcc(code));
+    if (options.length) {
+      parts.push(`<div class="rt-chips"><span>Not this one?</span>${options.map(code =>
+        `<button type="button" class="rt-chip" data-alt="${code}">${code} · ${escapeHtml(mccName(code))}</button>`).join('')}</div>`);
+    }
+
+    const slug = retailer.slug || slugify(retailer.name);
+    const hasOverride = !!state.merchantOverrides[slug];
+    parts.push(`<div class="rt-actions">
+      <button type="button" class="rt-link" id="btnRtFix">✎ Wrong category?</button>
+      ${hasOverride ? `<button type="button" class="rt-link rt-danger" id="btnRtReset">${retailer.builtin ? '↺ Reset to default' : '🗑 Remove retailer'}</button>` : ''}
+    </div>`);
+    panel = `<div class="rt-panel" id="rtPanel" hidden>
+      <label>Correct category for <b>${escapeHtml(retailer.name)}</b></label>
+      <select id="rtMccSelect" class="form-control">${mccOptionsHtml(resolved.code, escapeHtml)}</select>
+      <button type="button" class="btn-apply-rec" id="btnRtSave">Save for everyone in household</button>
+    </div>`;
+  } else {
+    const suggestions = searchRetailers(input, state.merchantOverrides, 3);
+    parts.push(`<div class="rt-line rt-info">🔎 “${escapeHtml(input)}” isn't in the retailer list yet.</div>`);
+    if (suggestions.length) {
+      parts.push(`<div class="rt-chips"><span>Did you mean?</span>${suggestions.map((s, i) =>
+        `<button type="button" class="rt-chip" data-pick="${i}">${escapeHtml(s.retailer.name)}</button>`).join('')}</div>`);
+    }
+    parts.push(`<div class="rt-actions"><button type="button" class="rt-link" id="btnRtFix">＋ Add this retailer</button></div>`);
+    panel = `<div class="rt-panel" id="rtPanel" hidden>
+      <label>Retailer name</label>
+      <input type="text" id="rtNameInput" class="form-control" maxlength="60" value="${escapeHtml(prettyName(input))}">
+      <label>Category</label>
+      <select id="rtMccSelect" class="form-control">${mccOptionsHtml('5812', escapeHtml)}</select>
+      <button type="button" class="btn-apply-rec" id="btnRtSave">Save for everyone in household</button>
+    </div>`;
+    pickList = suggestions;
+  }
+
+  const box = document.createElement('div');
+  box.id = 'retailerTools';
+  box.className = 'retailer-tools';
+  box.innerHTML = parts.join('') + panel;
+  resultArea.appendChild(box);
+
+  box.querySelectorAll('[data-alt]').forEach(btn => btn.addEventListener('click', () => {
+    state.selectedRetailer = { name: retailer.name, mcc: btn.dataset.alt };
+    document.getElementById('mccInput').value = retailer.name;
+    runRecommendation();
+  }));
+  box.querySelectorAll('[data-pick]').forEach(btn => btn.addEventListener('click', () => {
+    selectRetailer(pickList[Number(btn.dataset.pick)].retailer);
+  }));
+  box.querySelector('#btnRtFix')?.addEventListener('click', () => {
+    const panelEl = box.querySelector('#rtPanel');
+    panelEl.hidden = !panelEl.hidden;
+    if (!panelEl.hidden) panelEl.querySelector('input, select')?.focus();
+  });
+  box.querySelector('#btnRtReset')?.addEventListener('click', () => removeMerchantFix(retailer.slug || slugify(retailer.name)));
+  box.querySelector('#btnRtSave')?.addEventListener('click', () => {
+    const mcc = box.querySelector('#rtMccSelect').value;
+    if (retailer) {
+      const existing = state.merchantOverrides[retailer.slug || slugify(retailer.name)];
+      saveMerchantFix({ name: retailer.name, mcc, aliases: existing?.aliases || [] });
+    } else {
+      const name = box.querySelector('#rtNameInput').value;
+      saveMerchantFix({ name, mcc, aliases: [input] });   // remember what was typed so it matches next time
+    }
   });
 }
 
 export function applyRecommendation(cardId, amt, desc) {
+  // Open (and reset) the modal FIRST: openModal() clears the fields, so filling them before it wiped them.
+  openModal();
+
   const cardSelect = document.getElementById('cardSelect');
   const amtInput = document.getElementById('amtInput');
   const descInput = document.getElementById('descInput');
@@ -490,7 +700,6 @@ export function applyRecommendation(cardId, amt, desc) {
 
   onCardSelectChange();
   checkShellMerchantTrigger();
-  openModal();
 }
 
 export function updateShellNettCalc() {
