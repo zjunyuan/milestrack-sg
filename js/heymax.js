@@ -10,7 +10,7 @@ import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 
 export const HEYMAX_MCC = "5311";
-export const HEYMAX_VERIFIED = "Milelion May 2025 (MCC); HeyMax list 28 Oct 2026";
+export const HEYMAX_VERIFIED = "Milelion May 2025 (MCC); HeyMax list and use types 28 Oct 2026";
 export const URGENT_DAYS = 7;       // show the banner when a cycle has this many days or fewer left
 export const MIN_HEADROOM = 100;    // ...and at least this much bonus room is unspent
 
@@ -31,8 +31,17 @@ export const HEYMAX_VOUCHERS = [
   ["Klook", 1.25, "upto"], ["FlystayGift", 1.25], ["ToursGift", 1.25], ["Pet Lovers Centre", 1.2], ["PUMA", 1.2], ["IKEA", 1],
   ["foodpanda", 0.6], ["Courts", 0.5], ["Best Denki", 0.25], ["Lazada", 0.2], ["7-Eleven", 0.2], ["TANGS", 0.2], ["Razer Gold", 0.2],
   ["Imperial Treasure", 0.2], ["Isetan", 0.2], ["NTUC FairPrice", 0.1, "store"], ["Sheng Siong", 0.1], ["PlayMade", 0],
-  ["A Lil Thyme", 5, "upto"], ["SHEIN", 6, "upto"]
+  ["A Lil Thyme", 1.8], ["SHEIN", 6, "upto"]
 ].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+// From the HeyMax app's "Buy vouchers" screen (28 Oct 2026): multi-use vouchers can be spent down over several visits,
+// so they fit any top-up amount. Single-use vouchers must be redeemed in one go. Brands not on that screen have no entry.
+export const MULTI_USE = new Set(["NTUC FairPrice", "foodpanda", "Swensen's", "Amazon.sg", "Courts", "Best Denki", "OSIM", "Pupsik Studio", "Klook", "Airalo", "Ryde"]);
+const SINGLE_USE = new Set(["Sheng Siong", "Grab", "Oddle Eats", "% Arabica", "iJOOZ", "TukTuk Cha", "A Lil Thyme", "Jack's Place", "Coca Restaurants", "Creative Eateries",
+  "Earle Swensen's", "Lao Beijing", "LingZhi Vegetarian", "Monster Curry", "Nong Geng Ji", "PastaMania", "Pizzamaru", "Qin Restaurant & Bar", "Seoul Garden", "Seoul Yummy",
+  "TAMAGO-EN", "TANYU", "Wine Connection", "Old Chang Kee", "Dunkin' Donuts", "Fragrance Bak Kwa", "Paris Baguette", "Lazada", "IKEA", "TANGS", "Natureland Spa", "Carousel",
+  "DMK", "Flower Chimp", "LAC", "MINISO", "Pet Lovers Centre", "Robinsons", "The Planet Traveller", "The Wallet Shop", "Under Armour", "RentacarGift", "TADA", "GetGo", "HelloRide"]);
+export const useType = (name) => MULTI_USE.has(name) ? "multi" : (SINGLE_USE.has(name) ? "single" : "");
 
 // Pure. cards: state.cards (with currentSpend), candidates: the 5311 candidate list, now: Date.
 // Returns rows for cards that still have bonus room, most urgent first.
@@ -76,12 +85,14 @@ function currentRows() {
   return headroomRows({ cards: state.cards, candidates: entry && entry.candidatesLocal, enabledIds: state.enabledCardIds });
 }
 
-function voucherChips(filter = "") {
+function voucherChips(filter = "", multiOnly = false) {
   const q = filter.trim().toLowerCase();
-  const list = HEYMAX_VOUCHERS.filter(v => !q || v[0].toLowerCase().includes(q));
+  const list = HEYMAX_VOUCHERS.filter(v => (!q || v[0].toLowerCase().includes(q)) && (!multiOnly || MULTI_USE.has(v[0])));
   if (!list.length) return `<span style="font-size:0.75rem; color:#94a3b8;">No match. The list changes; check HeyMax.</span>`;
-  return list.map(([name, rate, tag]) =>
-    `<span class="hm-chip">${escapeHtml(name)} <small>${tag === "upto" ? "up to " : ""}${rate} Max Miles/$${tag === "store" ? " · in-store" : ""}</small></span>`).join("");
+  return list.map(([name, rate, tag]) => {
+    const u = useType(name);
+    return `<span class="hm-chip ${u === "multi" ? "hm-multi" : ""}">${escapeHtml(name)} <small>${tag === "upto" ? "up to " : ""}${rate} Max Miles/$${tag === "store" ? " · in-store" : ""}</small>${u ? `<em>${u === "multi" ? "multi-use" : "single-use"}</em>` : ""}</span>`;
+  }).join("");
 }
 
 export function renderHeymaxBanner() {
@@ -125,14 +136,18 @@ export function openHeymaxSheet() {
     <button class="btn-submit" id="btnHeymaxPlan">Plan S$${fmtNum(planAmt, 2)} with the recommender</button>
     <div class="hm-note">The plan fills the recommender with MCC ${HEYMAX_MCC} (online) for ${sum.rows.length ? "the cards expiring within " + URGENT_DAYS + " days" : "every card above"}, so it splits across them in order (it may also use another card that still has room).</div>
     <div class="section-title" style="margin-top:6px;"><span style="font-size:0.9rem;">HeyMax vouchers (all code as MCC ${HEYMAX_MCC})</span></div>
+    <div class="hm-note"><b>Multi-use</b> vouchers can be spent down over several visits, so they suit an exact top-up amount: ${[...MULTI_USE].join(", ")}. <b>Single-use</b> ones must be redeemed in one go, so only buy those for something you'll spend in full.</div>
     <input type="text" id="heymaxSearch" class="form-control" placeholder="Search brands, e.g. FairPrice, Grab" autocomplete="off">
+    <label class="hm-note" style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="heymaxMulti"> Show multi-use only</label>
     <div class="hm-chips" id="heymaxChips">${voucherChips()}</div>
     <div class="hm-note">⚠️ Only worth it if you'll really spend at these brands. Check each voucher's expiry, fees and any refund rules. HeyMax adds its own Max Miles on top of your card miles. MCC coding and the brand list can change. Last verified: ${HEYMAX_VERIFIED}.</div>`
     : `<p style="font-size:0.85rem; color:#94a3b8;">No bonus room left on any card that takes MCC ${HEYMAX_MCC} this cycle. Nothing to top up.</p>`;
 
-  document.getElementById("heymaxSearch")?.addEventListener("input", e => {
-    document.getElementById("heymaxChips").innerHTML = voucherChips(e.target.value);
-  });
+  const refreshChips = () => {
+    document.getElementById("heymaxChips").innerHTML = voucherChips(document.getElementById("heymaxSearch")?.value || "", !!document.getElementById("heymaxMulti")?.checked);
+  };
+  document.getElementById("heymaxSearch")?.addEventListener("input", refreshChips);
+  document.getElementById("heymaxMulti")?.addEventListener("change", refreshChips);
   document.getElementById("btnHeymaxPlan")?.addEventListener("click", () => {
     document.getElementById("btnChannelOnline")?.click();
     const amt = document.getElementById("recAmount");
