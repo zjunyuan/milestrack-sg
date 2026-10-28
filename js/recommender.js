@@ -1,4 +1,4 @@
-import { MCC_DATABASE, ALL_MASTER_CARDS } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, checkShellMerchantTrigger } from "./ui.js";
 import {
@@ -10,6 +10,8 @@ import {
   escapeHtml
 } from "./retailers.js";
 import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
+import { CITI_INSTORE_MCCS } from "./cardrules.js";
+import { tierStatus, lockedWarning } from "./tiers.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -126,6 +128,15 @@ export function resolveMccEntry(input) {
   return null;
 }
 
+
+// Rate an uncapped everyday card earns on spend with no bonus category, for the current mode.
+const OVERSEAS_GENERAL_MPD = { 'mb-world-mc': 3.2, 'mb-horizon-vs': 2.8, 'uob-prvi': 2.4, 'dbs-vantage': 2.2, 'dbs-altitude': 2.2, 'citi-pm': 2.2 };
+function generalRate(card) {
+  if (state.isKrisPlusMode && card.id === 'kf-uob') return 3.0;
+  if (state.isOverseasMode) return OVERSEAS_GENERAL_MPD[card.id] ?? card.baseMpd;
+  return card.baseMpd;   // local: the card's current base rate (dated changes are applied by applyRateSchedule)
+}
+
 export function getDaysUntilCycleEnd(card) {
   const now = new Date();
   if (card.cycleType === 'calendar') {
@@ -193,11 +204,10 @@ function renderRecommendation() {
 
     if (effectiveChannel === 'online' && cardObj.channelMode === 'inperson') return false;
     if (effectiveChannel === 'inperson' && cardObj.channelMode === 'online') return false;
-    if (effectiveChannel === 'inperson' && !allowContactless && cardObj.isContactlessOnly) return false;
+    if (effectiveChannel === 'inperson' && !allowContactless && (cardObj.isContactlessOnly || cardObj.inPersonNeedsContactless)) return false;
 
     if (effectiveChannel === 'inperson' && cardObj.id === 'citi-rewards') {
-      const eligibleInStoreMccs = ["5311", "5651", "5621", "OCBC-6MPD"];
-      if (!eligibleInStoreMccs.includes(mccData.code)) return false;
+      if (!CITI_INSTORE_MCCS.has(mccData.code) && mccData.code !== "OCBC-6MPD") return false;
     }
 
     return true;
@@ -223,22 +233,7 @@ function renderRecommendation() {
 
     state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(card => {
       if (!allEligibleCardsMap.has(card.id)) {
-        let genRate = card.baseMpd;
-        if (state.isKrisPlusMode && card.id === 'kf-uob') genRate = 3.0;
-        else if (state.isOverseasMode) {
-          if (card.id === 'mb-world-mc') genRate = 3.2;
-          else if (card.id === 'mb-horizon-vs') genRate = 2.8;
-          else if (card.id === 'uob-prvi') genRate = 2.4;
-          else if (card.id === 'dbs-vantage') genRate = 2.2;
-          else if (card.id === 'dbs-altitude') genRate = 2.2;
-        } else {
-          if (card.id === 'kf-uob' && state.isKrisPlusMode) genRate = 3.0;
-          else if (card.id === 'dbs-vantage') genRate = 1.5;
-          else if (card.id === 'uob-prvi') genRate = 1.4;
-          else if (card.id === 'dbs-altitude') genRate = 1.3;
-          else if (card.id === 'citi-pm' || card.id === 'kf-uob') genRate = 1.2;
-          else genRate = card.baseMpd;
-        }
+        const genRate = generalRate(card);
         allEligibleCardsMap.set(card.id, { card, rate: genRate });
       }
     });
@@ -388,24 +383,7 @@ function renderRecommendation() {
           const eligibleGeneralCards = state.cards
             .filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999)
             .map(c => {
-              let rate = c.baseMpd;
-              if (state.isKrisPlusMode && c.id === 'kf-uob') rate = 3.0;
-              else if (state.isOverseasMode) {
-                if (c.id === 'mb-world-mc') rate = 3.2;
-                else if (c.id === 'mb-horizon-vs') rate = 2.8;
-                else if (c.id === 'uob-prvi') rate = 2.4;
-                else if (c.id === 'dbs-vantage') rate = 2.2;
-                else if (c.id === 'dbs-altitude') rate = 2.2;
-                else rate = c.baseMpd;
-              } else {
-                if (c.id === 'kf-uob' && state.isKrisPlusMode) rate = 3.0;
-                else if (c.id === 'dbs-vantage') rate = 1.5;
-                else if (c.id === 'uob-prvi') rate = 1.4;
-                else if (c.id === 'dbs-altitude') rate = 1.3;
-                else if (c.id === 'citi-pm') rate = 1.2;
-                else if (c.id === 'kf-uob') rate = 1.2;
-                else rate = c.baseMpd;
-              }
+              const rate = generalRate(c);
               return { card: c, rate, isUncapped: true };
             })
             .sort((a, b) => b.rate - a.rate);
@@ -524,8 +502,31 @@ function renderRecommendation() {
   });
 }
 
+// Adds a warning under the result when it names a card whose bonus tier is not unlocked yet.
+function decorateTierCallouts() {
+  const box = document.getElementById('recResultArea');
+  if (!box) return;
+  box.querySelectorAll('.tier-callout').forEach(n => n.remove());
+  const text = box.textContent || '';
+  const lines = [];
+  for (const card of state.cards) {
+    if (!card.tierRule || !text.includes(card.name)) continue;
+    if (card.id === 'kf-uob' && state.isKrisPlusMode) continue;   // Kris+ is the 3 mpd rate, no SIA spend needed
+    const w = lockedWarning(card, tierStatus(card, { spend: card.currentSpend || 0, txns: state.transactions, renewalYm: state.uobRenewals.kf }));
+    if (w) lines.push(w);
+  }
+  if (lines.length) {
+    const div = document.createElement('div');
+    div.className = 'tier-callout';
+    div.innerHTML = lines.map(l => '⚠️ ' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>');
+    box.appendChild(div);
+  }
+}
+
 export function runRecommendation() {
+  applyRateSchedule();
   renderRecommendation();
+  decorateTierCallouts();
   decorateRetailerTools();
   decorateRuleTools();
 }

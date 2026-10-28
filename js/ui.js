@@ -1,3 +1,4 @@
+import { tierStatus } from "./tiers.js";
 import { 
   ALL_MASTER_CARDS, 
   DEFAULT_PRESETS, 
@@ -138,6 +139,7 @@ export function renderCards() {
     let barColor = 'var(--primary)';
     let statusNotice = '';
     let markerHtml = '';
+    let tierInfo = null;
 
     if (card.id.startsWith('uob-vs')) {
       const minDeficit = Math.max(0, 1000 - currentSpend);
@@ -145,6 +147,13 @@ export function renderCards() {
       markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;"></div>`;
       barColor = currentSpend < 1000 ? 'var(--warning)' : 'var(--accent)';
       statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${minDeficit.toFixed(0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met!</span>`;
+    } else if (card.tierRule) {
+      const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
+      tierInfo = ts;
+      pct = Math.min(100, (ts.spent / ts.scale) * 100).toFixed(0);
+      barColor = ts.met ? 'var(--accent)' : 'var(--warning)';
+      markerHtml = ts.markers.map(m => `<div class="min-spend-marker" style="left: ${m}%;"></div>`).join('');
+      statusNotice = `<span style="color:${ts.met ? 'var(--accent)' : 'var(--warning)'}; font-weight:700;">${ts.headline}</span>`;
     } else if (card.id === 'dbs-yuu') {
       const yuuProgress = getYuuMerchantProgress(card);
       barColor = (currentSpend >= 800 && yuuProgress.isEligible) ? 'var(--accent)' : 'var(--warning)';
@@ -168,14 +177,14 @@ export function renderCards() {
             <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
           </div>
         </div>
-        <span class="card-badge ${card.badgeClass || ''}">${card.bonusMpd} mpd</span>
+        <span class="card-badge ${card.badgeClass || ''}">${tierInfo ? (tierInfo.met ? tierInfo.current + ' mpd' : tierInfo.current + ' → ' + tierInfo.steps[tierInfo.steps.length - 1].mpd + ' mpd') : card.bonusMpd + ' mpd'}</span>
       </div>
       <div class="progress-bar-container">
         ${markerHtml}
         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
       </div>
       <div class="card-stats">
-        <span>$${currentSpend.toFixed(2)} spent</span>
+        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + tierInfo.spent.toFixed(2) + ' SIA Group spend' : '$' + currentSpend.toFixed(2) + ' spent'}</span>
         <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${card.monthlyCap} (${pct}%)`)}</span>
       </div>
     `;
@@ -210,6 +219,11 @@ export function openCardDetailModal(cardId) {
     thumbEl.innerHTML = `<div class="thumb-chip"></div><div class="thumb-bank">${card.bank}</div>`;
   }
 
+  const tierAlert = document.getElementById('modalCardAlertArea');
+  if (tierAlert) {
+    const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
+    tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : '';
+  }
   document.getElementById('modalCardName').innerText = card.name;
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
   document.getElementById('modalCardSpent').innerText = `$${currentSpend.toFixed(2)}`;
@@ -939,6 +953,7 @@ export function openSettingsModal() {
   setVal('uobVsRenewalInput', state.uobRenewals.visaSig);
   setVal('uobPpvRenewalInput', state.uobRenewals.ppv);
   setVal('uobPrviRenewalInput', state.uobRenewals.prvi);
+  setVal('kfUobRenewalInput', state.uobRenewals.kf);
   setVal('citiApprovalInput', state.citiApprovalDate);
   const vs = ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'));
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
@@ -969,7 +984,8 @@ export async function saveSettings() {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
       ppv: val('uobPpvRenewalInput') || state.uobRenewals.ppv,
-      prvi: val('uobPrviRenewalInput') || state.uobRenewals.prvi
+      prvi: val('uobPrviRenewalInput') || state.uobRenewals.prvi,
+      kf: val('kfUobRenewalInput') || state.uobRenewals.kf || ''
     },
     cutoffDays: {
       uobVs: clampDay(val('uobVsCutoff'), 18),

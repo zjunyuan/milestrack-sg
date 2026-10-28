@@ -4,6 +4,7 @@ import { MCC_DATABASE, ALL_MASTER_CARDS } from "./config.js";
 import { MCC_NAMES, COMMONLY_EXCLUDED_MCCS } from "./mcc-names.js";
 import { normalizeText, escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
+import { applyCardRules } from "./cardrules.js";
 
 export function shortCategory(name = "") {
   return name.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
@@ -98,6 +99,10 @@ export function getMccEntry(code) {
 // Built-in view of a category: curated rules if we have them, otherwise a generated
 // "base rate" or "commonly excluded" entry. Returns null for unknown codes.
 export function getBuiltinMccEntry(code) {
+  return applyCardRules(rawBuiltinEntry(code));
+}
+
+function rawBuiltinEntry(code) {
   if (MCC_DATABASE[code]) return { code, ...MCC_DATABASE[code] };
   const name = MCC_NAMES[code];
   if (!name) return null;
@@ -112,7 +117,7 @@ export function getBuiltinMccEntry(code) {
   }
   return {
     code, name, generated: "baseline",
-    notes: `ℹ️ No bonus category is set up for MCC ${code}. Showing your best everyday-spend cards at their base rate. Banks sometimes exclude or boost specific merchants, so check your card's T&Cs.`,
+    notes: `ℹ️ No hand-written rules for MCC ${code}. Showing cards whose published terms cover it, plus your best everyday cards at their base rate. Banks sometimes exclude or boost specific merchants, so check your card's T&Cs.`,
     candidatesLocal: generalLocalCandidates(),
     candidatesOverseas: GENERAL_OVERSEAS_CANDIDATES
   };

@@ -23,6 +23,7 @@ export const state = {
     solitaire: "2023-11",
     visaSig: "2024-03",
     ppv: "2024-05",
-    prvi: "2024-07"
+    prvi: "2024-07",
+    kf: ""
   }
 };

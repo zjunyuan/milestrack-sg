@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.12.0";
+export const APP_VERSION = "v1.14.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -346,7 +346,8 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: 'Dining & retail whitelist. Works on Kris+ (excl. 5814).', 
+    hint: '4 mpd on online or contactless spend at whitelisted MCCs only (T&C 1 Apr 2026). Not eligible: groceries, restaurants-excluded MCCs, petrol, transport. Works on Kris+ (excl. 5814).', 
+    inPersonNeedsContactless: true,
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-hsbc'
@@ -361,11 +362,12 @@ export const ALL_MASTER_CARDS = [
     minSpend: 0, 
     bonusMpd: 2.4, 
     baseMpd: 1.2, 
+    tierRule: { kind: 'annual-sia', at: 1000, mpd: 2.4 },
     engine: 'uob-5', 
     cycleType: 'uncapped', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: 'Uncapped 3.0 mpd on all Kris+ merchants directly! 2.4 mpd on Dining/Transport.', 
+    hint: '3 mpd on SIA, Scoot, KrisShop, Kris+ and Pelago. 2.4 mpd on dining/transport/travel needs S$1,000 SIA Group spend in the membership year and is paid after the year ends.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-uob'
@@ -380,6 +382,7 @@ export const ALL_MASTER_CARDS = [
     minSpend: 800, 
     bonusMpd: 3.2, 
     baseMpd: 0.4, 
+    tierRule: { kind: 'monthly', scope: 'Foreign-currency spend:', steps: [{ at: 800, mpd: 2.8 }, { at: 4000, mpd: 3.2 }] },
     engine: 'citi-1', 
     cycleType: 'calendar', 
     strategyType: 'whitelist',
@@ -398,12 +401,13 @@ export const ALL_MASTER_CARDS = [
     monthlyCap: 10000, 
     minSpend: 800, 
     bonusMpd: 2.8, 
-    baseMpd: 0.24, 
+    baseMpd: 0.4, 
+    tierRule: { kind: 'monthly', scope: 'Foreign-currency and air-ticket spend:', steps: [{ at: 800, mpd: 2.8 }] },
     engine: 'citi-1', 
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: '2.8 mpd on ALL FCY spend on ANY MCC! Min S$800 spend; S$10k cap.', 
+    hint: '2.8 mpd on FCY spend (any MCC) and on air tickets once S$800 is spent in the month. Air tickets capped at S$10k/month.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-maybank'
@@ -418,11 +422,12 @@ export const ALL_MASTER_CARDS = [
     minSpend: 0, 
     bonusMpd: 1.5, 
     baseMpd: 1.5, 
+    rateSchedule: [{ from: '2026-11-02', baseMpd: 1.4, bonusMpd: 1.4 }],
     engine: 'dbs-5', 
     cycleType: 'uncapped', 
     strategyType: 'blacklist',
     badgeClass: '', 
-    hint: '1.5 mpd local / 2.2 mpd FCY uncapped general spending.', 
+    hint: '1.5 mpd local until 1 Nov 2026, then 1.4 mpd from 2 Nov 2026. 2.2 mpd FCY. Uncapped general spending.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-dbs'
@@ -441,7 +446,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'uncapped', 
     strategyType: 'blacklist',
     badgeClass: '', 
-    hint: '1.4 mpd local / 2.4 mpd FCY uncapped general spending.', 
+    hint: '1.4 mpd local / 2.4 mpd FCY. 3.0 mpd on IDR, MYR, THB and VND spend. Uncapped.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-uob'
@@ -479,7 +484,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'uncapped', 
     strategyType: 'blacklist',
     badgeClass: '', 
-    hint: '1.2 mpd local / 2.0 mpd FCY. Non-expiring Citi Miles (standalone).', 
+    hint: '1.2 mpd local / 2.2 mpd FCY (per MileLion; no bank T&C checked). Non-expiring Citi Miles.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-citi'
@@ -856,3 +861,19 @@ export const MCC_DATABASE = {
   "9399": { name: "Government / Taxes", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] },
   "6540": { name: "Stored Value Card / Wallet Top-Ups", notes: "❌ Excluded from rewards across all cards.", candidatesLocal: [], candidatesOverseas: [] }
 };
+
+
+// ---- Dated rate changes -----------------------------------------------------------------------------
+// A card with rateSchedule: [{from:'YYYY-MM-DD', baseMpd, bonusMpd}] switches to the latest entry whose date has
+// arrived, and reverts to its original rate before that. Call at startup and before each recommendation.
+const ORIGINAL_RATES = new Map(ALL_MASTER_CARDS.map(c => [c.id, { baseMpd: c.baseMpd, bonusMpd: c.bonusMpd }]));
+
+export function applyRateSchedule(today = new Date().toLocaleDateString("en-CA")) {
+  for (const c of ALL_MASTER_CARDS) {
+    if (!Array.isArray(c.rateSchedule)) continue;
+    const orig = ORIGINAL_RATES.get(c.id);
+    const hit = c.rateSchedule.filter(r => r.from <= today).sort((a, b) => a.from.localeCompare(b.from)).pop();
+    c.baseMpd = hit && hit.baseMpd != null ? hit.baseMpd : orig.baseMpd;
+    c.bonusMpd = hit && hit.bonusMpd != null ? hit.bonusMpd : orig.bonusMpd;
+  }
+}
