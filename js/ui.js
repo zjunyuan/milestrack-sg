@@ -113,7 +113,6 @@ export function quickLogPreset(presetId) {
   document.getElementById('modalFormTitle').innerText = `Log: ${preset.label}`;
   document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
 
-  checkShellMerchantTrigger();
   openModal();
 }
 
@@ -624,15 +623,6 @@ export function renderExpiryRadar() {
   });
 }
 
-export function checkShellMerchantTrigger() {
-  const descVal = (document.getElementById('descInput')?.value || '').toLowerCase();
-  const cardId = document.getElementById('cardSelect')?.value;
-  const isShell = descVal.includes('shell') || descVal.includes('petrol') || descVal.includes('fuel');
-  const isUobFuelCard = cardId === 'uob-ppv-contactless' || cardId === 'uob-vs-contactless' || cardId === 'mb-world-mc';
-  const calcArea = document.getElementById('shellDiscountCalcArea');
-  if (calcArea) calcArea.style.display = (isShell || (descVal && isUobFuelCard)) ? 'block' : 'none';
-}
-
 export function onCardSelectChange() {
   const cardId = document.getElementById('cardSelect')?.value;
   const normalGroup = document.getElementById('merchantInputGroup');
@@ -645,7 +635,6 @@ export function onCardSelectChange() {
     if (normalGroup) normalGroup.style.display = 'flex';
     if (yuuGroup) yuuGroup.style.display = 'none';
   }
-  checkShellMerchantTrigger();
   window.dispatchEvent(new Event('tx-form-changed'));
 }
 
@@ -701,7 +690,6 @@ export function openEditModal(txId) {
   document.getElementById('btnSaveLedger').innerText = "Update Transaction";
 
   const pe = document.getElementById('txPostInput'); if (pe) pe.value = tx.postTs ? new Date(tx.postTs).toLocaleDateString('en-CA') : '';
-  checkShellMerchantTrigger();
   window.dispatchEvent(new Event('tx-form-changed'));
   document.getElementById('modalOverlay')?.classList.add('open');
 }

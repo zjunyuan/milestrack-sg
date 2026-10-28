@@ -1,7 +1,7 @@
 import { fmtNum, fmtAuto } from "./format.js";
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant } from "./config.js";
 import { state } from "./state.js";
-import { openModal, onCardSelectChange, checkShellMerchantTrigger, cardThumbHtml } from "./ui.js";
+import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
 import {
   buildRetailerList,
   findRetailerForInput,
@@ -210,17 +210,16 @@ function appendKrisPlusNote() {
 }
 
 function renderRecommendation() {
+  // Nothing is recommended until there is both a retailer or MCC and an amount: no placeholder figures.
+  const hasQuery = !!(document.getElementById('mccInput')?.value || '').trim();
+  const hasAmt = parseFloat((document.getElementById('recAmount')?.value || '').replace(/,/g, '')) > 0;
+  const area = document.getElementById('recResultArea');
+  if (area && hasQuery && !hasAmt) {
+    area.innerHTML = '<div class="rec-eg-note">📝 Enter an amount above to see which card to use and how much to put on each.</div>';
+    return;
+  }
   renderRecommendationCore();
   appendKrisPlusNote();
-  // No amount typed yet: the result is worked out on S$100 as an example, so say so.
-  const area = document.getElementById('recResultArea');
-  const typed = (document.getElementById('recAmount')?.value || '').trim();
-  if (area && !typed && area.querySelector('.rec-winner-title, .cascade-step')) {
-    const note = document.createElement('div');
-    note.className = 'hm-note rec-eg-note';
-    note.textContent = 'Shown for S$100 as an example. Enter your amount above for exact miles and splits.';
-    area.appendChild(note);
-  }
 }
 
 function renderRecommendationCore() {
@@ -240,15 +239,13 @@ function renderRecommendationCore() {
   const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : ((resolvedMcc && resolvedMcc.krisMerchant) || (mccData && mccData.name));
 
   if (!mccData) {
-    resultArea.innerHTML = `
-      <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">
-        ${state.isKrisPlusMode
+    const hint = `${state.isKrisPlusMode
           ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
           : (state.isOverseasMode 
             ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
-            : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : 'Type a 4-digit MCC (e.g. <b>5541</b>, <b>5812</b>, <b>5912</b>), retailer, or promo (e.g. <b>Shopee</b>, <b>Shell</b>).'))}
-      </div>
-    `;
+            : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : ''))}`;
+    // No hint when nothing is typed: the box stays empty (and hidden) until there is something to say.
+    resultArea.innerHTML = hint.trim() ? `<div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${hint}</div>` : '';
     return;
   }
 
@@ -1046,27 +1043,10 @@ export function applyRecommendation(cardId, amt, desc) {
   const txDateInput = document.getElementById('txDateInput');
 
   if (cardSelect) cardSelect.value = cardId;
-  if (amtInput) amtInput.value = amt;
+  if (amtInput) amtInput.value = Math.round(Number(amt) * 100) / 100;   // avoid float noise such as 83.96000000000004
   if (descInput) descInput.value = desc || '';
   if (bonusCategory) bonusCategory.value = 'bonus';
   if (txDateInput) txDateInput.value = new Date().toLocaleDateString('en-CA');
 
   onCardSelectChange();
-  checkShellMerchantTrigger();
-}
-
-export function updateShellNettCalc() {
-  const gross = parseFloat(document.getElementById('shellGrossInput')?.value) || 0;
-  const btn = document.getElementById('btnApplyShellDiscount');
-  const status = document.getElementById('shellDiscountStatusText');
-  if (!btn || !status) return;
-
-  if (gross > 0) {
-    const nett = (gross * 0.86).toFixed(2);
-    btn.innerText = `Apply 14% (Net $${nett})`;
-    status.innerHTML = `Gross $${fmtNum(gross, 2)} - 14% = <b>Net $${nett}</b> charged`;
-  } else {
-    btn.innerText = `Apply 14% Off`;
-    status.innerText = `Enter gross pump price from meter to compute nett S$ amount charged.`;
-  }
 }

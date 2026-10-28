@@ -7,8 +7,7 @@ import {
   updateVaultDoc 
 } from "./firebase.js";
 import { 
-  runRecommendation, 
-  updateShellNettCalc 
+  runRecommendation
 } from "./recommender.js";
 import { initRetailerSuggest } from "./merchants.js";
 import { initHeymax } from "./heymax.js";
@@ -48,7 +47,6 @@ import {
   saveTransaction,
   onCardSelectChange,
   onYuuMerchantChange,
-  checkShellMerchantTrigger,
   switchTab
 } from "./ui.js";
 
@@ -267,16 +265,6 @@ document.getElementById('recAmount')?.addEventListener('input', runRecommendatio
 document.getElementById('contactlessSwitch')?.addEventListener('change', runRecommendation);
 document.getElementById('cardSelect')?.addEventListener('change', onCardSelectChange);
 document.getElementById('yuuMerchantSelect')?.addEventListener('change', onYuuMerchantChange);
-document.getElementById('descInput')?.addEventListener('input', checkShellMerchantTrigger);
-document.getElementById('shellGrossInput')?.addEventListener('input', updateShellNettCalc);
-
-document.getElementById('btnApplyShellDiscount')?.addEventListener('click', () => {
-  const gross = parseFloat(document.getElementById('shellGrossInput')?.value) || 0;
-  if (gross > 0) {
-    const amtEl = document.getElementById('amtInput');
-    if (amtEl) amtEl.value = (gross * 0.86).toFixed(2);
-  }
-});
 
 // Transaction Search Listeners
 document.getElementById('txSearchInput')?.addEventListener('input', (e) => {
