@@ -29,13 +29,13 @@ export function postingDetailHtml(card) {
 export function renderPostingBanner() {
   const box = $("postingBannerContainer");
   if (!box) return;
-  // Only the last 2 days of a cycle (the last day and the one before), and only for cards where spend moving to the next cycle could still cost you (cap room left, or a minimum spend not met yet).
+  // Only the last 3 days of a cycle (the last day and the two before), and only for cards where spend moving to the next cycle could still cost you (cap room left, or a minimum spend not met yet).
   const matters = (card) => {
     const live = state.cards.find(c => c.id === card.id) || card;
     const spent = Number(live.currentSpend) || 0;
     return ((Number(card.monthlyCap) || 0) < 999999 && spent < card.monthlyCap) || ((Number(card.minSpend) || 0) > 0 && spent < card.minSpend);
   };
-  const rows = bannerRows(enabledCards(), new Date(), 1).filter(r => r.phase === "ending" && matters(r.card));
+  const rows = bannerRows(enabledCards(), new Date(), 2).filter(r => r.phase === "ending" && matters(r.card));
   if (!rows.length) { box.innerHTML = ""; return; }
   const ending = rows.filter(r => r.phase === "ending");
   const lead = ending.length ? ending : rows;
