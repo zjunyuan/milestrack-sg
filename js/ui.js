@@ -10,7 +10,8 @@ import {
   VAULT_LABELS,
   APP_VERSION,
   DEFAULT_VAULT,
-  MCC_DATABASE
+  MCC_DATABASE,
+  normalizeVault
 } from "./config.js";
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { state } from "./state.js";
@@ -1148,7 +1149,7 @@ export async function importJSONBackup(file) {
   if (btn) btn.disabled = true;
   try {
     if (Object.keys(balances).length) {
-      state.myVault = { ...DEFAULT_VAULT, ...balances };
+      state.myVault = normalizeVault({ ...state.myVault, ...balances });
       await updateVaultDoc(state.myVaultKey, state.myVault);
     }
     const payload = {

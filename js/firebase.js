@@ -30,7 +30,8 @@ import {
   TEST_EMAILS,
   ALL_VAULT_KEYS,
   DEFAULT_VAULT, 
-  ALL_MASTER_CARDS 
+  ALL_MASTER_CARDS,
+  normalizeVault
 } from "./config.js";
 import { isKnownMcc, normalizeRule } from "./mcc.js";
 import { state } from "./state.js";
@@ -120,7 +121,7 @@ async function checkAndMigrateSharedVault() {
       const sharedDocRef = doc(db, "milestrack_shared", "vault");
       const sharedSnap = await getDoc(sharedDocRef);
       if (sharedSnap.exists()) {
-        state.myVault = { ...DEFAULT_VAULT, ...sharedSnap.data() };
+        state.myVault = normalizeVault(sharedSnap.data());
         await setDoc(primDocRef, state.myVault);
         window.dispatchEvent(new CustomEvent('vault-updated'));
       }
@@ -133,7 +134,7 @@ async function checkAndMigrateSharedVault() {
 export function subscribeToCloudData() {
   onSnapshot(doc(db, "milestrack_vaults", state.myVaultKey), (docSnap) => {
     if (docSnap.exists()) {
-      state.myVault = { ...DEFAULT_VAULT, ...docSnap.data() };
+      state.myVault = normalizeVault(docSnap.data());
       window.dispatchEvent(new CustomEvent('vault-updated'));
     } else {
       setDoc(doc(db, "milestrack_vaults", state.myVaultKey), DEFAULT_VAULT);
@@ -145,8 +146,8 @@ export function subscribeToCloudData() {
     ALL_VAULT_KEYS.forEach((key) => {
       onSnapshot(doc(db, "milestrack_vaults", key), (docSnap) => {
         state.allVaultsData[key] = docSnap.exists()
-          ? { ...DEFAULT_VAULT, ...docSnap.data() }
-          : { ...DEFAULT_VAULT };
+          ? normalizeVault(docSnap.data())
+          : normalizeVault({});
         window.dispatchEvent(new CustomEvent('all-vaults-updated'));
       }, (err) => console.error(`Vault ${key} listener error:`, err));
     });

@@ -1,4 +1,4 @@
-import { APP_VERSION, ALL_MASTER_CARDS, VAULT_LABELS } from "./config.js";
+import { APP_VERSION, ALL_MASTER_CARDS, VAULT_LABELS, normalizeVault } from "./config.js";
 import { state } from "./state.js";
 import { 
   initFirebase, 
@@ -107,31 +107,51 @@ initFirebase(onAuthSuccess, onAuthLoggedOut);
 document.getElementById('btnLoginGoogle')?.addEventListener('click', loginWithGoogle);
 document.getElementById('btnHeaderLogout')?.addEventListener('click', logoutUser);
 
+const VAULT_FIELDS = {
+  v_uob_uni: 'uob_uni', v_citi_typ: 'citi_typ', v_citi_miles: 'citi_miles', v_dbs_pts: 'dbs_pts',
+  v_yuu_pts: 'yuu_pts', v_ocbc_pts: 'ocbc_pts', v_hsbc_pts: 'hsbc_pts', v_mb_treats: 'mb_treats', v_kf_miles: 'kf_direct'
+};
+
 document.getElementById('btnHeaderVault')?.addEventListener('click', () => {
-  document.getElementById('v_uob_uni').value = state.myVault.uob_uni?.points || 0;
-  document.getElementById('v_citi_typ').value = state.myVault.citi_typ?.points || 0;
-  document.getElementById('v_citi_miles').value = state.myVault.citi_miles?.points || 0;
-  document.getElementById('v_dbs_pts').value = state.myVault.dbs_pts?.points || 0;
-  document.getElementById('v_yuu_pts').value = state.myVault.yuu_pts?.points || 0;
-  document.getElementById('v_ocbc_pts').value = state.myVault.ocbc_pts?.points || 0;
-  document.getElementById('v_hsbc_pts').value = state.myVault.hsbc_pts?.points || 0;
-  document.getElementById('v_mb_treats').value = state.myVault.mb_treats?.points || 0;
-  document.getElementById('v_kf_miles').value = state.myVault.kf_direct?.points || 0;
+  state.myVault = normalizeVault(state.myVault);
+  for (const [id, key] of Object.entries(VAULT_FIELDS)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const pts = state.myVault[key]?.points || 0;
+    el.value = pts ? pts : '';      // blank (placeholder 0) so typing replaces the zero instead of appending
+    el.placeholder = '0';
+    el.min = '0';
+    el.step = 'any';
+  }
   document.getElementById('vaultOverlay')?.classList.add('open');
 });
 
+// Select the whole value on focus so a typed balance replaces what was there
+document.querySelectorAll('#vaultOverlay input[type="number"]').forEach(el =>
+  el.addEventListener('focus', () => el.select()));
+
 document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async () => {
-  state.myVault.uob_uni.points = parseFloat(document.getElementById('v_uob_uni')?.value) || 0;
-  state.myVault.citi_typ.points = parseFloat(document.getElementById('v_citi_typ')?.value) || 0;
-  state.myVault.citi_miles.points = parseFloat(document.getElementById('v_citi_miles')?.value) || 0;
-  state.myVault.dbs_pts.points = parseFloat(document.getElementById('v_dbs_pts')?.value) || 0;
-  state.myVault.yuu_pts.points = parseFloat(document.getElementById('v_yuu_pts')?.value) || 0;
-  state.myVault.ocbc_pts.points = parseFloat(document.getElementById('v_ocbc_pts')?.value) || 0;
-  state.myVault.hsbc_pts.points = parseFloat(document.getElementById('v_hsbc_pts')?.value) || 0;
-  state.myVault.mb_treats.points = parseFloat(document.getElementById('v_mb_treats')?.value) || 0;
-  state.myVault.kf_direct.points = parseFloat(document.getElementById('v_kf_miles')?.value) || 0;
-  await updateVaultDoc(state.myVaultKey, state.myVault);
-  document.getElementById('vaultOverlay')?.classList.remove('open');
+  const btn = document.getElementById('btnSaveVaultBalances');
+  const next = normalizeVault(state.myVault);
+  for (const [id, key] of Object.entries(VAULT_FIELDS)) {
+    const v = parseFloat(document.getElementById(id)?.value);
+    next[key].points = Number.isFinite(v) && v >= 0 ? v : 0;
+  }
+  const prev = state.myVault;
+  state.myVault = next;
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    await updateVaultDoc(state.myVaultKey, next);
+    renderVault();
+    renderCards();
+    document.getElementById('vaultOverlay')?.classList.remove('open');
+  } catch (err) {
+    console.error('Vault save failed', err);
+    state.myVault = prev;           // roll back
+    alert('Could not save balances: ' + (err?.message || err));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save to Vault'; }
+  }
 });
 
 document.getElementById('btnOpenVaultBalances')?.addEventListener('click', () => document.getElementById('btnHeaderVault')?.click());
