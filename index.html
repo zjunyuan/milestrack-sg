@@ -20,7 +20,7 @@
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.27.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.27.2</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.27.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.27.2</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderReconcile" title="Monthly Statement Audit">fact_check</span>
@@ -710,7 +710,7 @@
     // service worker once and reloads (a half-applied update leaves a blank page). (3) If it still fails, shows what went wrong on screen
     // instead of a blank page, with a Copy button. Add ?debug to the address to see the panel and the error log at any time. Your data lives in Firebase and is not touched.
     (function () {
-      var VER = 'v1.27.1', log = [];
+      var VER = 'v1.27.2', log = [];
       function note(m) { log.push(String(m).slice(0, 400)); }
       window.addEventListener('error', function (e) {
         var t = e.target && e.target !== window && (e.target.src || e.target.href);
@@ -748,6 +748,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.27.1"></script>
+  <script type="module" src="js/app.js?v=1.27.2"></script>
 </body>
 </html>
