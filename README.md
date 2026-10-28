@@ -357,3 +357,7 @@ Combines the Kris+ browse button move (v1.24.2), separate Retailer and MCC searc
 ## 📱 Cleaner recommender on phones (v1.26.0)
 
 On touch devices the keyboard closes after you pick a retailer or MCC and the result scrolls into view, and the floating + hides while you type. The split headline is shorter ("Split across 2 cards · 326 miles", with the minimum-spend extra underneath). The month-end posting warning is a one-line tap-to-expand chip, and the long "no hand-written rules" paragraph sits behind "ℹ️ How this was chosen". No Firestore rules changed.
+
+## 📐 Phone layout report (v1.26.1)
+
+Open the app with `?layout` on the end of the address to get a small 📐 button at the top left. After reproducing a layout problem (for example the keyboard covering the result), tap it and paste what it copies. It records screen and visible-area size, whether the keyboard is open, where the result and the + button sit, and the last focus and resize events. Nothing is sent anywhere, and no spend data is included. Use `?layout=0` to turn it off. No Firestore rules changed.

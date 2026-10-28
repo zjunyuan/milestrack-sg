@@ -21,6 +21,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/retailers.js`: ~300 curated SG brand → MCC entries (`conf`, `aliases`, `alt`, `promo`), text normalisation helpers.
 - `js/merchants.js`: typeahead for the recommender input. `js/search-mode.js` holds the Retailer / MCC switch (`state.searchMode`); it only filters suggestions, and the recommender still resolves both kinds of text.
 - `js/settings-ui.js`: the Settings sheet (Cards / Dates / Data tabs, one row per physical card with its own inputs). The input ids are read by `saveSettings()` in `ui.js`, so keep them when changing the layout.
+- `js/layout-report.js`: `?layout` shows a 📐 button that copies a phone layout report (viewport, keyboard, element positions, recent focus events) for pasting back; `?layout=0` turns it off.
 - `js/ui.js`: DOM rendering, modals, audit sheets, cap bars. `js/app.js` is the bootstrapper, event wiring, and SW registration.
 - `sw.js`: service worker. `CORE_ASSETS` and `CARD_ASSETS` list every cached file.
 

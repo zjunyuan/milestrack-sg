@@ -18,6 +18,7 @@ import { initKrisPlusBrowser } from "./krisplus-browse.js";
 import { initPostingUi } from "./posting-ui.js";
 import { initSettingsUi } from "./settings-ui.js";
 import { initSearchMode } from "./search-mode.js";
+import { initLayoutReport } from "./layout-report.js";
 import { 
   renderPresets, 
   renderCards, 
@@ -255,6 +256,7 @@ document.getElementById('btnClearMcc')?.addEventListener('click', () => {
 
 initRetailerSuggest();
 initSearchMode();
+initLayoutReport();
 initHeymax();
 initStatementImport();
 initVaultGuard();
