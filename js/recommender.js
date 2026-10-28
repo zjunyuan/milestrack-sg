@@ -540,15 +540,11 @@ function renderRecommendationCore() {
       });
 
       resultArea.innerHTML = `
-        <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
-          <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>
-          ${notesHtml(mccData.notes)}
-        </div>
-        ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
+        ${contextLineHtml(mccData, effectiveChannel)}
         <div class="cascade-split-card">
           <div class="cascade-header">
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
-            Split across ${allocationSteps.length} cards · ${fmtNum(Math.round(totalCombinedMiles))} miles
+            Use ${allocationSteps.length} cards · ${fmtNum(Math.round(totalCombinedMiles))} miles
           </div>
           ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
           ${stepsHtml}
@@ -556,6 +552,8 @@ function renderRecommendationCore() {
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           ${buttonsHtml}
         </div>
+        ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
+        ${moreHtml(mccData, effectiveChannel, '')}
       `;
 
       resultArea.querySelectorAll('.btn-apply-rec').forEach(btn => {
@@ -586,27 +584,61 @@ function renderRecommendationCore() {
   const runnerUp = scoredCandidates[1];
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
+  const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
+  const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • resets in ${singleCard.daysLeft}d`;
   resultArea.innerHTML = `
-    <div class="mcc-tag-box" style="${state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '')}">
-      <b>${state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '')}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]${notesHtml(mccData.notes, true)}
+    ${contextLineHtml(mccData, effectiveChannel)}
+    <div class="rec-hero">
+      ${cardThumbHtml(singleCard.card, 'card-thumb-rec')}
+      <div class="rec-hero-main">
+        <div class="rec-hero-label">Use this card</div>
+        <div class="rec-hero-name">${singleCard.card.name}</div>
+        <div class="rec-hero-charge">Charge <b>S$${fmtNum(amt, 2)}</b></div>
+      </div>
+      <div class="rec-hero-miles">+${fmtNum(Math.round(calculatedMiles))} mi<small>${effectiveMpd} mpd</small></div>
     </div>
-    ${isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : ''}
-    <div class="rec-winner-title">
-      <span class="rec-winner-name">${cardThumbHtml(singleCard.card, 'card-thumb-rec')}<span>⭐ <b>${singleCard.card.name}</b></span></span>
-      <span style="color:var(--accent); font-weight:700;">${effectiveMpd} mpd (+${fmtNum(Math.round(calculatedMiles))} mi)</span>
-    </div>
-    <div class="rec-winner-meta">
-      ${singleCard.isUncapped ? 'Uncapped capacity' : `Space Left: <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`} • Resets in ${singleCard.daysLeft}d
-    </div>
+    <div class="rec-winner-meta">${spaceLine}</div>
+    <button class="btn-apply-rec" id="btnApplySingleRec">Log $${fmtNum(amt, 2)} with This Card</button>
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
-    ${runnerUp ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : ''}
-    <button class="btn-apply-rec" id="btnApplySingleRec">Log $${fmtNum(amt, 2)} with This Card</button>
+    ${shellHtml}
+    ${moreHtml(mccData, effectiveChannel, runnerUp ? `<div class="rec-alt">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : '')}
   `;
 
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
     applyRecommendation(singleCard.card.id, amt, `${state.isKrisPlusMode ? 'Kris+ ' : (state.isOverseasMode ? '[FCY] ' : '')}${descName}`);
   });
+}
+
+// One line saying what the result is for ("🏪 Sephora · Cosmetic Stores"). The full rules sit under "Details" at the bottom of the result.
+function contextLineHtml(mccData, effectiveChannel) {
+  const pre = state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '');
+  return `<div class="rec-context">${pre}<b>${mccData.name}</b> · ${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}</div>`;
+}
+
+// Rules, promos and alternatives, folded away so the answer stays on screen. Stays open when the rules contain a warning or an exclusion.
+function moreHtml(mccData, effectiveChannel, extraHtml) {
+  const notes = String(mccData.notes || '');
+  const important = /⚠️|❌/.test(notes) && !/No hand-written rules/i.test(notes);
+  const pre = state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '');
+  const border = state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '');
+  return `<details class="rec-more"${important ? ' open' : ''}><summary>Details &amp; alternatives</summary>
+    ${extraHtml || ''}
+    <div class="mcc-tag-box" style="${border}"><b>${pre}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>${notesHtml(mccData.notes)}</div>
+  </details>`;
+}
+
+// Short text for the Options row: only what differs from the defaults, so a closed row still says if something is switched.
+function updateOptionsBadge() {
+  const el = document.getElementById('recOptionsBadge');
+  if (!el) return;
+  const on = id => !!document.getElementById(id)?.checked;
+  const parts = [];
+  if (on('krisPlusSwitch')) parts.push('Kris+');
+  if (document.getElementById('contactlessSwitch') && !on('contactlessSwitch')) parts.push('no tap');
+  if (on('singleSwipeSwitch')) parts.push('one card');
+  el.textContent = parts.length ? parts.join(' · ') : 'defaults';
+  el.classList.toggle('is-set', parts.length > 0);
 }
 
 // Month-end warning for cards that count spend by posting date ("" when it is not near the end of the cycle).
@@ -658,6 +690,7 @@ function decorateTierCallouts() {
 }
 
 export function runRecommendation() {
+  updateOptionsBadge();
   applyRateSchedule();
   renderRecommendation();
   decorateTierCallouts();
