@@ -133,10 +133,15 @@ async function checkAndMigrateSharedVault() {
 
 export function subscribeToCloudData() {
   onSnapshot(doc(db, "milestrack_vaults", state.myVaultKey), (docSnap) => {
+    const fromCache = !!docSnap.metadata?.fromCache;
     if (docSnap.exists()) {
       state.myVault = normalizeVault(docSnap.data());
+      if (!fromCache) state.vaultLoaded = true;
       window.dispatchEvent(new CustomEvent('vault-updated'));
-    } else {
+    } else if (!fromCache) {
+      // Only a read confirmed by the server may say "no vault yet". A cache-only or offline read that finds nothing must never create a
+      // blank vault: that write would later reach the server and wipe real balances.
+      state.vaultLoaded = true;
       setDoc(doc(db, "milestrack_vaults", state.myVaultKey), DEFAULT_VAULT);
     }
   }, (err) => console.error("My vault error:", err));
@@ -223,6 +228,8 @@ export async function deleteTxFromFirestore(firestoreDocId) {
 }
 
 export async function updateVaultDoc(targetVaultKey, vaultPayload) {
+  // Writing the whole vault from a copy that was never confirmed by the server could overwrite real balances with blanks.
+  if (targetVaultKey === state.myVaultKey && !state.vaultLoaded) throw new Error("Your balances have not finished loading from the cloud yet. Wait a moment and try again.");
   await setDoc(doc(db, "milestrack_vaults", targetVaultKey), vaultPayload);
 }
 
