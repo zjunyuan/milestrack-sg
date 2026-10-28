@@ -316,3 +316,7 @@ Banks count your spend toward a cap or minimum by either the **transaction date*
 - **Statements:** when the file has a posting date column (UOB .xls and some CSVs), posting-date cards store it and use it for the cycle. Lines posted in a later cycle than the purchase are flagged; for lines already in your list you can tick "Record the posting date on my entry" (undo restores it). Files with no posting date flag purchases made in the last 2 days of a cycle as possibly counting to the next one.
 
 Posting usually takes 1 to 3 days, longer over weekends and public holidays (the app skips weekends but does not know public holidays). No Firestore rules changed: the optional `postTs` field on a transaction needs no rule.
+
+## 🧮 Cards with no cap room no longer win (v1.23.1)
+
+A capped card whose monthly cap was already used up (for example DBS yuu at S$824 of S$822.86) was still shown as the winner at its base rate (0.14 mpd) when only one other card had room, because the single-card result fell back to the top-ranked card. Cards with no bonus room now rank behind cards that still have room, so the result is the best card that can still earn its bonus. If every card is full, the best of them is still shown at its base rate. No Firestore rules changed.
