@@ -246,6 +246,11 @@ function renderRecommendationCore() {
     candidateList = candidateList.filter(c => c.id !== 'dbs-yuu');
     mccData.notes = `${String(mccData.notes || '').replace(/yuu Outlets earn.*?merchants\)\.\s*/i, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} is not a yuu partner brand (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+, Anywheel). Type just the MCC to see yuu in the general category list.`;
   }
+  else if (namedMerchant && !state.isOverseasMode && detectYuuMerchant(namedMerchant) && !candidateList.some(c => c.id === 'dbs-yuu')) {
+    // A yuu partner whose MCC rules don't list yuu (7-Eleven codes as 5499, Singtel as 4814, CHAGEE as 5814): add it at the partner rate.
+    candidateList = [{ id: 'dbs-yuu', baseRate: 10.0 }, ...candidateList];
+    mccData.notes = `${String(mccData.notes || '')}<br>🟡 <b>DBS yuu partner:</b> ${escapeHtml(namedMerchant)} earns 10 mpd on DBS yuu (needs S$800 spend + 4 yuu merchants in the month).`;
+  }
   
   if (state.isKrisPlusMode && !candidateList.some(c => c.id === 'dbs-wwmc')) {
     candidateList = [{ id: 'dbs-wwmc', baseRate: 4.0 }, ...candidateList];

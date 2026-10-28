@@ -295,3 +295,7 @@ Typing in the recommender now suggests Kris+ merchants as well as the curated re
 ## 🚫 DBS yuu only for yuu partner brands (v1.22.3)
 
 Picking a specific merchant such as Sheng Siong used to rank the DBS yuu card first at 10 mpd, because the category rules (supermarkets, pharmacies, transit, taxis) list yuu for the whole MCC. Now, when you pick a named merchant that is not a yuu partner (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+, Anywheel), yuu is left out and a note explains why. Typing just a category or MCC code still lists yuu as before. No Firestore rules changed.
+
+## 🟡 yuu partners always offered yuu (v1.22.4)
+
+7-Eleven (which codes as MCC 5499), Singtel (4814), CHAGEE (5814) and other yuu partner brands did not list DBS yuu in their category rules, so yuu was never suggested for them. Picking a yuu partner brand now adds DBS yuu at 10 mpd (Singapore spend) with a note about the S$800 + 4 merchants condition. Together with v1.22.3, yuu appears for partner brands and not for other merchants. No Firestore rules changed.
