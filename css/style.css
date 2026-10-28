@@ -643,3 +643,16 @@ input:checked + .slider:before { transform: translateX(22px); }
 .rt-panel[hidden] { display: none; }
 .rt-panel label { font-size: 0.72rem; color: #94a3b8; }
 
+
+/* Household card-rule editor (admin only) */
+.rule-tabs { display: flex; gap: 6px; }
+.rule-tab { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; border-radius: 10px; padding: 6px 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.rule-tab.active { background: rgba(158,202,255,0.15); border-color: rgba(158,202,255,0.45); color: var(--primary); }
+.rule-cards { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; padding-right: 2px; }
+.rule-row { display: flex; align-items: center; gap: 8px; }
+.rule-row input[type="checkbox"] { flex: none; width: 18px; height: 18px; }
+.rule-name { flex: 1; min-width: 0; font-size: 0.78rem !important; color: #e2e8f0 !important; }
+.rule-rate { flex: none; width: 72px; padding: 6px 8px; font-size: 0.8rem; }
+.rule-rate:disabled { opacity: 0.35; }
+.rule-unit { flex: none; font-size: 0.7rem; color: #94a3b8; }
+.rule-hint { font-size: 0.7rem; line-height: 1.4; color: #94a3b8; }

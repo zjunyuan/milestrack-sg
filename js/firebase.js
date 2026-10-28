@@ -32,7 +32,7 @@ import {
   DEFAULT_VAULT, 
   ALL_MASTER_CARDS 
 } from "./config.js";
-import { isKnownMcc } from "./mcc.js";
+import { isKnownMcc, normalizeRule } from "./mcc.js";
 import { state } from "./state.js";
 
 export let auth, db, googleProvider;
@@ -184,6 +184,17 @@ export function subscribeToCloudData() {
     window.dispatchEvent(new CustomEvent('merchants-updated'));
   }, (err) => console.error("Merchants listener error:", err));
 
+  // Household card rules per MCC category (everyone reads; only the admin writes)
+  onSnapshot(collection(db, "milestrack_mccRules"), (snap) => {
+    const next = {};
+    snap.forEach((d) => {
+      const rule = normalizeRule({ ...d.data(), mcc: d.id });
+      if (rule) next[d.id] = rule;
+    });
+    state.mccRules = next;
+    window.dispatchEvent(new CustomEvent('rules-updated'));
+  }, (err) => console.error("MCC rules listener error:", err));
+
   const txQuery = query(
     collection(db, "milestrack_txns"), 
     where("owner", "==", state.myVaultKey),
@@ -224,4 +235,12 @@ export async function saveMerchantOverride(slug, data) {
 
 export async function deleteMerchantOverride(slug) {
   await deleteDoc(doc(db, "milestrack_merchants", slug));
+}
+
+export async function saveMccRule(code, data) {
+  await setDoc(doc(db, "milestrack_mccRules", code), data);
+}
+
+export async function deleteMccRule(code) {
+  await deleteDoc(doc(db, "milestrack_mccRules", code));
 }

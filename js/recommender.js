@@ -9,8 +9,8 @@ import {
   slugify,
   escapeHtml
 } from "./retailers.js";
-import { saveMerchantOverride, deleteMerchantOverride } from "./firebase.js";
-import { getMccEntry, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
+import { saveMerchantOverride, deleteMerchantOverride, saveMccRule, deleteMccRule } from "./firebase.js";
+import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
   if (card.engine === 'yuu-10') return Math.round(amount * rate);
@@ -97,7 +97,7 @@ export function resolveMccEntry(input) {
 
   for (const [code, item] of Object.entries(MCC_DATABASE)) {
     if (item.name.toLowerCase().includes(clean) || item.notes.toLowerCase().includes(clean)) {
-      return { code, ...item };
+      return getMccEntry(code);   // applies an active household rule, like the other lookups
     }
   }
 
@@ -527,6 +527,7 @@ function renderRecommendation() {
 export function runRecommendation() {
   renderRecommendation();
   decorateRetailerTools();
+  decorateRuleTools();
 }
 
 /* ==========================================================================
@@ -680,6 +681,180 @@ function decorateRetailerTools() {
       saveMerchantFix({ name, mcc, aliases: [input] });   // remember what was typed so it matches next time
     }
   });
+}
+
+/* ==========================================================================
+   HOUSEHOLD CARD RULES (admin only): which cards earn a bonus on a category
+   ========================================================================== */
+
+// Draft of the open editor. Kept outside the DOM so a re-render (typing an amount, a sync) doesn't lose edits.
+// { code, tab: 'local'|'overseas', local: {cardId: rate}, overseas: {cardId: rate}, note, expires }
+let ruleDraft = null;
+
+function defaultRate(card) {
+  return Number(card.bonusMpd) || Number(card.baseMpd) || 1;
+}
+
+function newRuleDraft(code) {
+  const rule = state.mccRules[code];
+  const toMap = (list, key) => Object.fromEntries((list || []).map(c => [c.id, c[key]]));
+  if (rule) {
+    return { code, tab: 'local', local: toMap(rule.local, 'rate'), overseas: toMap(rule.overseas, 'rate'), note: rule.note, expires: rule.expires };
+  }
+  // No rule yet: start from the built-in entry so nothing is lost by accident.
+  const base = getBuiltinMccEntry(code) || {};
+  return { code, tab: 'local', local: toMap(base.candidatesLocal, 'baseRate'), overseas: toMap(base.candidatesOverseas, 'baseRate'), note: '', expires: '' };
+}
+
+function ruleEditorHtml() {
+  const d = ruleDraft;
+  const rows = ALL_MASTER_CARDS.map(card => {
+    const on = Object.prototype.hasOwnProperty.call(d[d.tab], card.id);
+    const rate = on ? d[d.tab][card.id] : defaultRate(card);
+    return `<div class="rule-row">
+      <input type="checkbox" id="rc_${card.id}" data-card="${card.id}" ${on ? 'checked' : ''}>
+      <label for="rc_${card.id}" class="rule-name">${escapeHtml(card.name)}</label>
+      <input type="number" class="form-control rule-rate" data-rate="${card.id}" min="0.1" max="10" step="0.1" value="${rate}" ${on ? '' : 'disabled'} aria-label="Miles per dollar for ${escapeHtml(card.name)}">
+      <span class="rule-unit">mpd</span>
+    </div>`;
+  }).join('');
+  return `
+    <label>Cards that earn a bonus on <b>MCC ${d.code} · ${escapeHtml(mccName(d.code))}</b>. This <b>replaces</b> the built-in rules for the whole household.</label>
+    <div class="rule-tabs">
+      <button type="button" class="rule-tab ${d.tab === 'local' ? 'active' : ''}" data-tab="local">🇸🇬 Local</button>
+      <button type="button" class="rule-tab ${d.tab === 'overseas' ? 'active' : ''}" data-tab="overseas">✈️ Overseas</button>
+    </div>
+    <div class="rule-cards">${rows}</div>
+    <label for="ruleNote">Note (optional, shown on the result)</label>
+    <input type="text" id="ruleNote" class="form-control" maxlength="200" placeholder="e.g. UOB T&C Oct 2026, excludes in-app" value="${escapeHtml(d.note)}">
+    <label for="ruleExpires">Valid until (optional; the built-in rules return after this date)</label>
+    <input type="date" id="ruleExpires" class="form-control" value="${escapeHtml(d.expires)}">
+    <div class="rule-hint">Still built into the app and not editable here: Citi Rewards in-person only counts on department stores, clothing and shoes; Maybank World overseas spend tiers; the OCBC 6 mpd S$1,000 cap.</div>
+    <div class="rt-actions">
+      <button type="button" class="btn-apply-rec" id="btnRuleSave">Save for household</button>
+      <button type="button" class="rt-link" id="btnRuleCancel">Cancel</button>
+    </div>`;
+}
+
+async function saveRuleFromDraft() {
+  const d = ruleDraft;
+  const payloadLists = {};
+  for (const tab of ['local', 'overseas']) {
+    payloadLists[tab] = [];
+    for (const [id, rate] of Object.entries(d[tab])) {
+      const card = ALL_MASTER_CARDS.find(c => c.id === id);
+      const n = Number(rate);
+      if (!card || !(n > 0 && n <= 10)) {
+        return alert(`Enter a rate between 0.1 and 10 for ${card ? card.name : id} (${tab === 'local' ? 'Local' : 'Overseas'}).`);
+      }
+      payloadLists[tab].push({ id, rate: Math.round(n * 100) / 100 });
+    }
+  }
+  if (d.expires && d.expires < new Date().toLocaleDateString('en-CA')) {
+    return alert('That "valid until" date has already passed. Pick a future date or clear it.');
+  }
+  if (!payloadLists.local.length && !payloadLists.overseas.length &&
+      !confirm('No card is ticked, so this category will show as earning no bonus. Save it anyway?')) return;
+
+  const code = d.code;
+  const payload = { mcc: code, local: payloadLists.local, overseas: payloadLists.overseas, note: (d.note || '').trim().slice(0, 200), expires: d.expires || '', updatedBy: state.myVaultKey, updatedAt: Date.now() };
+  const previous = state.mccRules;
+  state.mccRules = { ...previous, [code]: normalizeRule(payload) };   // optimistic; the listener confirms
+  ruleDraft = null;
+  runRecommendation();
+  try {
+    await saveMccRule(code, payload);
+  } catch (e) {
+    console.error('Saving card rule failed:', e);
+    state.mccRules = previous;
+    runRecommendation();
+    alert('Could not save this rule: ' + e.message);
+  }
+}
+
+async function removeRule(code) {
+  if (!confirm(`Remove the household rule for MCC ${code} and go back to the built-in rules?`)) return;
+  const previous = state.mccRules;
+  const next = { ...previous };
+  delete next[code];
+  state.mccRules = next;
+  ruleDraft = null;
+  runRecommendation();
+  try {
+    await deleteMccRule(code);
+  } catch (e) {
+    console.error('Removing card rule failed:', e);
+    state.mccRules = previous;
+    runRecommendation();
+    alert('Could not remove this rule: ' + e.message);
+  }
+}
+
+function decorateRuleTools() {
+  const resultArea = document.getElementById('recResultArea');
+  if (!resultArea) return;
+  resultArea.querySelector('#ruleTools')?.remove();
+  if (state.userRole !== 'PRIMARY') return;   // client-side convenience only; Firestore rules enforce it
+
+  const input = (document.getElementById('mccInput')?.value || '').trim();
+  const resolved = input ? resolveMccEntry(input) : null;
+  const code = resolved && resolved.code;
+  if (!code || !/^\d{4}$/.test(code)) return;   // skips the OCBC promo and the Kris+ / overseas catch-alls
+  if (ruleDraft && ruleDraft.code !== code) ruleDraft = null;
+
+  const rule = state.mccRules[code];
+  const parts = [];
+  if (rule && !ruleIsActive(rule)) {
+    parts.push(`<div class="rt-line rt-warn">⌛ Your household rule for MCC ${code} expired, so the built-in rules apply. Edit it to renew, or remove it.</div>`);
+  }
+  parts.push(`<div class="rt-actions">
+    <button type="button" class="rt-link" id="btnRuleEdit">${rule ? '⚙ Edit household card rules' : '＋ Set household card rules'}</button>
+    ${rule ? '<button type="button" class="rt-link rt-danger" id="btnRuleReset">↺ Remove rule (use built-in)</button>' : ''}
+  </div>`);
+
+  const box = document.createElement('div');
+  box.id = 'ruleTools';
+  box.className = 'retailer-tools';
+  box.innerHTML = parts.join('') + `<div class="rt-panel rule-editor" id="ruleEditor" ${ruleDraft ? '' : 'hidden'}>${ruleDraft ? ruleEditorHtml() : ''}</div>`;
+  resultArea.appendChild(box);
+
+  const panel = box.querySelector('#ruleEditor');
+  const rerenderPanel = () => { panel.innerHTML = ruleEditorHtml(); wirePanel(); };
+
+  function wirePanel() {
+    panel.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => {
+      ruleDraft.tab = btn.dataset.tab;
+      rerenderPanel();
+    }));
+    panel.querySelectorAll('[data-card]').forEach(cb => cb.addEventListener('change', () => {
+      const id = cb.dataset.card;
+      const rateEl = panel.querySelector(`[data-rate="${id}"]`);
+      if (cb.checked) {
+        ruleDraft[ruleDraft.tab][id] = parseFloat(rateEl.value) || defaultRate(ALL_MASTER_CARDS.find(c => c.id === id));
+        rateEl.disabled = false;
+        rateEl.focus();
+      } else {
+        delete ruleDraft[ruleDraft.tab][id];
+        rateEl.disabled = true;
+      }
+    }));
+    panel.querySelectorAll('[data-rate]').forEach(el => el.addEventListener('input', () => {
+      ruleDraft[ruleDraft.tab][el.dataset.rate] = el.value === '' ? NaN : parseFloat(el.value);
+    }));
+    panel.querySelector('#ruleNote')?.addEventListener('input', e => { ruleDraft.note = e.target.value; });
+    panel.querySelector('#ruleExpires')?.addEventListener('input', e => { ruleDraft.expires = e.target.value; });
+    panel.querySelector('#btnRuleSave')?.addEventListener('click', saveRuleFromDraft);
+    panel.querySelector('#btnRuleCancel')?.addEventListener('click', () => { ruleDraft = null; decorateRuleTools(); });
+  }
+
+  if (ruleDraft) wirePanel();
+  box.querySelector('#btnRuleEdit')?.addEventListener('click', () => {
+    if (ruleDraft) { ruleDraft = null; decorateRuleTools(); return; }
+    ruleDraft = newRuleDraft(code);
+    decorateRuleTools();
+    document.getElementById('ruleEditor')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  box.querySelector('#btnRuleReset')?.addEventListener('click', () => removeRule(code));
 }
 
 export function applyRecommendation(cardId, amt, desc) {

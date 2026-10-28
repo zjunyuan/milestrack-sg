@@ -11,6 +11,7 @@ export const state = {
   isSingleSwipeMode: false,
   merchantOverrides: {},   // household brand->MCC corrections (Firestore milestrack_merchants)
   selectedRetailer: null,  // { name, mcc } picked from the typeahead or an alt-category chip
+  mccRules: {},            // household card rules per MCC, set by the admin (Firestore milestrack_mccRules)
   txSearchQuery: "",
   txCardFilter: "ALL",
   enabledCardIds: ALL_MASTER_CARDS.map(c => c.id),

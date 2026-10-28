@@ -105,3 +105,15 @@ Type a store name instead of an MCC. The recommender suggests matching retailers
 - **Two kinds of category:** categories in `MCC_DATABASE` (`js/config.js`) have hand-written card rules and are unchanged. Every other code gets a generated result: your best everyday-spend cards (uncapped cards earning 1+ mpd) at their base rate, with a note that no bonus rule is set up; or, for categories banks commonly exclude (cash, gambling, tax, rent, government), a "commonly excluded, check your T&Cs" result.
 - **Adding bonus rules for a new category:** add an entry to `MCC_DATABASE` with its `candidatesLocal` / `candidatesOverseas` cards. It then overrides the generated fallback automatically.
 
+
+## 🏠 Household Card Rules (v1.12.0)
+
+The household admin (primary role) can set which cards earn a bonus on any category from inside the app, without editing code.
+
+- **Where:** look up a category or retailer, then tap **＋ Set household card rules** (or **⚙ Edit household card rules**) under the result. Only the primary role sees these buttons.
+- **What you set:** tick the cards that earn a bonus and give each a rate in miles per dollar, separately for **Local** and **Overseas**. Add an optional note and an optional **valid until** date.
+- **Replaces, not adds:** a household rule replaces the built-in entry for that category (both lists) while it is active. The editor starts from the built-in rules, so you only change what differs. After the valid-until date passes, the built-in rules apply again and the admin sees an "expired" prompt to renew or remove it.
+- **Everyone benefits:** rules are stored in Firestore (`milestrack_mccRules`, one document per MCC) and every member's recommender uses them. Results show a **🏠 Household rule** line with the date set and the expiry.
+- **Remove:** **↺ Remove rule (use built-in)** deletes the document.
+- **Still in code:** the Citi Rewards in-person category whitelist, Maybank World overseas spend tiers, and the OCBC 6 mpd S$1,000 cap.
+- **Firestore:** publish the updated `docs/firestore.rules`. Everyone signed in as a household member can read `milestrack_mccRules`; only the primary role can write it.

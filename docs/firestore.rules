@@ -1,4 +1,4 @@
-// MilesTrack SG - Firestore security rules (v1.10.0)
+// MilesTrack SG - Firestore security rules (v1.12.0)
 // Paste into: Firebase console > Firestore Database > Rules > Publish.
 // Keep the email lists in sync with js/config.js.
 rules_version = '2';
@@ -57,6 +57,22 @@ service cloud.firestore {
         && (!('aliases' in request.resource.data)
             || (request.resource.data.aliases is list && request.resource.data.aliases.size() <= 10));
       allow delete: if isMember();
+    }
+
+    // Household card rules per MCC category (v1.12.0).
+    // Every member reads them; only the household admin (primary) writes.
+    match /milestrack_mccRules/{code} {
+      allow read: if isMember();
+      allow create, update: if isPrimary()
+        && code.matches('^[0-9]{4}$')
+        && request.resource.data.keys().hasOnly(['mcc', 'local', 'overseas', 'note', 'expires', 'updatedBy', 'updatedAt'])
+        && request.resource.data.mcc == code
+        && request.resource.data.local is list && request.resource.data.local.size() <= 20
+        && request.resource.data.overseas is list && request.resource.data.overseas.size() <= 20
+        && request.resource.data.note is string && request.resource.data.note.size() <= 200
+        && request.resource.data.expires is string
+        && (request.resource.data.expires.size() == 0 || request.resource.data.expires.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
+      allow delete: if isPrimary();
     }
   }
 }

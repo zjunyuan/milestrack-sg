@@ -2,7 +2,8 @@
 // the full reference list (MCC_NAMES), and the generated fallbacks for everything else.
 import { MCC_DATABASE, ALL_MASTER_CARDS } from "./config.js";
 import { MCC_NAMES, COMMONLY_EXCLUDED_MCCS } from "./mcc-names.js";
-import { normalizeText } from "./retailers.js";
+import { normalizeText, escapeHtml } from "./retailers.js";
+import { state } from "./state.js";
 
 export function shortCategory(name = "") {
   return name.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
@@ -32,9 +33,71 @@ const GENERAL_OVERSEAS_CANDIDATES = [
   { id: "uob-prvi", baseRate: 2.4 }
 ];
 
-// The recommender's view of a category: curated rules if we have them, otherwise a generated
-// "base rate" or "commonly excluded" entry. Returns null for unknown codes.
+// ---- Household rules (set by the admin, stored in Firestore milestrack_mccRules) -------------------
+// A rule REPLACES the built-in entry for its category (both local and overseas lists) until it expires.
+
+const todayStr = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD in the device's time zone
+
+export function ruleIsActive(rule, today = todayStr()) {
+  return !!rule && (!rule.expires || today <= rule.expires);
+}
+
+function fmtDate(ymd) {
+  const [y, m, d] = String(ymd).split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// Cleans a raw Firestore doc (or an optimistic payload). Returns null if it isn't usable.
+export function normalizeRule(data) {
+  if (!data || typeof data.mcc !== "string" || !isKnownMcc(data.mcc)) return null;
+  const clean = (list) => {
+    const seen = new Set();
+    const out = [];
+    for (const c of Array.isArray(list) ? list : []) {
+      if (!c || seen.has(c.id) || !ALL_MASTER_CARDS.some(m => m.id === c.id)) continue;
+      const rate = Math.round(Number(c.rate) * 100) / 100;
+      if (!(rate > 0 && rate <= 10)) continue;
+      seen.add(c.id);
+      out.push({ id: c.id, rate });
+    }
+    return out;
+  };
+  return {
+    mcc: data.mcc,
+    local: clean(data.local),
+    overseas: clean(data.overseas),
+    note: typeof data.note === "string" ? data.note.slice(0, 200) : "",
+    expires: typeof data.expires === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.expires) ? data.expires : "",
+    updatedBy: typeof data.updatedBy === "string" ? data.updatedBy : "",
+    updatedAt: Number(data.updatedAt) || 0
+  };
+}
+
+function applyRule(base, rule) {
+  const when = rule.updatedAt ? ` · set ${new Date(rule.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "";
+  const until = rule.expires ? ` · valid until ${fmtDate(rule.expires)}` : "";
+  const empty = !rule.local.length && !rule.overseas.length ? "<br>❌ Your household marked this category as earning no bonus." : "";
+  return {
+    ...base,
+    generated: undefined,
+    notes: `🏠 <b>Household rule</b>${when}${until}${rule.note ? "<br>" + escapeHtml(rule.note) : ""}${empty}`,
+    candidatesLocal: rule.local.map(c => ({ id: c.id, baseRate: c.rate })),
+    candidatesOverseas: rule.overseas.map(c => ({ id: c.id, baseRate: c.rate })),
+    householdRule: rule
+  };
+}
+
+// The recommender's view of a category: an active household rule, else the built-in entry.
 export function getMccEntry(code) {
+  const base = getBuiltinMccEntry(code);
+  if (!base) return null;
+  const rule = state.mccRules && state.mccRules[code];
+  return ruleIsActive(rule) ? applyRule(base, rule) : base;
+}
+
+// Built-in view of a category: curated rules if we have them, otherwise a generated
+// "base rate" or "commonly excluded" entry. Returns null for unknown codes.
+export function getBuiltinMccEntry(code) {
   if (MCC_DATABASE[code]) return { code, ...MCC_DATABASE[code] };
   const name = MCC_NAMES[code];
   if (!name) return null;
@@ -91,8 +154,9 @@ export function findMccByName(query) {
 // <option> list for pickers: your curated categories first, then the full reference list.
 export function mccOptionsHtml(selected, escape = s => s) {
   const opt = code => `<option value="${code}" ${code === selected ? "selected" : ""}>${code} · ${escape(mccName(code))}</option>`;
-  const curated = Object.keys(MCC_DATABASE).sort();
-  const others = Object.keys(MCC_NAMES).filter(c => !MCC_DATABASE[c]).sort();
+  const ruled = new Set([...Object.keys(MCC_DATABASE), ...Object.keys(state.mccRules || {})]);
+  const curated = [...ruled].filter(isKnownMcc).sort();
+  const others = Object.keys(MCC_NAMES).filter(c => !ruled.has(c)).sort();
   return `<optgroup label="Your card-rule categories">${curated.map(opt).join("")}</optgroup>` +
          `<optgroup label="Other categories (base rate)">${others.map(opt).join("")}</optgroup>`;
 }

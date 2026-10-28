@@ -85,6 +85,7 @@ window.addEventListener('vault-updated', () => {
 window.addEventListener('all-vaults-updated', renderAllVaultsTally);
 
 window.addEventListener('merchants-updated', runRecommendation);
+window.addEventListener('rules-updated', runRecommendation);
 
 window.addEventListener('settings-updated', () => {
   renderCards();
