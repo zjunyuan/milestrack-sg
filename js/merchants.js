@@ -52,7 +52,7 @@ export function initRetailerSuggest() {
   function dropKeyboard() {
     if (!window.matchMedia || !matchMedia("(pointer: coarse)").matches) return;
     input.blur();
-    setTimeout(() => document.getElementById("recResultArea")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 150);
+    setTimeout(() => document.querySelector(".rec-inputs")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
   }
 
   function hide() { box.hidden = true; active = -1; }

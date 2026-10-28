@@ -837,3 +837,31 @@ input:checked + .slider:before { transform: translateX(22px); }
 .rec-notes > summary::-webkit-details-marker { display:none; }
 .rec-notes > div { margin-top:4px; color:#cbd5e1; line-height:1.4; }
 @media (pointer: coarse) { body.kb-open .fab { display:none !important; } }
+
+/* Answer-first result and folded options (v1.27.0) */
+.rec-inputs { scroll-margin-top: 8px; }
+.rec-context { font-size:0.8rem; color:#cbd5e1; }
+.rec-hero { display:flex; align-items:center; gap:12px; background:rgba(158,202,255,0.10); border:1px solid rgba(158,202,255,0.4); border-radius:14px; padding:12px; }
+.rec-hero-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.rec-hero-label { font-size:0.68rem; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--primary); }
+.rec-hero-name { font-size:1.02rem; font-weight:700; line-height:1.2; }
+.rec-hero-charge { font-size:0.86rem; color:#e2e8f0; }
+.rec-hero-miles { text-align:right; font-size:1.25rem; font-weight:800; color:var(--accent); line-height:1.1; white-space:nowrap; }
+.rec-hero-miles small { display:block; font-size:0.72rem; font-weight:600; color:#94a3b8; }
+@media (max-width: 480px) { .rec-hero { gap:10px; padding:10px; } .rec-hero .card-thumb.card-thumb-rec { width:78px; height:50px; } }
+.rec-more { font-size:0.8rem; }
+.rec-more > summary { cursor:pointer; color:#94a3b8; list-style:none; padding:4px 0; }
+.rec-more > summary::-webkit-details-marker { display:none; }
+.rec-more > summary::after { content:" ›"; }
+.rec-more[open] > summary::after { content:" ˅"; }
+.rec-more .mcc-tag-box { margin-top:6px; }
+.rec-alt { font-size:0.78rem; color:#94a3b8; margin-top:6px; }
+.rec-options > summary { display:flex; align-items:center; gap:8px; cursor:pointer; list-style:none; background:rgba(0,0,0,0.22); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05); font-size:0.82rem; color:#cbd5e1; }
+.rec-options > summary::-webkit-details-marker { display:none; }
+.rec-options > summary .material-symbols-outlined { font-size:18px; color:var(--primary); }
+.rec-options > summary::after { content:"›"; margin-left:auto; opacity:.6; }
+.rec-options[open] > summary::after { content:"˅"; }
+.rec-options-badge { font-size:0.72rem; color:#94a3b8; }
+.rec-options-badge.is-set { color:var(--gold, #fbbf24); font-weight:600; }
+.rec-options[open] > summary { margin-bottom:8px; }
+.rec-options > .rec-pref-row { margin-bottom:8px; }

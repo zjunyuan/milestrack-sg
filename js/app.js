@@ -390,3 +390,9 @@ function showUpdateToast(worker) {
   document.addEventListener("focusin", e => { if (typing(e.target)) document.body.classList.add("kb-open"); });
   document.addEventListener("focusout", () => setTimeout(() => { if (!typing(document.activeElement)) document.body.classList.remove("kb-open"); }, 50));
 })();
+
+// Options (Kris+, contactless, single card) start folded on phones and open on wider screens (v1.27.0).
+(function () {
+  const d = document.getElementById("recOptions");
+  if (d) d.open = !(window.matchMedia && matchMedia("(max-width: 700px)").matches);
+})();
