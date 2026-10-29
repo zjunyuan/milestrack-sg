@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.43.0";
+export const APP_VERSION = "v1.43.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -536,6 +536,7 @@ export const ALL_MASTER_CARDS = [
     shortName: 'Trust Freedom',
     name: 'Trust Freedom (Miles mode)', 
     bank: 'Trust', 
+    image: 'assets/cards/trust-freedom.png',
     vaultKey: 'trust_miles', 
     monthlyCap: 999999, 
     minSpend: 0, 
