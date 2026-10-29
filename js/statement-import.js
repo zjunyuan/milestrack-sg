@@ -523,7 +523,13 @@ function prepareCore(rows, fileName = "") {
 async function readParts(file) {
   if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
     const { readPdfParts } = await import("./pdf-statement.js");
-    const parts = await readPdfParts(file, () => prompt(`This PDF (${file.name}) is password protected. Enter the password (it is only used on this device):`));
+    const note = $("stmtFileNote");
+    const parts = await readPdfParts(file, () => prompt(`This PDF (${file.name}) is password protected. Enter the password (it is only used on this device):`),
+      (msg) => { note.style.display = "block"; note.className = "hm-note"; note.textContent = msg; });
+    const bad = parts.length === 1 && parts[0].verify && !parts[0].verify.ok ? parts[0].verify : null;
+    if (bad) return [{ label: file.name, error: bad.missing
+      ? "This PDF has no text, so I read it as a picture, but couldn't find the statement's own balances to check the lines against, so nothing can be imported safely. Please tell me and I'll look at it."
+      : `This PDF has no text, so I read it as a picture, and the lines don't add up to the statement (the lines total S$${bad.sum.toFixed(2)}, previous balance S$${bad.prev.toFixed(2)}, statement total S$${bad.total.toFixed(2)}: S$${Math.abs(bad.diff).toFixed(2)} out). A misread amount could overwrite a correct entry, so nothing was imported. Try again, or add these by hand.` }];
     return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows }]
       : parts.map(p => ({ label: `${file.name} · ${p.name || "card"}${p.last4 ? " ····" + p.last4 : ""}`, rows: p.rows }));
   }
