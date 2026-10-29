@@ -209,13 +209,37 @@ export function verifyBalance(lines, rows) {
   return { ok: Math.abs(diff) < 0.015, prev, total, sum: Math.round(sum * 100) / 100, diff };
 }
 
+// A text PDF reads exactly, so a card section that does not add up (previous balance + lines = the section total) means a layout I misread.
+function verifySection(sectionLines, rows, total) {
+  let prev = null;
+  for (const l of sectionLines) { const i = l.search(/PREVIOUS\s+BALANCE/i); if (i >= 0) { const m = MONEY_CR.exec(l.slice(i).replace(/PREVIOUS\s+BALANCE/i, "")); if (m) { prev = signed(m); break; } } }
+  const sum = rows.filter(r => /^\d{2} \w{3} \d{4}$/.test(r[0])).reduce((a, r) => a + (parseFloat(r[3]) || 0), 0);
+  if (prev === null) return { ok: false, missing: true, text: true, sum };
+  const diff = Math.round((prev + sum - total) * 100) / 100;
+  return { ok: Math.abs(diff) < 0.015, text: true, prev, total, sum: Math.round(sum * 100) / 100, diff };
+}
 const CARD_LINE = /^\s*[\dXx•*]{4}[- ][\dXx•*]{4}[- ][\dXx•*]{4}[- ](\d{4})\s+[A-Z]/;
 // Splits statement text into per-card sections: a header line, then "XXXX-XXXX-XXXX-1234 NAME", then the lines, ending at "TOTAL BALANCE FOR".
 // A section continued on a later page ("... (continued)") is joined to the first one. Returns null unless two or more cards are found.
+// DBS consolidated statements: "DBS YUU VISA CARD NO.: 4119 1100 0419 0200", the lines, then "TOTAL: 823.31" (a late charge can follow SUB-TOTAL).
+// Only the last four digits of the number are ever kept.
+const DBS_CARD = /^\s*(DBS\s+[A-Z][A-Z' &.-]*?)\s+CARD\s+NO\.?:?\s*(?:\d{4}\s?){3}(\d{4})\b/i;
+const MONEY_CR = /(-?[\d,]+\.\d{2})\s*(CR|DR)?\b/i;
+const signed = (m) => parseFloat(m[1].replace(/,/g, "")) * (/CR/i.test(m[2] || "") ? -1 : 1);
 export function splitCardSections(lines) {
-  const order = [], by = {}, names = {};
-  let cur = null;
+  const order = [], by = {}, names = {}, totals = {};
+  let cur = null, curKey = null;
   for (let i = 0; i < lines.length; i++) {
+    const d = DBS_CARD.exec(lines[i]);
+    if (d) {
+      const last4 = d[2];
+      names[last4] = d[1].replace(/\s+/g, " ").trim();
+      if (!by[last4]) { by[last4] = []; order.push(last4); }
+      cur = by[last4]; curKey = last4;
+      continue;
+    }
+    if (cur && /^\s*TOTAL:/i.test(lines[i])) { const m = MONEY_CR.exec(lines[i]); if (m) totals[curKey] = signed(m); cur = null; continue; }
+    if (/^\s*GRAND TOTAL\b/i.test(lines[i])) { cur = null; continue; }
     const m = CARD_LINE.exec(lines[i]);
     if (m) {
       const last4 = m[1];
@@ -236,7 +260,11 @@ export function splitCardSections(lines) {
   const out = [];
   for (const last4 of order) {
     const rows = pdfTextToRows(by[last4], { dateText: full, name: names[last4] || "", last4 });
-    if (rows.length > 1) out.push({ name: names[last4] || "", last4, rows });
+    if (rows.some(r => /^\d{2} \w{3} \d{4}$/.test(String(r[0])))) {      // a card with no lines this month (only a balance) is left out
+      const part = { name: names[last4] || "", last4, rows };
+      if (last4 in totals) part.verify = verifySection(by[last4], rows, totals[last4]);   // DBS prints each card's own total
+      out.push(part);
+    }
   }
   return out.length ? out : null;
 }
@@ -250,7 +278,9 @@ export function pdfTextToRows(lines, ctx = {}) {
   const whole = ctx.dateText || text;
   // statement date, e.g. "25/10/2026": year for lines that print only "23SEP"
   const sd = /\b(\d{2})\/(\d{2})\/(\d{4})\b/.exec(whole);
-  const sdw = /Statement Date\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole);    // UOB: "Statement Date 23 JAN 2026"
+  const sdw = /Statement Date\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole)    // UOB: "Statement Date 23 JAN 2026"
+    || /STATEMENT PRINTED ON\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole)      // DBS: "STATEMENT PRINTED ON 30 Jan 2026"
+    || /STATEMENT DATE[\s\S]{0,120}?(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/.exec(whole);   // DBS: the date sits under the heading
   const per = /(?:Statement\s+period|Statement\s+From)[\s\S]{0,60}?\bto\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole);   // HSBC: "From 02 DEC 2025 to 02 JAN 2026"
   const stYear = per ? +per[3] : sdw ? +sdw[3] : sd ? +sd[3] : new Date().getFullYear(), stMonth = per ? (MONTH_NO[per[2].toUpperCase()] || 12) : sdw ? (MONTH_NO[sdw[2].toUpperCase()] || 12) : sd ? +sd[2] : 12;
   const postFirst = /^\s*Post\s+Tran/im.test(whole);                                       // UOB and HSBC list the Post date before the Trans date
