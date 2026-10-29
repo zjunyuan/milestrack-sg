@@ -100,13 +100,39 @@ async function ocrPdfLines(pdf, progress, psm = "4", attempt = 1) {
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, canvas, viewport }).promise;
         const { data } = await worker.recognize(canvas);
-        pages[p - 1] = String(data.text || "").split("\n").map(l => l.replace(/\s+$/, ""));
+        const fromBoxes = psm === "11" ? linesFromWords(wordsOf(data)) : [];     // sparse reading: use the boxes, the text splits side-by-side words
+        pages[p - 1] = fromBoxes.length ? fromBoxes : String(data.text || "").split("\n").map(l => l.replace(/\s+$/, ""));
         canvas.width = canvas.height = 0;
         done++; tell();
       }
     }));
   } finally { await Promise.all(workers.map(w => w.terminate())); }
   return pages.flat();
+}
+
+// Rebuilds text lines from word boxes: words whose vertical centres match are one line, left to right. Sparse recognition (psm 11) can put a
+// description and its amount on separate lines of text although they sit side by side on the page; the boxes put them back together.
+export function linesFromWords(words) {
+  const ws = words.filter(w => String(w.text).trim() && Number.isFinite(w.y0));
+  if (!ws.length) return [];
+  const hs = ws.map(w => w.y1 - w.y0).sort((a, b) => a - b);
+  const tol = Math.max(4, hs[hs.length >> 1] * 0.6);
+  ws.sort((a, b) => (a.y0 + a.y1) - (b.y0 + b.y1));
+  const rows = [];
+  for (const w of ws) {
+    const yc = (w.y0 + w.y1) / 2, r = rows[rows.length - 1];
+    if (r && Math.abs(yc - r.yc) <= tol) { r.w.push(w); r.yc = (r.yc * (r.w.length - 1) + yc) / r.w.length; }
+    else rows.push({ yc, w: [w] });
+  }
+  return rows.map(r => r.w.sort((a, b) => a.x0 - b.x0).map(w => String(w.text).trim()).join(" "));
+}
+function wordsOf(data) {
+  if (typeof data.tsv === "string" && data.tsv) {
+    return data.tsv.split("\n").slice(1).map(l => l.split("\t")).filter(c => c[0] === "5" && c.length >= 12)
+      .map(c => ({ x0: +c[6], y0: +c[7], x1: +c[6] + +c[8], y1: +c[7] + +c[9], text: c.slice(11).join("\t") }));
+  }
+  if (Array.isArray(data.words)) return data.words.map(w => ({ x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1, text: w.text }));
+  return [];
 }
 
 const NO_LINES = "No transaction lines found in this PDF. It may be a scanned image, or a layout I don't know yet.";
