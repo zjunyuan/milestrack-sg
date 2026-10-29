@@ -43,7 +43,7 @@ const GRACE_DAYS = 7;   // entries this close to the end of a statement may simp
 const blankFile = () => ({ stale: [], recent: [], remove: {}, chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, post: {}, fileName: "", lo: 0, hi: 0 });
 let S = blankFile();                       // the file being worked on (the only one in single mode, the open one in batch mode)
 const B = { files: [], open: -1 };         // batch mode: several files in one go
-const isBatch = () => B.files.length > 1;
+const isBatch = () => B.files.length > 0;   // every upload is a list of cards, even when it holds just one
 function withFile(F, fn) { const prev = S; S = F; try { return fn(); } finally { S = prev; } }
 
 const $ = id => document.getElementById(id);
@@ -83,8 +83,8 @@ function colSelect(id, label, value, allowNone = true) {
   return `<label class="st-col"><span>${label}</span><select id="${id}" class="form-control">${opts.join("")}</select></label>`;
 }
 
-function renderMapping() {
-  $("stmtMapping").innerHTML = `
+function renderMapping(box, after) {
+  box.innerHTML = `
     <div class="st-grid">
       ${colSelect("stColDate", "Date", S.cols.date, false)}
       ${colSelect("stColDesc", "Description", S.cols.desc)}
@@ -96,7 +96,7 @@ function renderMapping() {
       <label class="st-col"><span>Only lines on or after</span><input type="date" id="stSince" class="form-control" value="${S.since}"></label>
     </div>
     <label class="hm-note" style="display:flex; gap:6px; align-items:center; margin-top:6px;"><input type="checkbox" id="stFlip" ${S.flip ? "checked" : ""}> Spend is shown as negative numbers in this file (flip the signs)</label>`;
-  for (const id of ["stColDate", "stColDesc", "stColAmt", "stColDebit", "stColCredit", "stOrder", "stSince", "stFlip"]) $(id).addEventListener("change", () => { readMapping(); recompute(); });
+  for (const id of ["stColDate", "stColDesc", "stColAmt", "stColDebit", "stColCredit", "stOrder", "stSince", "stFlip"]) $(id).addEventListener("change", () => { readMapping(); after(); });
 }
 
 function readMapping() {
@@ -113,7 +113,6 @@ function postFor(card, line) {
   return rule && rule.basis !== "transaction" && line.postTs ? line.postTs : null;
 }
 function keyCardId() { return familyOf(S.card.id)[0]; }   // one key per physical card, whichever entry the lines go to
-function recompute() { computeCore(); renderReview(); }
 function computeCore() {
   let lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order, flip: S.flip });
   // A file whose only date column is a posting date: that date is the posting date.
@@ -520,18 +519,6 @@ function prepareCore(rows, fileName = "") {
   S.flip = spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
   return guess;
 }
-function afterRows(rows, fileName = "") {
-  B.files = []; B.open = -1;
-  const guess = prepareCore(rows, fileName);
-  if (guess) $("stCard").value = guess;
-  const fam = familyOf(S.card.id);
-  const famNote = fam.length > 1 ? ` This card has separate entries in the app (${fam.map(id => ALL_MASTER_CARDS.find(c => c.id === id)?.name).filter(Boolean).join(" / ")}). ${isChannelSplit(S.card.id) ? " Choose the entry on each line (or set them all at the top of the list)" : " Lines go to the one selected above" + (FX_SIBLING[S.card.id] ? ", foreign-currency lines to the FCY entry" : "")}; duplicates are checked across all of them.` : "";
-  $("stCardHint").textContent = (S.hint
-    ? (guess ? `Detected "${S.hint.name || "card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}, so I picked ${S.card.name}. Change it if that's wrong.` : `The file says "${S.hint.name || "a card"}"${S.hint.last4 ? " ending " + S.hint.last4 : ""}. Please pick the matching card above.`)
-    : "") + famNote;
-  renderMapping(); recompute();
-}
-
 // A file may hold several cards (a combined UOB PDF): returns [{ label, rows, name, last4 }], one per card section, else one entry.
 async function readParts(file) {
   if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
@@ -553,35 +540,12 @@ async function readRows(file) {
   return parseCsv(await file.text());
 }
 
-function setBatchUi(on) {
-  const lab = $("stCard")?.closest("label"); if (lab) lab.style.display = on ? "none" : "";
-  if (on) { $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; }
-}
-
-async function onFile(file) {
-  if (!file) return;
-  S = blankFile(); S.fileName = file.name; B.files = []; B.open = -1; setBatchUi(false);
-  $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
-  const card = ALL_MASTER_CARDS.find(c => c.id === $("stCard").value); S.card = card || null;
-  try {
-    const parts = await readParts(file);
-    if (parts.length > 1) { loadParts(parts); return; }
-    afterRows(parts[0].rows, file.name);
-  } catch (err) {
-    console.error("Statement read failed", err);
-    $("stmtFileNote").style.display = "block";
-    $("stmtFileNote").textContent = "Couldn't read that file: " + (err && err.message ? err.message : err);
-    $("btnStmtApply").disabled = true;
-  }
-}
-
 // Several files at once (a whole year of statements, say): each file works out its own card, the review lists them with their counts.
 async function onFiles(list) {
   const files = [...(list || [])];
   if (!files.length) return;
-  if (files.length === 1) return onFile(files[0]);
   const note = $("stmtFileNote");
-  $("stmtReview").innerHTML = ""; setBatchUi(true);
+  $("stmtReview").innerHTML = ""; $("stmtMapping").innerHTML = "";
   const parts = [];
   for (let k = 0; k < files.length; k++) {
     note.style.display = "block"; note.textContent = `Reading ${k + 1} of ${files.length}: ${files[k].name}`;
@@ -594,7 +558,7 @@ async function onFiles(list) {
 // Each part (a file, or one card's section of a combined PDF) works out its own card; the review lists them with their counts.
 function loadParts(parts) {
   const note = $("stmtFileNote");
-  $("stmtReview").innerHTML = ""; setBatchUi(true);
+  $("stmtReview").innerHTML = ""; $("stmtMapping").innerHTML = "";
   const loaded = [];
   for (const part of parts) {
     const F = blankFile(); F.fileName = part.label;
@@ -645,13 +609,16 @@ function openFileBody(k, force = false) {
   const F = B.files[k]; if (!F.card) return;
   S = F;
   const body = box.querySelector(`.st-file-body[data-k="${k}"]`);
-  body.hidden = false; renderReview(body);
+  body.hidden = false;
+  body.innerHTML = `<details class="st-group"><summary>File columns (only if lines look wrong)</summary><div class="st-map"></div></details><div class="st-rev"></div>`;
+  renderMapping(body.querySelector(".st-map"), () => { computeCore(); renderReview(body.querySelector(".st-rev")); updateApplyLabel(); });
+  renderReview(body.querySelector(".st-rev"));
 }
 function renderBatchCounts() {
   let tot = { add: 0, update: 0, confirm: 0, remove: 0 }, ready = 0, waiting = 0;
   B.files.forEach((F, k) => {
     const el = document.querySelector(`.st-file-counts[data-k="${k}"]`); if (!el) return;
-    if (!F.card) { el.textContent = "Choose the card for this file"; el.className = "st-file-counts st-warn"; waiting++; return; }
+    if (!F.card) { el.textContent = F.hint ? `Which card is this? The file says "${F.hint.name || "a card"}"${F.hint.last4 ? " ending " + F.hint.last4 : ""}.` : "Which card is this? Choose it from the list."; el.className = "st-file-counts st-warn"; waiting++; return; }
     const p = withFile(F, plan), n = summarize(F.results);
     tot = sumPlans([tot, p]); ready++;
     const check = n.differs + n.moved;
@@ -712,12 +679,8 @@ export async function scrubSavedText() {
 }
 
 export function openStatementSheet() {
-  const sel = $("stCard");
-  const cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
-  sel.innerHTML = cards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
-  S.card = cards[0] || null;
-  B.files = []; B.open = -1; S = blankFile(); S.card = cards[0] || null; setBatchUi(false);
-  $("stFile").value = ""; $("stCardHint").textContent = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
+  B.files = []; B.open = -1; S = blankFile();
+  $("stFile").value = ""; $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
   $("btnStmtApply").disabled = true; $("btnStmtApply").textContent = "Choose a file";
   refreshUndo(); renderCoverage();
   $("stmtOverlay")?.classList.add("open");
@@ -730,7 +693,6 @@ export function initStatementImport() {
   }
   $("btnCloseStatement")?.addEventListener("click", closeStatementSheet);
   $("stmtOverlay")?.addEventListener("click", e => { if (e.target.id === "stmtOverlay") closeStatementSheet(); });
-  $("stCard")?.addEventListener("change", e => { S.card = ALL_MASTER_CARDS.find(c => c.id === e.target.value); if (S.rows.length) recompute(); });
   $("stFile")?.addEventListener("change", e => onFiles(e.target.files));
   $("btnStmtApply")?.addEventListener("click", applyImport);
   $("btnScrubNumbers")?.addEventListener("click", scrubSavedText);
