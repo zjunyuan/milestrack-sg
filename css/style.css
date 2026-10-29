@@ -1079,3 +1079,6 @@ body:has(#demoBar) { padding-top: 28px; }
 .fcy-table tr.fcy-best td { font-weight: 700; }
 .fcy-table tr.fcy-neg td:last-child { color: var(--danger); }
 .fcy-foot { margin-top: 6px; font-size: 0.7rem; color: #94a3b8; line-height: 1.35; }
+.fcy-view { display: flex; gap: 6px; margin-top: 8px; }
+.fcy-view button { background: none; border: 1px solid var(--surface-variant); color: #94a3b8; border-radius: 8px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+.fcy-view button.on { background: var(--fcy-cyan); border-color: var(--fcy-cyan); color: #06222f; }

@@ -224,6 +224,7 @@ function renderRecommendation() {
   appendKrisPlusNote();
 }
 
+let fcyAtMax = false;   // table view: false = as things stand now, true = every card at its top earn rate
 let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
 
 function renderRecommendationCore() {
@@ -760,6 +761,16 @@ function decorateFcyFees() {
   for (const { card, rate: listed } of seen.values()) {
     let rate = listed;
     const spend = Number(card.currentSpend) || 0;
+    if (fcyAtMax) {
+      // Best case: top tier unlocked and no cap used up. Caps and minimums are listed as notes, not applied.
+      if (card.id === 'mb-world-mc') rate = 3.2;
+      const bits = [];
+      if (card.monthlyCap < 999999) bits.push(`bonus on first S$${fmtNum(card.monthlyCap, 0)}/mo`);
+      const mn = card.tierRule && card.tierRule.kind === 'monthly' ? (card.id === 'mb-world-mc' ? 4000 : card.tierRule.steps[0].at) : card.minSpend;
+      if (mn > 0) bits.push(`needs S$${fmtNum(mn, 0)}/mo`);
+      rows.push({ card, miles: calcEarnedMiles(card, amt, rate), rate, note: bits.join(' · ') });
+      continue;
+    }
     if (card.id === 'mb-world-mc') rate = (spend + amt >= 4000) ? 3.2 : (spend + amt >= 800 ? 2.8 : card.baseMpd);
     const gate = minSpendGate(card, { cardSpend: spend, amount: amt, rate, overseas: true });
     let note = '';
@@ -781,9 +792,11 @@ function decorateFcyFees() {
   const warn = ranked.some(r => r.eco.net < 0) ? '<div class="fcy-foot">⚠️ A negative net means the fee costs more than the miles are worth.</div>' : '';
   const div = document.createElement('div');
   div.className = 'fcy-fees';
-  div.innerHTML = `<details open><summary>💱 After FX fees, on S$${fmtAuto(amt)}: best is <b>${escapeHtml(cardShort(best.card))}</b> (${money(best.eco.net)} net)</summary>
+  div.innerHTML = `<details open><summary>💱 After FX fees, on S$${fmtAuto(amt)}${fcyAtMax ? ' at max rates' : ''}: best is <b>${escapeHtml(cardShort(best.card))}</b> (${money(best.eco.net)} net)</summary>
+    <div class="fcy-view"><button type="button" class="${fcyAtMax ? '' : 'on'}" data-fcy-view="now">Now</button><button type="button" class="${fcyAtMax ? 'on' : ''}" data-fcy-view="max">At max rate</button></div>
     <table class="fcy-table"><thead><tr><th>Card</th><th>Miles</th><th>FX fee</th><th>Cost / mile</th><th>Net</th></tr></thead><tbody>${body}</tbody></table>
     <div class="fcy-foot">Cost per mile = FX fee ÷ miles earned. Net = miles × ${FCY_MILE_VALUE_CENTS}¢ − fee. Assumes you pay in the foreign currency; choosing SGD at the terminal adds a separate 1% and is not counted.</div>${warn}</details>`;
+  div.querySelectorAll('[data-fcy-view]').forEach(b => b.addEventListener('click', () => { fcyAtMax = b.dataset.fcyView === 'max'; decorateFcyFees(); }));
   box.appendChild(div);
 }
 
