@@ -13,14 +13,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css?v=1.36.0">
+  <link rel="stylesheet" href="css/style.css?v=1.42.0">
 </head>
 <body>
 
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.38.1</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.42.0</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.38.1</span>
+          <span class="version-tag" id="headerVersionTag">v1.42.0</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderHistory" title="History">history</span>
@@ -232,7 +232,7 @@
       <div class="tab-content" id="tabContentHistory" style="display:none;">
         <div class="section-title" style="margin-top:0;">
           <span>History</span>
-          <span style="font-size:0.75rem; color:#94a3b8;"><span id="txCountBadge">0 recorded</span><span class="history-back" id="btnHistoryBack">✕ Close</span></span>
+          <span style="font-size:0.75rem; color:#94a3b8;"><span id="txCountBadge">0 recorded</span><button type="button" class="history-select" id="btnTxSelect">Select</button><span class="history-back" id="btnHistoryBack">✕ Close</span></span>
         </div>
 
         <div class="form-group">
@@ -474,15 +474,17 @@
         <h2 style="font-size:1.15rem;">Import a bank statement</h2>
         <span class="material-symbols-outlined" id="btnCloseStatement" style="cursor:pointer;">close</span>
       </div>
-      <p style="font-size:0.78rem; color:#94a3b8;">Works with a statement downloaded before the month ends. The file is read on your device and is not uploaded; only the lines you choose to import are saved. New lines are added, lines already in your list are left alone, and lines whose amount disagrees are shown for you to decide.</p>
+      <p style="font-size:0.78rem; color:#94a3b8;">Works with a statement downloaded before the month ends. The file is read on your device and is not uploaded; only the lines you choose to import are saved. The statement wins: new lines are added, your entries that match a line are confirmed and corrected from it, and entries of yours that are not on the statement can be removed. You can pick several files at once.</p>
       <div id="stmtUndo" class="hm-note" style="display:none;"></div>
+      <details class="st-cover" id="stCoverage"></details>
       <label class="st-col"><span>Card on the statement</span><select id="stCard" class="form-control"></select></label>
       <div id="stCardHint" class="hm-note"></div>
-      <label class="st-col"><span>Statement file (CSV, Excel .xls or PDF)</span><input type="file" id="stFile" accept=".csv,text/csv,.xls,application/vnd.ms-excel,.pdf,application/pdf" class="form-control"></label>
+      <label class="st-col"><span>Statement files (CSV, Excel .xls or PDF). Pick several at once to import a whole year.</span><input type="file" id="stFile" multiple accept=".csv,text/csv,.xls,application/vnd.ms-excel,.pdf,application/pdf" class="form-control"></label>
       <div id="stmtFileNote" class="hm-note st-warn" style="display:none;"></div>
       <div id="stmtMapping"></div>
       <div id="stmtReview"></div>
       <label class="hm-note" style="display:flex; gap:6px; align-items:flex-start;"><input type="checkbox" id="stAddVault"> Also add the estimated points to my bank points balances (leave off if you have already updated balances from your banking app)</label>
+      <div class="hm-note">🔒 Card and account numbers in the bank text are masked to their last 4 digits before anything is saved.</div>
       <div class="hm-note">Miles on imported lines are estimates from the card's rules and the merchant name. Edit a line afterwards if the bank credited differently.</div>
       <button class="btn-submit" id="btnStmtApply" disabled>Choose a file</button>
     </div>
@@ -591,6 +593,7 @@
         <details class="set-info"><summary><span class="material-symbols-outlined">info</span> About backups and imports</summary>
           <p class="hm-note">JSON backup is your complete ledger and bank vault snapshot, saved to this device. Restore puts a backup file back. Statement import compares a bank file with your list and changes nothing until you tick the lines you want.</p>
         </details>
+        <button type="button" class="btn-backup" id="btnScrubNumbers" style="width:100%; margin-top:10px;"><span class="material-symbols-outlined" style="font-size:18px;">shield</span> Mask card numbers in saved statement text</button>
         <button type="button" class="btn-backup" id="btnSetPostingInfo" style="width:100%; margin-top:10px;"><span class="material-symbols-outlined" style="font-size:18px;">event_note</span> Transaction date vs posting date</button>
         <div class="hm-note" id="setVersion" style="text-align:center; margin-top:12px;"></div>
       </div>
@@ -687,7 +690,7 @@
     // service worker once and reloads (a half-applied update leaves a blank page). (3) If it still fails, shows what went wrong on screen
     // instead of a blank page, with a Copy button. Add ?debug to the address to see the panel and the error log at any time. Your data lives in Firebase and is not touched.
     (function () {
-      var VER = 'v1.38.1', log = [];
+      var VER = 'v1.42.0', log = [];
       function note(m) { log.push(String(m).slice(0, 400)); }
       window.addEventListener('error', function (e) {
         var t = e.target && e.target !== window && (e.target.src || e.target.href);
@@ -725,6 +728,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.36.0"></script>
+  <script type="module" src="js/app.js?v=1.42.0"></script>
 </body>
 </html>

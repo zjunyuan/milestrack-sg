@@ -171,6 +171,23 @@ export function foreignAmount(desc) {
 }
 const COUNTRY_TAIL = /\s+(SINGAPORE|SINGAPO|SGP|SG|LONDON|GB|GBR|USA|US|JPN|JP|KOR|KR|HK|HKG|CN|MY|MYS|AU|AUS|IE|IRL|TH|THA|ID|IDN|TW|TWN|VN|VNM)(\s+(SINGAPORE|SGP|SG|GB|GBR|USA|US|JPN|KOR|CN|HK|MY|AU|IE|TH|ID|TW|VN))*$/i;
 // Best-effort readable merchant name: no store/terminal codes, city or country, currency amount or phone numbers.
+// ---------- card number masking ----------
+// Raw statement text can carry a full card or account number. Before any of it is saved, card numbers (13-19 digits that pass the Luhn
+// check, with or without spaces or dashes) and any other run of 9+ digits are cut down to their last four digits: "4111 1111 1111 1111" -> "****1111".
+// Shorter numbers (SG phone numbers, store codes, dates) are left alone. Returns { text, masked } where masked counts the numbers changed.
+function luhnOk(d) { let sum = 0, alt = false; for (let i = d.length - 1; i >= 0; i--) { let n = d.charCodeAt(i) - 48; if (alt) { n *= 2; if (n > 9) n -= 9; } sum += n; alt = !alt; } return sum % 10 === 0; }
+export function maskNumbers(input) {
+  let masked = 0;
+  let text = String(input == null ? "" : input);
+  text = text.replace(/(?<![\d*•xX])(?:\d[ -]?){12,18}\d(?!\d)/g, m => {
+    const d = m.replace(/\D/g, "");
+    if (d.length >= 13 && d.length <= 19 && luhnOk(d)) { masked++; return "****" + d.slice(-4); }
+    return m;
+  });
+  text = text.replace(/\d{9,}/g, m => { masked++; return "****" + m.slice(-4); });
+  return { text, masked };
+}
+
 export function cleanMerchant(desc) {
   let t = String(desc || "").replace(/\s+/g, " ").trim();
   t = t.replace(/[•*xX]{2,}[\s•*xX-]*\d{4}/g, "").replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, "")    // masked card number and a posting date inside the text
@@ -301,8 +318,35 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
   return { results, missing };
 }
 
+// Statement lines still "new" after matchLines may be purchases the user logged on the WRONG card. `others` = logged transactions on other
+// cards that no statement has confirmed. Same amount and a close date, with a similar name (or the same/next day): the line takes that entry.
+// Sets status "moved" and r.existing on the matched lines. Each logged transaction is used once.
+export function matchOtherCards(results, others, { windowDays = 3 } = {}) {
+  const used = new Set();
+  const cands = [];
+  for (const r of results) {
+    if (r.status !== "new" || r.line.fee) continue;
+    others.forEach((tx, k) => {
+      if (Math.abs((Number(tx.amt) || 0) - r.line.amt) >= 0.005) return;
+      const dd = Math.abs(Math.round(((tx.timestamp || 0) - r.line.ts) / DAY_MS));
+      if (dd > windowDays) return;
+      const sim = descSimilarity(r.line.merchant || r.line.desc, tx.desc);
+      if (!(sim >= 0.34 || dd <= 1)) return;
+      cands.push({ r, k, tx, score: sim * 2 - dd * 0.1 });
+    });
+  }
+  cands.sort((a, b) => b.score - a.score);
+  for (const c of cands) {
+    if (c.r.status !== "new" || used.has(c.k)) continue;
+    used.add(c.k);
+    c.r.status = "moved"; c.r.existing = c.tx;
+    c.r.reason = "Logged on another card";
+  }
+  return results;
+}
+
 export function summarize(results) {
-  const n = { matched: 0, differs: 0, new: 0, credit: 0, repeatsInStatement: 0 };
+  const n = { matched: 0, differs: 0, moved: 0, new: 0, credit: 0, repeatsInStatement: 0 };
   for (const r of results) { n[r.status]++; if (r.repeatTotal > 1 && r.repeat === 1) n.repeatsInStatement++; }
   return n;
 }

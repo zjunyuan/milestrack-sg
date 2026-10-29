@@ -167,6 +167,7 @@ export function subscribeToCloudData() {
       if (data.citiApprovalDate) state.citiApprovalDate = data.citiApprovalDate;
       if (data.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...data.uobRenewals };
       if (Number.isFinite(Number(data.uobStatementDay)) && Number(data.uobStatementDay) >= 1) state.uobStatementDay = Math.min(31, Number(data.uobStatementDay));
+      state.stmtCoverage = (data.stmtCoverage && typeof data.stmtCoverage === 'object') ? data.stmtCoverage : {};
       state.feeCards = (data.feeCards && typeof data.feeCards === 'object') ? data.feeCards : {};
       state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
       if (data.enabledCards && Array.isArray(data.enabledCards)) {

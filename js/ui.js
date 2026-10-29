@@ -21,6 +21,7 @@ import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { renderTxChips } from "./history-chips.js";
+import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
@@ -401,6 +402,41 @@ export function updateTravelGoal(personalTotalMiles) {
   }
 }
 
+// The bar above the list in Select mode.
+function selectBarHtml(rows) {
+  const n = state.txSelect.ids.size;
+  const spent = rows.filter(t => state.txSelect.ids.has(String(t.id))).reduce((a, t) => a + (Number(t.amt) || 0), 0);
+  return `<div class="tx-selectbar"><span><b>${n}</b> selected${n ? ` · S$${fmtNum(spent, 2)}` : ''}</span>
+    <button type="button" class="btn-backup" data-sel="all">Select all ${rows.length} shown</button>
+    <button type="button" class="btn-backup" data-sel="none" ${n ? '' : 'disabled'}>Clear</button>
+    <button type="button" class="btn-backup tx-del-btn" data-sel="delete" ${n ? '' : 'disabled'}>Delete ${n || ''}</button></div>`;
+}
+
+async function handleSelectAction(action) {
+  const sel = state.txSelect;
+  if (action === 'none') { sel.ids = new Set(); renderTransactions(); return; }
+  if (action === 'all') {
+    // "shown" = what the filters and search currently leave on screen
+    document.querySelectorAll('#txList [data-id]').forEach(el => sel.ids.add(String(el.dataset.id)));
+    renderTransactions(); return;
+  }
+  if (action !== 'delete') return;
+  const txs = state.transactions.filter(t => sel.ids.has(String(t.id)));
+  if (!txs.length) return;
+  const total = txs.reduce((a, t) => a + (Number(t.amt) || 0), 0);
+  const pts = pointsHeld(txs);
+  if (!confirm(`Delete ${txs.length} transaction${txs.length === 1 ? '' : 's'} (S$${fmtNum(total, 2)})?\n\nTheir points (${fmtNum(pts)}) are taken off your balances too. You can undo straight after.`)) return;
+  const { deleted, failed } = await deleteTransactionsBulk(txs);
+  sel.ids = new Set(); sel.on = false;
+  renderTransactions();
+  if (deleted.length) {
+    showToast(`Deleted ${deleted.length} transaction${deleted.length === 1 ? '' : 's'}${failed.length ? `, ${failed.length} failed` : ''}`, {
+      kind: failed.length ? 'error' : 'ok', actionLabel: 'Undo', ms: 12000,
+      onAction: async () => { try { await restoreTransactions(deleted); showToast(`Restored ${deleted.length}`); } catch (err) { console.error(err); showToast('Could not restore: ' + (err.message || err), { kind: 'error' }); } }
+    });
+  } else if (failed.length) showToast('Nothing was deleted. Check your connection and try again.', { kind: 'error' });
+}
+
 export function renderTransactions() {
   const list = document.getElementById('txList');
   const badge = document.getElementById('txCountBadge');
@@ -412,12 +448,30 @@ export function renderTransactions() {
     list.addEventListener('click', (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
+      const selBtn = e.target.closest('[data-sel]');
+      if (selBtn && selBtn.tagName === 'BUTTON') { handleSelectAction(selBtn.dataset.sel); return; }
       const btn = e.target.closest('button[data-act]');
       const tr = btn && btn.closest('tr[data-id]');
       if (!tr) return;
       if (btn.dataset.act === 'edit') openEditModal(tr.dataset.id);
       else if (btn.dataset.act === 'delete') deleteTransaction(tr.dataset.id);
     });
+    list.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.classList.contains('tx-sel')) {
+        const id = String((t.closest('[data-id]') || {}).dataset?.id || '');
+        if (!id) return;
+        if (t.checked) state.txSelect.ids.add(id); else state.txSelect.ids.delete(id);
+        renderTransactions();
+      } else if (t.dataset && t.dataset.sel === 'all-toggle') {
+        handleSelectAction(t.checked ? 'all' : 'none');
+      }
+    });
+  }
+  const selBtnEl = document.getElementById('btnTxSelect');
+  if (selBtnEl && !selBtnEl.dataset.bound) {
+    selBtnEl.dataset.bound = '1';
+    selBtnEl.addEventListener('click', () => { state.txSelect.on = !state.txSelect.on; state.txSelect.ids = new Set(); renderTransactions(); });
   }
 
   const cardOf = (tx) => ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
@@ -453,6 +507,13 @@ export function renderTransactions() {
   });
   const rows = sortTxns(filteredTxns, view, cardOf);
 
+  // Select mode: only rows that are showing can stay selected, so nothing hidden by a filter is deleted by mistake.
+  const sel = state.txSelect;
+  const selBtn = document.getElementById('btnTxSelect');
+  if (selBtn) { selBtn.textContent = sel.on ? 'Done' : 'Select'; selBtn.classList.toggle('active', sel.on); }
+  if (sel.on) { const shown = new Set(rows.map(t => String(t.id))); sel.ids = new Set([...sel.ids].filter(id => shown.has(id))); }
+  const selectBar = sel.on ? selectBarHtml(rows) : '';
+
   if (badge) {
     badge.innerText = (queryClean || state.txCardFilter !== "ALL" || viewIsFiltered(view))
       ? `${rows.length} of ${inPeriodRows.length} shown`
@@ -460,21 +521,23 @@ export function renderTransactions() {
   }
 
   if (rows.length === 0) {
-    list.innerHTML = `<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
+    list.innerHTML = `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
     return;
   }
 
   if (window.matchMedia('(min-width: 900px)').matches) {
-    list.innerHTML = tableHtml(rows, view, cardOf) + totalsHtml(rows, view);
+    list.innerHTML = selectBar + tableHtml(rows, view, cardOf, sel.on ? sel : null) + totalsHtml(rows, view);
     return;
   }
 
-  list.innerHTML = '';
+  list.innerHTML = selectBar;
   rows.forEach(tx => {
     const card = cardOf(tx);
     const row = document.createElement('div');
-    row.className = 'tx-item';
+    row.className = 'tx-item' + (sel.on && sel.ids.has(String(tx.id)) ? ' selected' : '');
+    row.dataset.id = String(tx.id);
     row.innerHTML = `
+      ${sel.on ? `<input type="checkbox" class="tx-sel tx-sel-phone" ${sel.ids.has(String(tx.id)) ? 'checked' : ''} aria-label="Select">` : ''}
       <div style="flex:1; min-width:0; padding-right:8px;">
         <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}</div>
         <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}</div>
@@ -483,13 +546,17 @@ export function renderTransactions() {
         <div class="tx-miles">+${fmtNum(tx.miles)} mi</div>
         <div class="tx-amt">$${fmtNum(Number(tx.amt || 0), 2)}</div>
       </div>
-      <div class="tx-actions">
+      ${sel.on ? '' : `<div class="tx-actions">
         <button class="btn-tx-action btn-edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button>
         <button class="btn-tx-action btn-delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>
-      </div>
+      </div>`}
     `;
-    row.querySelector('.btn-edit').addEventListener('click', () => openEditModal(tx.id));
-    row.querySelector('.btn-delete').addEventListener('click', () => deleteTransaction(tx.id));
+    if (sel.on) {
+      row.addEventListener('click', (e) => { if (e.target.closest('input')) return; if (sel.ids.has(String(tx.id))) sel.ids.delete(String(tx.id)); else sel.ids.add(String(tx.id)); renderTransactions(); });
+    } else {
+      row.querySelector('.btn-edit').addEventListener('click', () => openEditModal(tx.id));
+      row.querySelector('.btn-delete').addEventListener('click', () => deleteTransaction(tx.id));
+    }
     list.appendChild(row);
   });
   list.insertAdjacentHTML('beforeend', totalsHtml(rows, view));
@@ -1249,6 +1316,7 @@ export async function saveSettings() {
     uobStatementDay: clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23),
     feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
     feeCards: collectFeeCards(),
+    stmtCoverage: state.stmtCoverage || {},
     uobRenewals: {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
@@ -1376,6 +1444,7 @@ export async function importJSONBackup(file) {
       uobStatementDay: state.uobStatementDay || 23,
       feeAlerts: state.feeAlerts || {},
       feeCards: settings.feeCards || state.feeCards || {},
+      stmtCoverage: state.stmtCoverage || {},
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
         citi: Number(settings.cutoffDays?.citi) || 15
