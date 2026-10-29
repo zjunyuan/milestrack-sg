@@ -39,6 +39,13 @@ export function showToast(message, { kind = 'ok', actionLabel = '', onAction = n
     b.addEventListener('click', () => { hideToast(); onAction(); });
     el.appendChild(b);
   }
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'lt-close';
+  x.setAttribute('aria-label', 'Dismiss');
+  x.textContent = '✕';
+  x.addEventListener('click', hideToast);
+  el.appendChild(x);
   requestAnimationFrame(() => el.classList.add('visible'));
   toastTimer = setTimeout(hideToast, ms || (kind === 'error' ? 8000 : 5000));
 }
