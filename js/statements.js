@@ -397,6 +397,7 @@ export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   if (/preferred visa|ppv/.test(n)) return pick("uob-ppv-contactless", "uob-ppv-online");
   if (/lady/.test(n)) return pick("uob-ls-dining", "uob-ls-travel");
   if (/krisflyer/.test(n)) return pick("kf-uob");
+  if (/trust/.test(n)) return pick("trust-freedom");
   if (/visa signature/.test(n)) return pick("uob-vs-contactless", "uob-vs-fcy");
   if (/prvi/.test(n)) return pick("uob-prvi");
   return "";

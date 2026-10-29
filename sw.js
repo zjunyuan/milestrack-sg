@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.42.0';
+const CACHE_NAME = 'milestrack-cache-v1.43.2';
 
 const CORE_ASSETS = [
   './',
@@ -57,7 +57,8 @@ const CARD_ASSETS = [
   './assets/cards/dbs-vantage.png',
   './assets/cards/uob-prvi.png',
   './assets/cards/dbs-altitude.png',
-  './assets/cards/citi-pm.png'
+  './assets/cards/citi-pm.png',
+  './assets/cards/trust-freedom.png'
 ];
 
 self.addEventListener('install', (event) => {

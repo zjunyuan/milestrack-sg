@@ -16,7 +16,7 @@ const DEMO_LABELS = { primary: "Demo Household", sister: "Sam", ellice: "Jordan"
 
 // Points per vault (raw points, converted to miles by each currency's ratio).
 const DEMO_POINTS = {
-  primary: { uob_uni: 118000, citi_typ: 61000, citi_miles: 24500, dbs_pts: 76000, yuu_pts: 84000, ocbc_pts: 52000, hsbc_pts: 31000, mb_treats: 18000, kf_direct: 41200 },
+  primary: { trust_miles: 6500, uob_uni: 118000, citi_typ: 61000, citi_miles: 24500, dbs_pts: 76000, yuu_pts: 84000, ocbc_pts: 52000, hsbc_pts: 31000, mb_treats: 18000, kf_direct: 41200 },
   sister: { uob_uni: 24000, kf_direct: 9800 },
   ellice: { kf_direct: 12400, dbs_pts: 8000 },
   eugene: {},

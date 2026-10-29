@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.42.0";
+export const APP_VERSION = "v1.43.2";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -135,7 +135,8 @@ export const DEFAULT_VAULT = {
   ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned' },
   hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
   mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
-  kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' }
+  kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' },
+  trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)' }
 };
 
 // Builds a complete vault from a stored Firestore doc. The app owns each currency's name, ratio, unit and rule;
@@ -528,6 +529,27 @@ export const ALL_MASTER_CARDS = [
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-citi'
+  },
+  { 
+    id: 'trust-freedom', 
+    annualFee: 'none',
+    shortName: 'Trust Freedom',
+    name: 'Trust Freedom (Miles mode)', 
+    bank: 'Trust', 
+    image: 'assets/cards/trust-freedom.png',
+    vaultKey: 'trust_miles', 
+    monthlyCap: 999999, 
+    minSpend: 0, 
+    bonusMpd: 1.3, 
+    baseMpd: 1.3, 
+    engine: 'uob-5', 
+    cycleType: 'uncapped', 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: '1.3 mpd local and overseas in Miles mode, 0% FX fee (Visa rate). Earned per S$5 per transaction, so under S$5 earns nothing. No cap, no annual fee. Excluded: utilities, rent, education, insurance, government, charity, quasi-cash (4900, 6513, 8211, 6300, 9311, 8398, 6010 etc). Miles transfer to KrisFlyer costs S$27.25 each time.', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-trust'
   }
 ];
 

@@ -343,6 +343,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .thumb-uob { background: linear-gradient(135deg, #091a2e 0%, #002d62 100%); color: #60a5fa; }
 .thumb-dbs { background: linear-gradient(135deg, #2b1114 0%, #8b111d 100%); color: #fca5a5; }
 .thumb-yuu { background: linear-gradient(135deg, #3b0764 0%, #6d28d9 100%); color: #fef08a; }
+.thumb-trust { background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); color: #a5b4fc; }
 .thumb-citi { background: linear-gradient(135deg, #022c54 0%, #0369a1 100%); color: #38bdf8; }
 .thumb-ocbc { background: linear-gradient(135deg, #450a0a 0%, #b91c1c 100%); color: #fecaca; }
 .thumb-hsbc { background: linear-gradient(135deg, #1f2937 0%, #dc2626 100%); color: #fff; }
