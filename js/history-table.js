@@ -116,7 +116,7 @@ export function tableHtml(rows, view, cardOf) {
       <td class="${t.postTs ? '' : 'dim'}">${fmtDay(t.postTs)}</td>
       <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}</td>
       <td>${escapeHtml(cardShort(cardOf(t)))}</td>
-      <td class="${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
+      <td class="cat ${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>
       <td class="num miles">+${fmtNum(Number(t.miles) || 0, 0)}</td>
       <td class="num${mpd > 0 && mpd < 1 ? ' dim' : ''}">${mpd.toFixed(2)}</td>
