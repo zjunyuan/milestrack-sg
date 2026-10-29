@@ -1316,6 +1316,7 @@ export async function saveSettings() {
     uobStatementDay: clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23),
     feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
     feeCards: collectFeeCards(),
+    stmtCoverage: state.stmtCoverage || {},
     uobRenewals: {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
@@ -1443,6 +1444,7 @@ export async function importJSONBackup(file) {
       uobStatementDay: state.uobStatementDay || 23,
       feeAlerts: state.feeAlerts || {},
       feeCards: settings.feeCards || state.feeCards || {},
+      stmtCoverage: state.stmtCoverage || {},
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
         citi: Number(settings.cutoffDays?.citi) || 15

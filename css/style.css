@@ -1038,3 +1038,24 @@ body:has(#demoBar) { padding-top: 28px; }
 .tx-table tr.selected td:last-child { box-shadow: inset -1px 1px 0 var(--primary), inset 0 -1px 0 var(--primary); }
 .tx-sel-phone { width: 22px; height: 22px; margin-right: 10px; flex: none; }
 .tx-table td.sel, .tx-table th.sel { width: 28px; padding-left: 8px; padding-right: 0; }
+
+/* v1.41.0: importing several statements at once, and the coverage grid */
+.st-batch-head { font-size: 0.85rem; padding: 6px 2px; }
+.st-file { background: var(--surface-variant); border-radius: 14px; padding: 10px; margin-top: 8px; }
+.st-file-head { display: flex; flex-direction: column; gap: 6px; }
+.st-file-name { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-file-card { padding: 7px 8px; font-size: 0.82rem; }
+.st-file-counts { font-size: 0.78rem; color: #cbd5e1; }
+.st-file-counts.st-warn { color: var(--warning, #fbbf24); }
+.st-file-toggle { align-self: flex-start; padding: 5px 12px; font-size: 0.78rem; }
+.st-file-body { margin-top: 6px; }
+.st-cover { background: var(--surface-variant); border-radius: 14px; padding: 8px 10px; }
+.st-cover summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+.cv-wrap { overflow-x: auto; margin-top: 6px; }
+.cv-table { border-collapse: separate; border-spacing: 2px; font-size: 0.72rem; width: 100%; }
+.cv-table th { font-weight: 600; color: #94a3b8; text-align: center; padding: 2px 0; }
+.cv-table tbody th { text-align: left; white-space: nowrap; padding-right: 8px; color: #e2e8f0; }
+.cv-table td { text-align: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.04); }
+.cv-table td.cv-yes { background: rgba(74, 222, 128, 0.22); color: #4ade80; font-weight: 700; }
+.cv-table td.cv-no { color: #fbbf24; background: rgba(251, 191, 36, 0.10); }
+.cv-table td.cv-future { background: transparent; }
