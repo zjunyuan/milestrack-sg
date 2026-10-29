@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.1";
+export const APP_VERSION = "v1.44.2";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -184,7 +184,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-ppv-contactless', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PPV.Tap',
     name: 'UOB Preferred Visa (Mobile Tap)', 
     bank: 'UOB', 
@@ -206,7 +206,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-ppv-online', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PPV.Online',
     name: 'UOB Preferred Visa (Online)', 
     bank: 'UOB', 
@@ -228,7 +228,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-vs-contactless', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB VS.Tap',
     name: 'UOB Visa Signature (Contactless / Petrol)', 
     bank: 'UOB', 
@@ -251,7 +251,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-vs-fcy', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB VS.FCY',
     name: 'UOB Visa Signature (FCY Overseas)', 
     bank: 'UOB', 
@@ -342,7 +342,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-ls-dining', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB LS.Dining',
     name: "UOB Lady's Solitaire (Dining)", 
     bank: 'UOB', 
@@ -364,7 +364,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-ls-travel', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB LS.Travel',
     name: "UOB Lady's Solitaire (Travel)", 
     bank: 'UOB', 
@@ -410,7 +410,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'kf-uob', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'KrisFlyer UOB',
     name: 'KrisFlyer UOB Credit Card', 
     bank: 'UOB', 
@@ -502,7 +502,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'uob-prvi', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PRVI',
     name: 'UOB PRVI Miles', 
     bank: 'UOB', 

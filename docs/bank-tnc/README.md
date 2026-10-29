@@ -19,3 +19,5 @@ Saved 29 Oct 2026 (supplied by the app owner).
 | citi-premiermiles-cardmembers-agreement.pdf | Citi PremierMiles (same Citi agreement terms) | Undated | Yes, clause 6.9: up to 3.25% on the converted SGD amount; 1% on dynamic currency conversion; 1% on SGD transactions processed outside Singapore (overseas merchants or intermediaries) |
 
 Most of these are rewards-programme terms: they give earn rules and exclusions, not FX fees. The FX fee for a bank normally sits in its cardmember agreement or fee schedule, which is not saved here yet for UOB, OCBC, HSBC or Maybank.
+
+Not saved as a PDF (read from the web on 29 Oct 2026): UOB fee-revision notice, https://www.uob.com.sg/web-resources/personal/pdf/personal/cards/news-announcements/revision-fees-charge.pdf . States the UOB credit card FX administrative fee rose from 3.1% to 3.25% from 9 Mar 2020. DBS overseas fees page: https://www.dbs.com.sg/personal/support/card-charges-and-fees-overseas-transaction-fees.html . Trust key facts sheet: https://trustbank.sg/legal/trust-freedom-credit-card-key-facts-sheet/ .
