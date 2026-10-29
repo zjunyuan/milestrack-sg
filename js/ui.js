@@ -18,7 +18,7 @@ import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
-import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
+import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { renderTxChips } from "./history-chips.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
@@ -582,17 +582,38 @@ export function checkUobFeeDefense() {
     }
     const since = Math.max(0, Math.floor((now - w.start) / 86400000));
     const stmt = w.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    container.innerHTML += `
-      <div class="fee-alert-card${since >= 7 ? ' is-soon' : ''}" data-fee-key="${card.key}" data-fee-cycle="${w.cycle}">
-        <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:19px;">receipt_long</span> Annual fee on your statement: ${escapeHtml(card.name)}</div>
-        <div class="fee-alert-desc">The ${card.fee} fee is on your ${stmt} statement. Ask UOB to reverse it.</div>
+    container.innerHTML += feeAlertHtml(card.key, w.cycle, since, card.name, `The ${card.fee} fee is on your ${stmt} statement. Ask UOB to reverse it.`);
+  });
+
+  // Every other card in the wallet that has a renewal month set (Settings > the card).
+  feeCardFamilies().forEach(f => {
+    if (!f.ids.some(id => state.enabledCardIds.includes(id))) return;
+    const conf = (state.feeCards || {})[f.key];
+    if (!conf || !conf.renewal) return;
+    const w = feeAlertWindow(conf.renewal, conf.day || 1, now);
+    if (!w) return;
+    const rec = (state.feeAlerts || {})[f.key];
+    if (rec && rec.cycle === w.cycle) {
+      if (rec.status === 'requested') return;
+      if (rec.status === 'snoozed' && Number(rec.until) > now.getTime()) return;
+    }
+    const since = Math.max(0, Math.floor((now - w.start) / 86400000));
+    const stmt = w.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    container.innerHTML += feeAlertHtml(f.key, w.cycle, since, f.name, `The annual fee should be on your statement from ${stmt}. Ask ${f.bankLabel} to waive or reverse it.`);
+  });
+}
+
+function feeAlertHtml(key, cycle, since, name, desc) {
+  return `
+      <div class="fee-alert-card${since >= 7 ? ' is-soon' : ''}" data-fee-key="${escapeHtml(key)}" data-fee-cycle="${cycle}">
+        <div class="fee-alert-title"><span class="material-symbols-outlined" style="font-size:19px;">receipt_long</span> Annual fee on your statement: ${escapeHtml(name)}</div>
+        <div class="fee-alert-desc">${escapeHtml(desc)}</div>
         <div class="fee-alert-actions">
           <button type="button" class="fee-btn fee-btn-primary" data-fee-action="requested">I've requested a reversal</button>
           <button type="button" class="fee-btn" data-fee-action="snooze">Remind me in a week</button>
         </div>
       </div>
     `;
-  });
 }
 
 // The window an annual fee alert is live: from the statement day of the month after the renewal month, until the next statement day.
@@ -1187,6 +1208,10 @@ export function openSettingsModal() {
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
   setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
   setVal('citiCutoff', citi?.cutoffDay ?? 15);
+  for (const f of feeCardFamilies()) {
+    setVal(feeRenewalId(f.key), state.feeCards?.[f.key]?.renewal);
+    setVal(feeDayId(f.key), state.feeCards?.[f.key]?.day);
+  }
   prepareSettingsSheet();
 
   document.getElementById('settingsOverlay')?.classList.add('open');
@@ -1194,6 +1219,18 @@ export function openSettingsModal() {
 
 export function closeSettingsModal() {
   document.getElementById('settingsOverlay')?.classList.remove('open');
+}
+
+// Reads the per-card fee alert inputs (non-UOB cards). A card with no renewal month has no entry.
+function collectFeeCards() {
+  const out = {};
+  for (const f of feeCardFamilies()) {
+    const renewal = document.getElementById(feeRenewalId(f.key))?.value || '';
+    if (!/^\d{4}-\d{2}$/.test(renewal)) continue;
+    const day = parseInt(document.getElementById(feeDayId(f.key))?.value, 10);
+    out[f.key] = { renewal, ...(Number.isFinite(day) ? { day: Math.min(31, Math.max(1, day)) } : {}) };
+  }
+  return out;
 }
 
 export async function saveSettings() {
@@ -1211,6 +1248,7 @@ export async function saveSettings() {
     citiApprovalDate: val('citiApprovalInput') || state.citiApprovalDate,
     uobStatementDay: clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23),
     feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
+    feeCards: collectFeeCards(),
     uobRenewals: {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,
@@ -1250,6 +1288,7 @@ export function exportJSONBackup() {
       enabledCards: state.enabledCardIds,
       citiApprovalDate: state.citiApprovalDate,
       uobRenewals: state.uobRenewals,
+      feeCards: state.feeCards || {},
       cutoffDays: {
         uobVs: ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'))?.cutoffDay ?? 18,
         citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15
@@ -1292,6 +1331,7 @@ function parseBackup(data) {
     enabledCards: Array.isArray(s.enabledCards) ? s.enabledCards.filter(id => knownCards.has(id)) : null,
     citiApprovalDate: /^\d{4}-\d{2}$/.test(s.citiApprovalDate || '') ? s.citiApprovalDate : null,
     uobRenewals: s.uobRenewals && typeof s.uobRenewals === 'object' ? s.uobRenewals : null,
+    feeCards: s.feeCards && typeof s.feeCards === 'object' ? s.feeCards : null,
     cutoffDays: s.cutoffDays && typeof s.cutoffDays === 'object' ? s.cutoffDays : null
   };
   return { balances, settings, txns, skipped };
@@ -1335,6 +1375,7 @@ export async function importJSONBackup(file) {
       uobRenewals: { ...state.uobRenewals, ...(settings.uobRenewals || {}) },
       uobStatementDay: state.uobStatementDay || 23,
       feeAlerts: state.feeAlerts || {},
+      feeCards: settings.feeCards || state.feeCards || {},
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
         citi: Number(settings.cutoffDays?.citi) || 15

@@ -28,6 +28,29 @@ const CARD_FIELDS = {
   ]
 };
 
+// Annual fee alert dates for every non-UOB card (UOB cards keep their own inputs above). Stored in state.feeCards[key] = { renewal, day }.
+export const feeRenewalId = key => `feeRenewal_${key}`;
+export const feeDayId = key => `feeDay_${key}`;
+function addFeeFields() {
+  const seen = new Set();
+  for (const c of ALL_MASTER_CARDS) {
+    if (seen.has(c.id) || bankOf(c.id) === "uob") continue;
+    const ids = familyOf(c.id).filter(id => ALL_MASTER_CARDS.some(x => x.id === id));
+    ids.forEach(id => seen.add(id));
+    const key = ids[0];
+    CARD_FIELDS[key] = [...(CARD_FIELDS[key] || []),
+      { id: feeRenewalId(key), kind: "month", yearly: true, label: "Annual fee renewal month", short: "Fee renews" },
+      { id: feeDayId(key), kind: "day", label: "Statement date (day of month)", short: "Statement", hint: "Optional. The fee alert starts on this day of the month after the renewal month. Leave blank to start on the 1st." }
+    ];
+  }
+}
+addFeeFields();
+
+// One entry per non-UOB physical card: { key, name, bank }, for the home-screen fee alerts.
+export function feeCardFamilies() {
+  return walletRows().filter(r => r.bank !== "uob").map(r => ({ key: r.key, ids: r.ids, name: r.name, bankLabel: (BANKS.find(b => b[0] === r.bank) || [, r.bank])[1] }));
+}
+
 const ordinal = n => { n = Number(n); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const monthLabel = ym => { const [y, m] = String(ym).split("-").map(Number); return y && m ? new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : ""; };
 const monthsAway = ym => { const [y, m] = String(ym).split("-").map(Number); if (!y || !m) return null; const now = new Date(); return (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth()); };
