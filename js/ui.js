@@ -19,6 +19,7 @@ import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
+import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
@@ -923,6 +924,21 @@ export function renderArchiveData() {
   document.getElementById('archiveTxnCount').innerText = `${scopedTxns.length} transactions (${isFullYear ? `Year ${targetYear}` : '1 Month'})`;
   document.getElementById('archiveTotalMiles').innerText = `+${fmtNum(Math.round(totalMiles))} mi`;
   document.getElementById('archiveBlendedMpd').innerText = `${blendedMpd} blended mpd`;
+
+  // Month view: deltas vs last month and the monthly summary. Full-year view has neither.
+  const summaryEl = document.getElementById('monthlySummary');
+  if (summaryEl) {
+    summaryEl.innerHTML = isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m) => getStatementCycleForMonth(c, y, m).spent);
+  }
+  if (!isFullYear) {
+    const dt = deltaText(monthDeltas(targetYear, targetMonth));
+    const add = (id, txt, extra) => { if (txt) document.getElementById(id).innerHTML += `<span class="ms-delta">${escapeHtml(txt)}</span>`; };
+    const esc = (id) => { const el = document.getElementById(id); el.innerHTML = escapeHtml(el.innerText); };
+    ['archiveTxnCount', 'archiveTotalMiles', 'archiveBlendedMpd'].forEach(esc);
+    add('archiveTxnCount', dt.spent);
+    add('archiveTotalMiles', dt.miles);
+    add('archiveBlendedMpd', dt.mpd);
+  }
 
   const listEl = document.getElementById('archiveCardBreakdownList');
   if (!listEl) return;
