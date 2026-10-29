@@ -1635,6 +1635,7 @@ export function switchTab(tabName) {
     history: ['tabContentHistory', 'btnTabHistory']
   };
   const target = tabs[tabName] ? tabName : 'vault';
+  document.body.dataset.tab = target;   // css: the + button only shows on the Cards tab on phones
   Object.entries(tabs).forEach(([name, [contentId, btnId]]) => {
     const el = document.getElementById(contentId);
     const btn = document.getElementById(btnId);
