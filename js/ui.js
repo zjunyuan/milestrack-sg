@@ -20,6 +20,7 @@ import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
+import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
@@ -402,19 +403,41 @@ export function renderTransactions() {
   const list = document.getElementById('txList');
   const badge = document.getElementById('txCountBadge');
   if (!list) return;
-  list.innerHTML = '';
 
+  // Table clicks (sort headers, edit, delete) are handled once, by delegation.
+  if (!list.dataset.bound) {
+    list.dataset.bound = '1';
+    list.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-sort]');
+      if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
+      const btn = e.target.closest('button[data-act]');
+      const tr = btn && btn.closest('tr[data-id]');
+      if (!tr) return;
+      if (btn.dataset.act === 'edit') openEditModal(tr.dataset.id);
+      else if (btn.dataset.act === 'delete') deleteTransaction(tr.dataset.id);
+    });
+  }
+
+  const cardOf = (tx) => ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
+  const view = state.txView;
   const queryClean = state.txSearchQuery.toLowerCase().trim();
+  const inPeriodRows = state.transactions.filter(inHistoryPeriod);
 
-  const filteredTxns = state.transactions.filter(tx => {
-    const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
-    
-    if (!inHistoryPeriod(tx)) return false;
+  // Category dropdown follows the period; keep the current pick.
+  const catSel = document.getElementById('txFilterCategory');
+  if (catSel) {
+    const { names, none } = categoryOptions(inPeriodRows);
+    if (view.category !== 'ALL' && view.category !== NO_CATEGORY && !names.includes(view.category)) names.push(view.category);
+    catSel.innerHTML = `<option value="ALL">All categories</option>`
+      + names.sort().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')
+      + (none ? `<option value="${NO_CATEGORY}">Unrecognised</option>` : '');
+    catSel.value = view.category;
+  }
 
-    if (state.txCardFilter !== "ALL" && tx.cardId !== state.txCardFilter) {
-      return false;
-    }
-
+  const filteredTxns = inPeriodRows.filter(tx => {
+    const card = cardOf(tx);
+    if (state.txCardFilter !== "ALL" && tx.cardId !== state.txCardFilter) return false;
+    if (!passesView(tx, view)) return false;
     if (queryClean) {
       const matchDesc = (tx.desc || '').toLowerCase().includes(queryClean);
       const matchCard = card.name.toLowerCase().includes(queryClean) || cardShort(card).toLowerCase().includes(queryClean);
@@ -422,29 +445,34 @@ export function renderTransactions() {
       const matchCategory = (tx.bonusCategory || '').toLowerCase().includes(queryClean);
       return matchDesc || matchCard || matchDate || matchCategory;
     }
-
     return true;
   });
+  const rows = sortTxns(filteredTxns, view, cardOf);
 
   if (badge) {
-    const inPeriod = state.transactions.filter(inHistoryPeriod).length;
-    badge.innerText = (queryClean || state.txCardFilter !== "ALL")
-      ? `${filteredTxns.length} of ${inPeriod} shown`
-      : `${inPeriod} recorded`;
+    badge.innerText = (queryClean || state.txCardFilter !== "ALL" || viewIsFiltered(view))
+      ? `${rows.length} of ${inPeriodRows.length} shown`
+      : `${inPeriodRows.length} recorded`;
   }
 
-  if (filteredTxns.length === 0) {
+  if (rows.length === 0) {
     list.innerHTML = `<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
     return;
   }
 
-  filteredTxns.slice().reverse().forEach(tx => {
-    const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
+  if (window.matchMedia('(min-width: 900px)').matches) {
+    list.innerHTML = tableHtml(rows, view, cardOf) + totalsHtml(rows, view);
+    return;
+  }
+
+  list.innerHTML = '';
+  rows.forEach(tx => {
+    const card = cardOf(tx);
     const row = document.createElement('div');
     row.className = 'tx-item';
     row.innerHTML = `
       <div style="flex:1; min-width:0; padding-right:8px;">
-        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.desc}</div>
+        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}</div>
         <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}</div>
       </div>
       <div>
@@ -460,6 +488,7 @@ export function renderTransactions() {
     row.querySelector('.btn-delete').addEventListener('click', () => deleteTransaction(tx.id));
     list.appendChild(row);
   });
+  list.insertAdjacentHTML('beforeend', totalsHtml(rows, view));
 }
 
 export function renderCategoryTracker() {
