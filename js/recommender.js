@@ -481,7 +481,7 @@ function renderRecommendationCore() {
     const addRow = (card, listed) => { if (card && !rows.has(card.id) && chanOk(card)) rows.set(card.id, fcyRow(card, listed, amt)); };
     scoredCandidates.forEach(sc => addRow(sc.card, sc.rate));
     state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(c => addRow(c, generalRate(c)));
-    const rowMiles = r => r.room >= amt ? milesFor(r.card, amt, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, amt - r.room, r.card.baseMpd);
+    const rowMiles = (r, a = amt) => r.room >= a ? milesFor(r.card, a, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, a - r.room, r.card.baseMpd);
     fcyPlan = planOverseas([...rows.values()], amt, { milesOf: rowMiles });
     const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : 999999, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
     const next = fcyPlan.bonus.map(toCand);
@@ -832,6 +832,8 @@ function decorateFcyFees() {
 
 export function runRecommendation() {
   updateOptionsBadge();
+  const modeBadge = document.getElementById('recModeBadge');                    // the header badge follows the Local / Overseas switch
+  if (modeBadge) modeBadge.textContent = state.isOverseasMode ? 'Overseas FCY' : 'Local SGD';
   applyRateSchedule();
   renderRecommendation();
   decorateTierCallouts();
