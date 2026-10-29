@@ -34,6 +34,7 @@ function banner(good) {
 }
 
 export function initVaultGuard() {
+  if (state.demo) return;   // demo balances must never overwrite the remembered real ones
   window.addEventListener("vault-updated", () => {
     if (!state.vaultLoaded || !state.myVault) return;
     if (sum(state.myVault) > 0) { remember(); document.getElementById("vaultGuardBanner")?.remove(); return; }

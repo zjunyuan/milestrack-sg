@@ -961,10 +961,15 @@ export function renderArchiveData() {
   }
   if (!isFullYear) {
     const dt = deltaText(monthDeltas(targetYear, targetMonth));
-    const add = (id, txt, extra) => { if (txt) document.getElementById(id).innerHTML += `<span class="ms-delta">${escapeHtml(txt)}</span>`; };
+    // Spend going up or down is neutral; miles and mpd are green when up, amber when down.
+    const add = (id, txt, neutral) => {
+      if (!txt) return;
+      const cls = neutral ? 'ms-delta neutral' : (txt.startsWith('▼') ? 'ms-delta down' : 'ms-delta');
+      document.getElementById(id).innerHTML += `<span class="${cls}">${escapeHtml(txt)}</span>`;
+    };
     const esc = (id) => { const el = document.getElementById(id); el.innerHTML = escapeHtml(el.innerText); };
     ['archiveTxnCount', 'archiveTotalMiles', 'archiveBlendedMpd'].forEach(esc);
-    add('archiveTxnCount', dt.spent);
+    add('archiveTxnCount', dt.spent, true);
     add('archiveTotalMiles', dt.miles);
     add('archiveBlendedMpd', dt.mpd);
   }

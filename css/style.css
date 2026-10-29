@@ -956,3 +956,10 @@ input:checked + .slider:before { transform: translateX(22px); }
   .tx-filters-adv input[type=date] { width: 128px; }
   .tx-filters-adv .btn-backup { padding: 7px 10px; font-size: 0.75rem; }
 }
+
+/* Demo mode */
+#demoBar { position: fixed; top: 0; left: 0; right: 0; z-index: 9500; background: #1e3a5f; color: #dbeafe; font-size: 0.78rem; text-align: center; padding: 5px 10px; }
+#demoBar a { color: #fff; font-weight: 700; margin-left: 8px; }
+body:has(#demoBar) { padding-top: 28px; }
+.ms-delta.down { color: var(--warning); }
+.ms-delta.neutral { color: #94a3b8; }
