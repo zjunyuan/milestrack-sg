@@ -1032,6 +1032,11 @@ body:has(#demoBar) { padding-top: 28px; }
 .history-select { margin-left: 10px; background: none; border: 1px solid var(--surface-variant); color: var(--primary); border-radius: 8px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .history-select.active { background: var(--primary); color: var(--on-primary); }
 .tx-selectbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--primary); border-radius: 12px; font-size: 0.82rem; position: sticky; top: 0; z-index: 3; }
+@media (max-width: 899px) {
+  /* phone: pinned just above the bottom nav so Delete stays in reach while scrolling */
+  .tx-selectbar { position: fixed; top: auto; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); margin: 0; z-index: 95; background: var(--surface-variant, #2a2c33); box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+  #txList:has(.tx-selectbar) { padding-bottom: 96px; }
+}
 .tx-selectbar .btn-backup { padding: 6px 10px; font-size: 0.78rem; }
 .tx-selectbar .tx-del-btn:not(:disabled) { background: #dc2626; border-color: #dc2626; color: #fff; }
 .tx-selectbar button:disabled { opacity: 0.45; }
