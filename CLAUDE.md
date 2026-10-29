@@ -18,6 +18,9 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/mcc.js`: the one place that knows about every MCC. It combines `MCC_DATABASE` (hand-written rules), `MCC_NAMES` (labels only), and generated fallbacks.
 - `js/mcc-names.js`: ~230 ISO 18245 codes with names and no card rules, plus `COMMONLY_EXCLUDED_MCCS`.
 - `js/posting.js` / `js/posting-ui.js`: per-card transaction-date vs posting-date rules (source and date in the header), cycle-end maths, `countsTs(tx, card)` (the date a spend counts to; use it for cycle/cap membership instead of `tx.timestamp`), the month-end banner and the log-form hint. A transaction's optional `postTs` is the bank's posting date.
+- `js/summary.js`: monthly summary block at the top of History (cap use per card entry, where miles came from, deltas vs last month).
+- `js/history-table.js`: desktop History table, filters (category, amount, trans/post dates), sort and totals; `state.txView` holds the view.
+- `js/history-chips.js`: phone filter chips (Card, Category, Amount, Dates, Sort) and their bottom sheet; desktop hides them and uses the table filters.
 - `js/retailers.js`: ~300 curated SG brand → MCC entries (`conf`, `aliases`, `alt`, `promo`), text normalisation helpers.
 - `js/merchants.js`: typeahead for the recommender input. `js/search-mode.js` holds the Retailer / MCC switch (`state.searchMode`); it only filters suggestions, and the recommender still resolves both kinds of text.
 - `js/settings-ui.js`: the Settings sheet (Cards / Dates / Data tabs, one row per physical card with its own inputs). The input ids are read by `saveSettings()` in `ui.js`, so keep them when changing the layout.
