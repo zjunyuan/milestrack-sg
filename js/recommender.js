@@ -622,7 +622,7 @@ function tileNameParts(name) {
 
 // One tile per card. `btn` is the attribute string for its Log button, `chips` is extra HTML shown under the tile.
 function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rateNote }) {
-  const { main, tag } = tileNameParts(card.name);
+  const main = cardShort(card), tag = '';
   const rateText = rate === undefined || rate === null || rate === '' ? '' : ` · ${rate} mpd${rateNote || ''}`;
   return `
     <div class="card-tile${rank ? '' : ' card-tile-solo'}">
@@ -721,7 +721,7 @@ function decorateTierCallouts() {
   const text = box.textContent || '';
   const lines = [];
   for (const card of state.cards) {
-    if (!card.tierRule || !text.includes(card.name)) continue;
+    if (!card.tierRule || !(text.includes(card.name) || text.includes(cardShort(card)))) continue;
     if (card.id === 'kf-uob' && state.isKrisPlusMode) continue;   // Kris+ is the 3 mpd rate, no SIA spend needed
     const w = lockedWarning(card, tierStatus(card, { spend: card.currentSpend || 0, txns: state.transactions, renewalYm: state.uobRenewals.kf }));
     if (w) lines.push(w);
@@ -927,7 +927,7 @@ function ruleEditorHtml() {
     const rate = on ? d[d.tab][card.id] : defaultRate(card);
     return `<div class="rule-row">
       <input type="checkbox" id="rc_${card.id}" data-card="${card.id}" ${on ? 'checked' : ''}>
-      <label for="rc_${card.id}" class="rule-name">${escapeHtml(card.name)}</label>
+      <label for="rc_${card.id}" class="rule-name">${escapeHtml(cardShort(card))}</label>
       <input type="number" class="form-control rule-rate" data-rate="${card.id}" min="0.1" max="10" step="0.1" value="${rate}" ${on ? '' : 'disabled'} aria-label="Miles per dollar for ${escapeHtml(card.name)}">
       <span class="rule-unit">mpd</span>
     </div>`;

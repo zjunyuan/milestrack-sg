@@ -3,6 +3,7 @@
 // Source for the MCC: The Milelion, 28 May 2025. Voucher list and Max Miles rates: HeyMax explore page, 28 Oct 2026.
 import { setSearchMode } from "./search-mode.js";
 import { state } from "./state.js";
+import { cardShort } from "./config.js";
 import { getMccEntry } from "./mcc.js";
 import { calcEarnedMiles, getDaysUntilCycleEnd, runRecommendation } from "./recommender.js";
 import { minSpendGate, cycleEndLabel } from "./tiers.js";
@@ -134,7 +135,7 @@ export function openHeymaxSheet() {
         <div class="hm-row ${r.urgent ? "hm-urgent" : ""}">
           ${cardThumbHtml(r.card, "card-thumb-sm")}
           <div class="hm-row-main">
-            <b>${escapeHtml(r.card.name)}</b>
+            <b>${escapeHtml(cardShort(r.card))}</b>
             <div class="hm-sub">S$${fmtNum(r.remaining, 2)} of ${r.rate} mpd room left (S$${fmtNum(r.spend, 2)} of S$${fmtNum(r.card.monthlyCap)} used)</div>
             <div class="hm-sub ${r.urgent ? "hm-warn" : ""}">${r.urgent ? "⏳ " : ""}Cycle ends ${r.endLabel} (${r.daysLeft}d left)</div>
             ${r.belowMin ? `<div class="hm-sub hm-warn">Also reaches the S$${fmtNum(minSpendGate(r.card, { amount: r.remaining, rate: r.rate }).min)} minimum${r.lift ? `, lifting your earlier S$${fmtNum(r.spend, 2)} to ${r.rate} mpd (+${fmtNum(Math.round(r.lift))} mi)` : ""}.</div>` : ""}

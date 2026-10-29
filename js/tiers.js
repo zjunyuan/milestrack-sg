@@ -3,6 +3,7 @@
 //   { kind:'annual-sia', at, mpd }                 SIA Group spend in the membership year unlocks the rate
 // Pure functions: pass in the transactions and the date so they can be tested.
 
+import { cardShort } from "./config.js";
 export const SIA_GROUP_RE = /singapore ?air|\bsia\b|scoot|krisshop|kris\+|krisflyer|silk ?air|pelago/i;
 
 export function isSiaGroupTx(tx) {
@@ -66,8 +67,8 @@ export function tierStatus(card, { spend = 0, txns = [], renewalYm = "", now = n
 // One-line warning for the recommender when a card is shown at a rate that is not yet unlocked.
 export function lockedWarning(card, status) {
   if (!status || status.met) return "";
-  if (status.kind === "annual-sia") return `${card.name}: the ${status.steps[0].mpd} mpd rate needs ${money(status.steps[0].at)} of SIA Group spend this membership year (${money(status.spent)} so far), credited after the year ends.`;
-  return `${card.name}: ${status.next.mpd} mpd applies only once ${money(status.next.at)} is spent this month (${money(status.spent)} so far).`;
+  if (status.kind === "annual-sia") return `${cardShort(card)}: the ${status.steps[0].mpd} mpd rate needs ${money(status.steps[0].at)} of SIA Group spend this membership year (${money(status.spent)} so far), credited after the year ends.`;
+  return `${cardShort(card)}: ${status.next.mpd} mpd applies only once ${money(status.next.at)} is spent this month (${money(status.spent)} so far).`;
 }
 
 // Minimum-spend gate for one planned charge. Returns null when the card has no monthly minimum for this charge,
