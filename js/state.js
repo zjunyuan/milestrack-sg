@@ -15,6 +15,7 @@ export const state = {
   mccRules: {},            // household card rules per MCC, set by the admin (Firestore milestrack_mccRules)
   txSearchQuery: "",
   txCardFilter: "ALL",
+  txView: { sortKey: 'date', sortDir: 'desc', category: 'ALL', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' },   // History table: sort, category, amount range, date ranges
   enabledCardIds: ALL_MASTER_CARDS.map(c => c.id),
   cards: ALL_MASTER_CARDS,
   transactions: [],

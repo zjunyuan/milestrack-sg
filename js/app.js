@@ -286,6 +286,19 @@ document.getElementById('btnClearTxSearch')?.addEventListener('click', () => {
   }
 });
 
+// History advanced filters (category, amount range, date ranges)
+const txViewInputs = { txFilterCategory: 'category', txAmtMin: 'amtMin', txAmtMax: 'amtMax', txTransFrom: 'transFrom', txTransTo: 'transTo', txPostFrom: 'postFrom', txPostTo: 'postTo' };
+Object.entries(txViewInputs).forEach(([id, key]) => {
+  const el = document.getElementById(id);
+  el?.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { state.txView[key] = el.value; renderTransactions(); });
+});
+document.getElementById('btnClearTxFilters')?.addEventListener('click', () => {
+  Object.assign(state.txView, { category: 'ALL', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+  Object.keys(txViewInputs).forEach(id => { const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? 'ALL' : ''; });
+  renderTransactions();
+});
+window.matchMedia('(min-width: 900px)').addEventListener?.('change', () => renderTransactions());
+
 document.getElementById('txFilterCardSelect')?.addEventListener('change', (e) => {
   state.txCardFilter = e.target.value;
   renderTransactions();

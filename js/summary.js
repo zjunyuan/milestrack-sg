@@ -40,7 +40,7 @@ export function deltaText(d) {
 }
 
 const categoryCache = new Map();
-function categoryOf(desc) {
+export function categoryOf(desc) {
   const key = String(desc || '').toLowerCase();
   if (categoryCache.has(key)) return categoryCache.get(key);
   let cat = null;
