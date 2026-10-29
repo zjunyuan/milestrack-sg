@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.38.0";
+export const APP_VERSION = "v1.38.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -159,6 +159,7 @@ export function normalizeVault(data) {
 export const ALL_MASTER_CARDS = [
   { 
     id: 'dbs-yuu', 
+    annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS yuu',
     name: 'DBS yuu Card (10 mpd)', 
     bank: 'yuu', 
@@ -302,6 +303,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-wwmc', 
+    annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS WWMC',
     name: "DBS Woman's World Card", 
     bank: 'DBS', 
@@ -362,6 +364,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'hsbc-rev', 
+    annualFee: 'none',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'HSBC Revo',
     name: 'HSBC Revolution', 
     bank: 'HSBC', 
@@ -487,6 +490,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-altitude', 
+    annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS Altitude',
     name: 'DBS Altitude Card', 
     bank: 'DBS', 
