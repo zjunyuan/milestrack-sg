@@ -1,5 +1,5 @@
 import { fmtNum, fmtAuto } from "./format.js";
-import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort } from "./config.js";
 import { state } from "./state.js";
 import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
 import {
@@ -375,7 +375,7 @@ function renderRecommendationCore() {
 
       ${runnerUp ? `
         <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
-          🥈 Alternative: <b>${runnerUp.card.name}</b> (+${fmtNum(Math.round(runnerUp.totalMiles))} mi • ${runnerUp.effectiveRate} mpd)
+          🥈 Alternative: <b>${escapeHtml(cardShort(runnerUp.card))}</b> (+${fmtNum(Math.round(runnerUp.totalMiles))} mi • ${runnerUp.effectiveRate} mpd)
         </div>
       ` : ''}
 
@@ -605,7 +605,7 @@ function renderRecommendationCore() {
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${shellHtml}
-    ${moreHtml(mccData, effectiveChannel, runnerUp ? `<div class="rec-alt">🥈 Alternative: ${runnerUp.card.name} (${runnerUp.rate} mpd)</div>` : '')}
+    ${moreHtml(mccData, effectiveChannel, runnerUp ? `<div class="rec-alt">🥈 Alternative: ${escapeHtml(cardShort(runnerUp.card))} (${runnerUp.rate} mpd)</div>` : '')}
   `;
 
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {
