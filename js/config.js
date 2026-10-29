@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.4";
+export const APP_VERSION = "v1.44.5";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -386,7 +386,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'hsbc-rev', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "HSBC: 3.25% (1% network + 2.25% bank) since 4 Jan 2023 per MileLion, quoting HSBC's SMS to customers. Not yet confirmed from HSBC's own pages.",
+    fcyFeeSource: "HSBC credit cards FAQ (official, hsbc.com.sg/credit-cards/faq): 2.25% bank fee + 1% Visa/Mastercard fee = 3.25% on foreign-currency transactions (worked example). Extra 1% on DCC and on SGD transactions processed overseas. GST not mentioned; the FAQ is undated and the Fees and Charges PDF was not read. MileLion dates the 3.25% from 4 Jan 2023. Checked 29 Oct 2026.",
     annualFee: 'none',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'HSBC Revo',
     name: 'HSBC Revolution', 
