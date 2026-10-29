@@ -23,6 +23,7 @@ import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
+import { setFilterRows } from "./col-filter.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -177,20 +178,10 @@ export function earningProfileHtml(card) {
 export function renderCards() {
   const container = document.getElementById('cardsContainer');
   const select = document.getElementById('cardSelect');
-  const filterSelect = document.getElementById('txFilterCardSelect');
   if (!container || !select) return;
 
   container.innerHTML = '';
   select.innerHTML = '';
-
-  if (filterSelect) {
-    const currentFilter = filterSelect.value;
-    filterSelect.innerHTML = '<option value="ALL">All Cards</option>';
-    state.cards.forEach(c => {
-      filterSelect.innerHTML += `<option value="${c.id}">${escapeHtml(cardShort(c))}</option>`;
-    });
-    filterSelect.value = currentFilter || 'ALL';
-  }
 
   state.cards.forEach(card => {
     const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
@@ -446,6 +437,7 @@ export function renderTransactions() {
   if (!list.dataset.bound) {
     list.dataset.bound = '1';
     list.addEventListener('click', (e) => {
+      if (e.target.closest('.th-filter')) return;
       const th = e.target.closest('th[data-sort]');
       if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
       const selBtn = e.target.closest('[data-sel]');
@@ -479,22 +471,12 @@ export function renderTransactions() {
   const queryClean = state.txSearchQuery.toLowerCase().trim();
   const inPeriodRows = state.transactions.filter(inHistoryPeriod);
 
-  // Category dropdown follows the period; keep the current pick.
-  const catSel = document.getElementById('txFilterCategory');
-  if (catSel) {
-    const { names, none } = categoryOptions(inPeriodRows);
-    if (view.category !== 'ALL' && view.category !== NO_CATEGORY && !names.includes(view.category)) names.push(view.category);
-    catSel.innerHTML = `<option value="ALL">All categories</option>`
-      + names.sort().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')
-      + (none ? `<option value="${NO_CATEGORY}">Unrecognised</option>` : '');
-    catSel.value = view.category;
-  }
+  setFilterRows(inPeriodRows);
 
   renderTxChips(inPeriodRows);
 
   const filteredTxns = inPeriodRows.filter(tx => {
     const card = cardOf(tx);
-    if (state.txCardFilter !== "ALL" && tx.cardId !== state.txCardFilter) return false;
     if (!passesView(tx, view)) return false;
     if (queryClean) {
       const matchDesc = (tx.desc || '').toLowerCase().includes(queryClean);
@@ -515,7 +497,7 @@ export function renderTransactions() {
   const selectBar = sel.on ? selectBarHtml(rows) : '';
 
   if (badge) {
-    badge.innerText = (queryClean || state.txCardFilter !== "ALL" || viewIsFiltered(view))
+    badge.innerText = (queryClean || viewIsFiltered(view))
       ? `${rows.length} of ${inPeriodRows.length} shown`
       : `${inPeriodRows.length} recorded`;
   }
