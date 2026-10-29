@@ -164,7 +164,7 @@ export function resolveMccEntry(input) {
 
 
 // Rate an uncapped everyday card earns on spend with no bonus category, for the current mode.
-const OVERSEAS_GENERAL_MPD = { 'mb-world-mc': 3.2, 'mb-horizon-vs': 2.8, 'uob-prvi': 2.4, 'dbs-vantage': 2.2, 'dbs-altitude': 2.2, 'citi-pm': 2.2 };
+const OVERSEAS_GENERAL_MPD = { 'mb-world-mc': 3.2, 'mb-horizon-vs': 2.8, 'uob-prvi': 2.4, 'dbs-vantage': 2.2, 'dbs-altitude': 2.2, 'citi-pm': 2.2, 'trust-freedom': 1.3 };
 function generalRate(card) {
   if (state.isKrisPlusMode && card.id === 'kf-uob') return 3.0;
   if (state.isOverseasMode) return OVERSEAS_GENERAL_MPD[card.id] ?? card.baseMpd;

@@ -117,7 +117,7 @@ document.getElementById('btnHeaderLogout')?.addEventListener('click', logoutUser
 
 const VAULT_FIELDS = {
   v_uob_uni: 'uob_uni', v_citi_typ: 'citi_typ', v_citi_miles: 'citi_miles', v_dbs_pts: 'dbs_pts',
-  v_yuu_pts: 'yuu_pts', v_ocbc_pts: 'ocbc_pts', v_hsbc_pts: 'hsbc_pts', v_mb_treats: 'mb_treats', v_kf_miles: 'kf_direct'
+  v_yuu_pts: 'yuu_pts', v_ocbc_pts: 'ocbc_pts', v_hsbc_pts: 'hsbc_pts', v_mb_treats: 'mb_treats', v_kf_miles: 'kf_direct', v_trust_miles: 'trust_miles'
 };
 
 document.getElementById('btnHeaderVault')?.addEventListener('click', () => {
