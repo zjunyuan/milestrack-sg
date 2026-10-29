@@ -177,6 +177,10 @@ document.getElementById('btnCloseModal')?.addEventListener('click', closeModal);
 document.getElementById('btnCloseCardDetail')?.addEventListener('click', closeCardDetailModal);
 document.getElementById('btnCloseVault')?.addEventListener('click', () => document.getElementById('vaultOverlay')?.classList.remove('open'));
 document.getElementById('btnHeaderSettings')?.addEventListener('click', openSettingsModal);
+document.getElementById('btnHeaderShot')?.addEventListener('click', async () => {      // one long picture of the tab on screen
+  const [{ saveTabImage }, { showToast }] = await Promise.all([import('./shot.js'), import('./log-feedback.js')]);
+  saveTabImage((m) => showToast(m));
+});
 document.getElementById('btnOpenExpirySettings')?.addEventListener('click', openSettingsModal);
 document.getElementById('btnCloseSettings')?.addEventListener('click', closeSettingsModal);
 document.getElementById('btnSaveSettings')?.addEventListener('click', saveSettings);
