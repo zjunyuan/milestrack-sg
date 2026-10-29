@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.5";
+export const APP_VERSION = "v1.45.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -14,6 +14,9 @@ export const EUGENE_EMAILS = ["geneer@gmail.com"];
 export const TEST_EMAILS = ["junyuanxeunice@gmail.com"];
 
 // Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
+// What one mile is worth, in cents. Used only for the overseas "after fees" comparison (js/fcy.js).
+export const FCY_MILE_VALUE_CENTS = 1.3;
+
 export const ALL_VAULT_KEYS = ["primary", "sister", "ellice", "eugene", "test"];
 export const VAULT_LABELS = {
   primary: "Zhangs",

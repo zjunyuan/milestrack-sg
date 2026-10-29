@@ -1,5 +1,5 @@
 import { fmtNum, fmtAuto } from "./format.js";
-import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort, FCY_MILE_VALUE_CENTS } from "./config.js";
 import { state } from "./state.js";
 import { setLogContext, syncSplit } from "./log-feedback.js";
 import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
@@ -17,6 +17,7 @@ import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-me
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { slipLine, slipRisk, SLIP_ALERT_MIN } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
+import { rankByNet } from "./fcy.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -223,7 +224,10 @@ function renderRecommendation() {
   appendKrisPlusNote();
 }
 
+let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
+
 function renderRecommendationCore() {
+  lastFcy = null;
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -306,6 +310,8 @@ function renderRecommendationCore() {
     `;
     return;
   }
+
+  if (state.isOverseasMode && !state.isKrisPlusMode) lastFcy = { amt, cands: myOwnedCandidates };
 
   // Branch 1: Single Card Swipe Mode
   if (state.isSingleSwipeMode) {
@@ -737,11 +743,56 @@ function decorateTierCallouts() {
   }
 }
 
+
+// Overseas only: miles, FX fee and cost per mile for each card you could use, with the best card after fees marked.
+// Display only: the recommendation above is unchanged.
+function decorateFcyFees() {
+  const box = document.getElementById('recResultArea');
+  if (!box) return;
+  box.querySelectorAll('.fcy-fees').forEach(n => n.remove());
+  if (!lastFcy || !state.isOverseasMode || state.isKrisPlusMode) return;
+  const { amt, cands } = lastFcy;
+  const seen = new Map();
+  const add = (card, rate) => { if (card && !seen.has(card.id)) seen.set(card.id, { card, rate }); };
+  cands.forEach(c => add(state.cards.find(x => x.id === c.id), c.baseRate));
+  state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(c => add(c, generalRate(c)));
+  const rows = [];
+  for (const { card, rate: listed } of seen.values()) {
+    let rate = listed;
+    const spend = Number(card.currentSpend) || 0;
+    if (card.id === 'mb-world-mc') rate = (spend + amt >= 4000) ? 3.2 : (spend + amt >= 800 ? 2.8 : card.baseMpd);
+    const gate = minSpendGate(card, { cardSpend: spend, amount: amt, rate, overseas: true });
+    let note = '';
+    if (gate && gate.locked) { rate = card.baseMpd; note = `${gate.unlockMpd} mpd needs S$${fmtNum(gate.needMore, 2)} more spend`; }
+    const cap = card.monthlyCap >= 999999 ? amt : Math.max(0, card.monthlyCap - spend);
+    const miles = cap >= amt ? calcEarnedMiles(card, amt, rate)
+      : calcEarnedMiles(card, cap, rate) + calcEarnedMiles(card, amt - cap, card.baseMpd);
+    if (cap < amt) note = note || `bonus cap runs out after S$${fmtNum(cap, 0)}`;
+    rows.push({ card, miles, rate, note });
+  }
+  const ranked = rankByNet(rows, amt);
+  if (ranked.length < 1) return;
+  const best = ranked[0];
+  const cents = x => x === null ? 'no miles' : `${x.toFixed(2)}¢`;
+  const money = x => `${x < 0 ? '-' : ''}S$${fmtNum(Math.abs(x), 2)}`;
+  const body = ranked.map((r, i) => `<tr class="${i === 0 ? 'fcy-best' : ''}${r.eco.net < 0 ? ' fcy-neg' : ''}">
+      <td>${i === 0 ? '✅ ' : ''}${escapeHtml(cardShort(r.card))}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</td>
+      <td>${fmtNum(Math.round(r.eco.miles))}</td><td>${r.eco.feePct}% · ${money(r.eco.fee)}</td><td>${cents(r.eco.costPerMileCents)}</td><td>${money(r.eco.net)}</td></tr>`).join('');
+  const warn = ranked.some(r => r.eco.net < 0) ? '<div class="fcy-foot">⚠️ A negative net means the fee costs more than the miles are worth.</div>' : '';
+  const div = document.createElement('div');
+  div.className = 'fcy-fees';
+  div.innerHTML = `<details open><summary>💱 After FX fees, on S$${fmtAuto(amt)}: best is <b>${escapeHtml(cardShort(best.card))}</b> (${money(best.eco.net)} net)</summary>
+    <table class="fcy-table"><thead><tr><th>Card</th><th>Miles</th><th>FX fee</th><th>Cost / mile</th><th>Net</th></tr></thead><tbody>${body}</tbody></table>
+    <div class="fcy-foot">Cost per mile = FX fee ÷ miles earned. Net = miles × ${FCY_MILE_VALUE_CENTS}¢ − fee. Assumes you pay in the foreign currency; choosing SGD at the terminal adds a separate 1% and is not counted.</div>${warn}</details>`;
+  box.appendChild(div);
+}
+
 export function runRecommendation() {
   updateOptionsBadge();
   applyRateSchedule();
   renderRecommendation();
   decorateTierCallouts();
+  decorateFcyFees();
   decorateRetailerTools();
   decorateRuleTools();
 }

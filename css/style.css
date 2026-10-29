@@ -1067,3 +1067,15 @@ body:has(#demoBar) { padding-top: 28px; }
 .cv-table td.cv-yes { background: rgba(74, 222, 128, 0.22); color: #4ade80; font-weight: 700; }
 .cv-table td.cv-no { color: #fbbf24; background: rgba(251, 191, 36, 0.10); }
 .cv-table td.cv-future { background: transparent; }
+
+/* overseas: after-FX-fee comparison */
+.fcy-fees { margin-top: 10px; background: var(--surface); border: 1px solid var(--surface-variant); border-left: 3px solid var(--fcy-cyan); border-radius: 12px; padding: 8px 10px; font-size: 0.8rem; }
+.fcy-fees summary { cursor: pointer; font-weight: 600; }
+.fcy-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.75rem; }
+.fcy-table th { text-align: right; font-weight: 600; color: #94a3b8; padding: 3px 4px; }
+.fcy-table th:first-child, .fcy-table td:first-child { text-align: left; }
+.fcy-table td { text-align: right; padding: 4px; border-top: 1px solid var(--surface-variant); }
+.fcy-table td small { display: block; color: var(--warning); font-size: 0.68rem; }
+.fcy-table tr.fcy-best td { font-weight: 700; }
+.fcy-table tr.fcy-neg td:last-child { color: var(--danger); }
+.fcy-foot { margin-top: 6px; font-size: 0.7rem; color: #94a3b8; line-height: 1.35; }
