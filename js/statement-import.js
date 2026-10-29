@@ -7,7 +7,7 @@ import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 
@@ -112,15 +112,24 @@ function recompute() {
   const fam = familyOf(S.card.id);
   const existing = state.transactions.filter(t => fam.includes(t.cardId));
   const m = matchLines(lines, existing, { cardId: keyCardId() });
+  // Bank statements win: a leftover line may be something logged on the wrong card (and not yet confirmed by any statement).
+  const others = state.transactions.filter(t => !fam.includes(t.cardId) && !t.stmtConfirmed && !t.stmtKey && t.source !== "statement");
+  matchOtherCards(m.results, others);
   S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {}; S.post = {};
-  if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs") S.chan[i] = guessEntry(r.line); });
+  if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs" || r.status === "moved") S.chan[i] = guessEntry(r.line); });
+  // What the statement changes on a matched entry: its date, and the "confirmed by a statement" mark.
+  m.results.forEach(r => {
+    if (!r.existing) return;
+    r.dateChanged = dayKey(r.existing.timestamp || 0) !== dayKey(r.line.ts);
+    r.unconfirmed = !r.existing.stmtConfirmed && r.existing.source !== "statement";
+  });
   // Posting-date cards: which cycle each line counts to, and whether my entry needs its posting date recorded.
   m.results.forEach((r, i) => {
-    const c = r.existing ? ALL_MASTER_CARDS.find(x => x.id === r.existing.cardId) || S.card : targetCard(r.line, i);
+    const c = r.existing && r.status !== "moved" ? ALL_MASTER_CARDS.find(x => x.id === r.existing.cardId) || S.card : targetCard(r.line, i);
     r.timing = r.status === "credit" ? null : statementTiming(c, r.line);
     if (r.existing && r.timing && r.timing.status === "posted-later" && Number(r.existing.postTs) !== r.line.postTs) S.post[i] = true;
   });
-  m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : r.status === "differs" ? "statement" : "skip"; });
+  m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : (r.status === "differs" || r.status === "moved") ? "statement" : "skip"; });
   renderReview();
 }
 // Online-vs-tap (PPV) or dining-vs-travel (Lady's) cannot be read from a statement: a per-line choice, guessed for PPV.
@@ -155,9 +164,17 @@ function rowHtml(r, i) {
     return `<div class="st-line st-differs">${head}${timingHtml(r, i)}
       <div class="st-sub st-warn">⚠️ ${escapeHtml(r.reason)} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)})</div>
       <select class="form-control st-choice" data-i="${i}">
-        <option value="statement">Use the statement amount (${money(l.amt)})</option>
-        <option value="keep">Keep my amount (${money(Number(r.existing.amt))})</option>
-        <option value="new">Add as a separate purchase</option>
+        <option value="statement">Update my entry from the statement (${money(l.amt)}${r.dateChanged ? ", " + dateLabel(l.ts) : ""})</option>
+        <option value="new">Not the same purchase: add separately</option>
+      </select></div>`;
+  }
+  if (r.status === "moved") {
+    return `<div class="st-line st-differs">${head}${timingHtml(r, i)}
+      <div class="st-sub st-warn">🔀 You logged this on ${escapeHtml(entryLabel(r.existing.cardId))} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)}). The statement says it was on this card.</div>
+      ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : ""}
+      <select class="form-control st-choice" data-i="${i}">
+        <option value="statement">Move my entry to ${escapeHtml(targetCard(l, i).name)}</option>
+        <option value="new">Not the same purchase: add separately</option>
       </select></div>`;
   }
   if (r.status === "new") {
@@ -166,7 +183,7 @@ function rowHtml(r, i) {
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
-  return `<div class="st-line">${head}${timingHtml(r, i)}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "")}</div></div>`;
+  return `<div class="st-line">${head}${timingHtml(r, i)}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "") + (r.existing && r.dateChanged ? ` · date set to ${dateLabel(r.line.ts)} from the statement` : "")}</div></div>`;
 }
 
 function timingSummary() {
@@ -195,10 +212,11 @@ function renderReview() {
       <select class="form-control" id="stBulk"><option value="">Set all new lines to…</option><option value="__guess">Guess from the merchant name</option>${ids.map(id => `<option value="${id}">${escapeHtml(entryLabel(id))}</option>`).join("")}</select></div>` : "";
   box.innerHTML = `${bulk}
     <div class="st-summary">
-      <span><b>${n.new}</b> new</span><span><b>${n.differs}</b> differ</span><span><b>${n.matched}</b> already logged</span><span><b>${n.credit}</b> credits skipped</span>
+      <span><b>${n.new}</b> new</span><span><b>${n.differs}</b> differ</span>${n.moved ? `<span><b>${n.moved}</b> on another card</span>` : ""}<span><b>${n.matched}</b> already logged</span><span><b>${n.credit}</b> credits skipped</span>
     </div>
     ${timingSummary()}
-    ${group("differs", "⚠️ Amount differs: you decide", true)}
+    ${group("moved", "🔀 Logged on another card: moved here", true)}
+    ${group("differs", "⚠️ Amount differs: the statement wins", true)}
     ${group("new", "➕ New: not in your list yet", true)}
     ${group("matched", "✅ Already in your list")}
     ${group("credit", "↩️ Refunds and payments (skipped)")}
@@ -218,24 +236,24 @@ function renderReview() {
 }
 
 function plan() {
-  let add = 0, update = 0;
+  let add = 0, update = 0, confirm = 0;
   S.results.forEach((r, i) => {
     const c = S.choice[i];
     if (r.status === "new" && c === "add") add++;
-    if (r.status === "differs") { if (c === "statement") update++; else if (c === "new") add++; }
-    else if (r.status === "matched" && S.post[i]) update++;
+    if (r.status === "differs" || r.status === "moved") { if (c === "statement") update++; else if (c === "new") add++; }
+    else if (r.status === "matched" && r.existing) { if (r.dateChanged || S.post[i]) update++; else if (r.unconfirmed) confirm++; }
   });
-  return { add, update };
+  return { add, update, confirm };
 }
 function updateApplyLabel() {
   const p = plan();
   const btn = $("btnStmtApply");
-  btn.disabled = p.add + p.update === 0;
-  btn.textContent = p.add + p.update === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}`;
+  btn.disabled = p.add + p.update + p.confirm === 0;
+  btn.textContent = p.add + p.update + p.confirm === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}`;
 }
 
 // Fields an import can change on an existing transaction; undo puts them back.
-const UNDO_FIELDS = ["postTs", "amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote"];
+const UNDO_FIELDS = ["postTs", "amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote", "timestamp", "date", "cardId", "bonusCategory", "stmtConfirmed", "stmtDesc"];
 
 // The most recent import still in the list: lines it added, and lines it changed.
 export function lastImport() {
@@ -266,9 +284,10 @@ async function undoLastImport() {
   try {
     for (const t of li.updated) {
       const rec = { ...t }; delete rec.firestoreId;
-      for (const f of [...UNDO_FIELDS, "importId", "importedAt", "importUpdated", "importPrev", "vaultDelta"]) delete rec[f];
+      for (const f of [...UNDO_FIELDS, "importId", "importedAt", "importUpdated", "importPrev", "vaultDelta", "vaultAdj"]) delete rec[f];
       await saveTxToFirestore(t.id, { ...rec, ...(t.importPrev || {}) });
-      take(t, Number(t.vaultDelta) || 0);
+      if (t.vaultAdj && typeof t.vaultAdj === "object") { for (const [k, raw] of Object.entries(t.vaultAdj)) if (raw) vaultMinus[k] = (vaultMinus[k] || 0) + Number(raw); }
+      else take(t, Number(t.vaultDelta) || 0);
     }
     for (const t of li.added) {
       await deleteTxFromFirestore(t.firestoreId || t.id);
@@ -289,19 +308,24 @@ async function applyImport() {
   const card = S.card, btn = $("btnStmtApply");
   const addVault = $("stAddVault").checked;
   const p = plan();
-  if (!confirm(`Add ${p.add} and update ${p.update} transaction${p.add + p.update === 1 ? "" : "s"} on ${card.name}?`)) return;
+  const total = p.add + p.update + p.confirm;
+  if (!confirm(`Add ${p.add}, update ${p.update}${p.confirm ? ` and confirm ${p.confirm}` : ""} transaction${total === 1 ? "" : "s"} for ${card.name}? Where the statement disagrees with an entry of yours, the statement wins (you can undo the import).`)) return;
   btn.disabled = true;
   const bucketSpend = {};
   for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
-  let done = 0, rawDelta = 0, seq = 0;
+  let done = 0, seq = 0;
+  const vaultDeltas = {};                       // vault key -> raw points to add (negative to take away)
+  const addDelta = (map, key, raw) => { if (key && raw) map[key] = (map[key] || 0) + raw; };
   const base = Date.now();
   const importId = "imp" + base.toString(36);
   const stamp = { importId, importedAt: base };
+  const dateStr = ts => new Date(ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" });
+  const prevOf = old => { const prev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) prev[f] = old[f]; return prev; };
   try {
     const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
     for (const i of order) {
       const r = S.results[i], c = S.choice[i], l = r.line;
-      const makeNew = (r.status === "new" && c === "add") || (r.status === "differs" && c === "new");
+      const makeNew = (r.status === "new" && c === "add") || ((r.status === "differs" || r.status === "moved") && c === "new");
       if (makeNew) {
         const tCard = targetCard(l, i);
         const postTs = postFor(tCard, l);
@@ -312,43 +336,58 @@ async function applyImport() {
         await saveTxToFirestore(id, {
           id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: tCard.id,
           bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
-          date: new Date(l.ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" }),
-          source: "statement", estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+          date: dateStr(l.ts),
+          source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
         });
-        rawDelta += est.earnedRawPoints; done++;
-      } else if (r.status === "matched" && S.post[i] && r.existing) {
+        addDelta(vaultDeltas, tCard.vaultKey, est.earnedRawPoints); done++;
+      } else if (r.status === "matched" && r.existing && (r.dateChanged || r.unconfirmed || S.post[i])) {
+        // The statement confirms this entry: mark it, take the statement's date, and record the posting date when it matters.
         const old = { ...r.existing }; delete old.firestoreId;
         const oc = ALL_MASTER_CARDS.find(x => x.id === old.cardId) || card;
-        const pt = postFor(oc, l);
-        if (!pt) continue;
-        const importPrev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) importPrev[f] = old[f];
-        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, postTs: pt });
+        const pt = S.post[i] ? postFor(oc, l) : null;
+        const patch = { stmtKey: r.key, stmtConfirmed: true, stmtDesc: l.desc, ...(r.dateChanged ? { timestamp: l.ts, date: dateStr(l.ts) } : {}), ...(pt ? { postTs: pt } : {}) };
+        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev: prevOf(old), ...patch });
         done++;
-      } else if (r.status === "differs" && (c === "statement" || c === "keep")) {
+      } else if ((r.status === "differs" || r.status === "moved") && c === "statement" && r.existing) {
+        // The statement wins: its amount, date and card replace the entry's. The channel and the friendly name stay as the user set them.
         const old = { ...r.existing }; delete old.firestoreId;
-        const importPrev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) importPrev[f] = old[f];
-        if (c === "keep") { await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, stmtKey: r.key, stmtNote: `Statement said S$${l.amt.toFixed(2)}` }); continue; }
-        const oc = ALL_MASTER_CARDS.find(c => c.id === old.cardId) || card;
-        const rate = old.bonusCategory === "bonus" ? oc.bonusMpd : oc.baseMpd;
-        const miles = calcEarnedMiles(oc, l.amt, rate);
-        const ratio = state.myVault[oc.vaultKey]?.ratio || 1;
-        const raw = Math.round(miles / ratio);
-        const delta = raw - (Number(old.earnedRawPoints) || 0);
-        rawDelta += delta;
-        await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev, ...(addVault ? { vaultDelta: delta } : {}), ...(postFor(oc, l) ? { postTs: postFor(oc, l) } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw, stmtKey: r.key, reconciled: true, estimatedMiles: true });
+        const oldCard = ALL_MASTER_CARDS.find(x => x.id === old.cardId) || card;
+        const nc = r.status === "moved" ? targetCard(l, i) : oldCard;
+        const pt = postFor(nc, l);
+        let bonusCategory = old.bonusCategory, miles, raw;
+        if (r.status === "moved") {
+          const bucket = nc.id + cycleBucket(nc, pt ? countsTs({ timestamp: l.ts, postTs: pt }, nc) : l.ts);
+          const est = estimateTx(nc, l, bucketSpend[bucket] || 0);
+          bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
+          bonusCategory = est.bonusCategory; miles = est.miles; raw = est.earnedRawPoints;
+        } else {
+          const rate = old.bonusCategory === "bonus" ? nc.bonusMpd : nc.baseMpd;
+          miles = calcEarnedMiles(nc, l.amt, rate);
+          raw = Math.round(miles / (state.myVault[nc.vaultKey]?.ratio || 1));
+        }
+        const adj = {};
+        if (addVault) { addDelta(adj, oldCard.vaultKey, -(Number(old.earnedRawPoints) || 0)); addDelta(adj, nc.vaultKey, raw); for (const [k, v] of Object.entries(adj)) addDelta(vaultDeltas, k, v); }
+        await saveTxToFirestore(old.id, {
+          ...old, ...stamp, importUpdated: true, importPrev: prevOf(old),
+          ...(addVault && Object.keys(adj).length ? { vaultAdj: adj } : {}),
+          cardId: nc.id, bonusCategory, timestamp: r.dateChanged ? l.ts : old.timestamp, date: r.dateChanged ? dateStr(l.ts) : old.date,
+          ...(pt ? { postTs: pt } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw,
+          stmtKey: r.key, stmtConfirmed: true, stmtDesc: l.desc, reconciled: true, estimatedMiles: true
+        });
         done++;
       }
     }
-    if (addVault && rawDelta && state.myVault[card.vaultKey]) {
-      state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) + rawDelta);
-      await updateVaultDoc(state.myVaultKey, state.myVault);
+    if (addVault) {
+      let touched = false;
+      for (const [k, raw] of Object.entries(vaultDeltas)) if (raw && state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) + raw); touched = true; }
+      if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
     }
     if (S.hint && S.hint.last4) { const m = loadRemembered(); m[S.hint.last4] = card.id; saveRemembered(m); }
     closeStatementSheet();
     alert(`Imported ${done} transaction${done === 1 ? "" : "s"}.${addVault ? "" : " Your bank points balances were not changed."} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
   } catch (err) {
     console.error("Statement import failed", err);
-    alert(`Import stopped after ${done} of ${p.add + p.update}: ${err?.message || err}. Re-run the same file: lines already imported are recognised and skipped.`);
+    alert(`Import stopped after ${done} of ${total}: ${err?.message || err}. Re-run the same file: lines already imported are recognised and skipped.`);
     btn.disabled = false;
   }
 }

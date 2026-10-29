@@ -301,8 +301,35 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
   return { results, missing };
 }
 
+// Statement lines still "new" after matchLines may be purchases the user logged on the WRONG card. `others` = logged transactions on other
+// cards that no statement has confirmed. Same amount and a close date, with a similar name (or the same/next day): the line takes that entry.
+// Sets status "moved" and r.existing on the matched lines. Each logged transaction is used once.
+export function matchOtherCards(results, others, { windowDays = 3 } = {}) {
+  const used = new Set();
+  const cands = [];
+  for (const r of results) {
+    if (r.status !== "new" || r.line.fee) continue;
+    others.forEach((tx, k) => {
+      if (Math.abs((Number(tx.amt) || 0) - r.line.amt) >= 0.005) return;
+      const dd = Math.abs(Math.round(((tx.timestamp || 0) - r.line.ts) / DAY_MS));
+      if (dd > windowDays) return;
+      const sim = descSimilarity(r.line.merchant || r.line.desc, tx.desc);
+      if (!(sim >= 0.34 || dd <= 1)) return;
+      cands.push({ r, k, tx, score: sim * 2 - dd * 0.1 });
+    });
+  }
+  cands.sort((a, b) => b.score - a.score);
+  for (const c of cands) {
+    if (c.r.status !== "new" || used.has(c.k)) continue;
+    used.add(c.k);
+    c.r.status = "moved"; c.r.existing = c.tx;
+    c.r.reason = "Logged on another card";
+  }
+  return results;
+}
+
 export function summarize(results) {
-  const n = { matched: 0, differs: 0, new: 0, credit: 0, repeatsInStatement: 0 };
+  const n = { matched: 0, differs: 0, moved: 0, new: 0, credit: 0, repeatsInStatement: 0 };
   for (const r of results) { n[r.status]++; if (r.repeatTotal > 1 && r.repeat === 1) n.repeatsInStatement++; }
   return n;
 }
