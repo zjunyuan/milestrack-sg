@@ -3,7 +3,6 @@
 // Calculated from logged transactions and card settings only; nothing is stored.
 import { state } from "./state.js";
 import { cardShort } from "./config.js";
-import { familyOf } from "./statements.js";
 import { findRetailerForInput, escapeHtml } from "./retailers.js";
 import { getMccEntry, shortCategory } from "./mcc.js";
 import { fmtNum } from "./format.js";
@@ -54,40 +53,28 @@ function categoryOf(desc) {
   return cat;
 }
 
-// One row per physical card: its channel entries share a cap.
+// One row per card entry: channel entries (e.g. UOB PPV Tap / Online) each have their own cap.
 function capFamilies(stmtSpent, y, m, txns) {
-  const seen = new Set(), rows = [];
+  const rows = [];
   for (const card of state.cards) {
-    const fam = familyOf(card.id);
-    const key = fam[0];
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const members = state.cards.filter(c => fam.includes(c.id));
-    const first = members[0];
     // yuu's 10 mpd is gated by a minimum spend and merchant count, so it has its own check below.
-    if (!first || first.id === 'dbs-yuu' || first.monthlyCap >= 999999 || !(first.bonusMpd > first.baseMpd)) continue;
-    let spent = 0;
-    const txs = [];
-    for (const c of members) {
-      if (c.cycleType === 'statement') spent += stmtSpent(c, y, m);
-      else {
-        const own = txns.filter(t => t.cardId === c.id);
-        spent += own.reduce((s, t) => s + (Number(t.amt) || 0), 0);
-        txs.push(...own);
-      }
-    }
+    if (card.id === 'dbs-yuu' || card.monthlyCap >= 999999 || !(card.bonusMpd > card.baseMpd)) continue;
+    const own = txns.filter(t => t.cardId === card.id);
+    const spent = card.cycleType === 'statement'
+      ? stmtSpent(card, y, m)
+      : own.reduce((s, t) => s + (Number(t.amt) || 0), 0);
     if (spent <= 0) continue;
     let cappedOn = null;
-    if (spent >= first.monthlyCap && txs.length) {
+    if (spent >= card.monthlyCap && card.cycleType !== 'statement' && own.length) {
       let run = 0;
-      for (const t of txs.slice().sort((a, b) => a.timestamp - b.timestamp)) {
+      for (const t of own.slice().sort((a, b) => a.timestamp - b.timestamp)) {
         run += Number(t.amt) || 0;
-        if (run >= first.monthlyCap) { cappedOn = new Date(t.timestamp); break; }
+        if (run >= card.monthlyCap) { cappedOn = new Date(t.timestamp); break; }
       }
     }
-    const unused = Math.max(0, first.monthlyCap - spent);
-    rows.push({ name: cardShort(first).replace(/\.[^.]*$/, ''), cap: first.monthlyCap, spent, unused,
-      upTo: Math.round(unused * (first.bonusMpd - first.baseMpd)), cappedOn, mpd: first.bonusMpd });
+    const unused = Math.max(0, card.monthlyCap - spent);
+    rows.push({ name: cardShort(card), cap: card.monthlyCap, spent, unused,
+      upTo: Math.round(unused * (card.bonusMpd - card.baseMpd)), cappedOn, mpd: card.bonusMpd });
   }
   return rows.sort((a, b) => b.unused - a.unused);
 }
