@@ -36,15 +36,19 @@ export function incremental(eco, baseEco) {
   };
 }
 
-// rows: [{ card, capped, ... }], milesOf(row) -> miles for `amount` (the caller applies caps, rounding and the billed amount).
+// rows: [{ card, capped, room, ... }], milesOf(row, amount) -> miles for that amount on that card (the caller applies caps, rounding and the billed amount).
+// A capped card is only ever used up to its cap room, and the rest of the amount goes to the best uncapped card, so it is judged on that
+// portion alone (min(amount, room)) against what the baseline would earn and cost on the same portion. Judging it on the whole amount would
+// charge it for a base rate it never gets used at, and a large purchase would wrongly throw out every bonus card.
 // Returns:
 //   best      the uncapped row with the best net (the baseline everything else is measured against)
 //   noFee     best-miles uncapped card with no FX fee (or null)
 //   withFee   best-miles uncapped card that charges a fee and earns more miles than noFee (or null)
-//   bonus     capped rows that beat the baseline, in the order given (the caller's whitelist/blacklist order)
+//   bonus     capped rows that beat the baseline on their portion, in the order given (the caller's whitelist/blacklist order)
 //   hidden    capped rows that do not beat it at the current mile value
 export function planOverseas(rows, amount, { milesOf, valueCents = FCY_MILE_VALUE_CENTS } = {}) {
-  const scored = rows.map(r => ({ ...r, eco: fcyEconomics(r.card, amount, milesOf(r), valueCents) })).filter(r => r.eco);
+  const portionOf = r => (r.capped ? Math.min(amount, Number(r.room) || 0) : amount);
+  const scored = rows.map(r => { const portion = portionOf(r); return { ...r, portion, eco: fcyEconomics(r.card, portion, milesOf(r, portion), valueCents) }; }).filter(r => r.eco);
   const uncapped = scored.filter(r => !r.capped).sort((a, b) => b.eco.net - a.eco.net || b.eco.miles - a.eco.miles);
   const capped = scored.filter(r => r.capped);
   const best = uncapped[0] || null;
@@ -55,8 +59,10 @@ export function planOverseas(rows, amount, { milesOf, valueCents = FCY_MILE_VALU
   const withInc = r => ({ ...r, inc: baseEco ? incremental(r.eco, baseEco) : null });
   const bonus = [], hidden = [];
   for (const r of capped) {
-    const x = withInc(r);
-    (!baseEco || x.inc.gain > 0 ? bonus : hidden).push(x);
+    // the baseline on the same portion this card would take
+    const baseOnPortion = best ? fcyEconomics(best.card, r.portion, milesOf(best, r.portion), valueCents) : null;
+    const x = { ...r, inc: baseOnPortion ? incremental(r.eco, baseOnPortion) : null };
+    (!baseOnPortion || x.inc.gain > 0 ? bonus : hidden).push(x);
   }
   return {
     best: best && withInc(best),
