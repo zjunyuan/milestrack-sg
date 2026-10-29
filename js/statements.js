@@ -237,7 +237,12 @@ export function lineKey(cardId, line, occurrence = 1) {
 //   new      not in the list yet
 //   credit   a refund or payment (negative): skipped by default, the app only tracks spend
 // Returns { results, missing } where missing = logged transactions in the statement's date range that the statement does not show.
-export function matchLines(lines, existing, { cardId = "", windowDays = 3, looseDays = 5 } = {}) {
+// Statements that only print the POSTING date (OCBC): the date on a line is when the bank posted it, usually 0 to 3 days after the purchase,
+// so a line dated up to 3 days after my entry counts as the same day. postOnly also tells the importer to keep my transaction date.
+export const POSTING_ONLY_CARDS = new Set(["ocbc-rewards"]);
+const postLag = (entryTs, lineTs) => { const lag = Math.round((lineTs - entryTs) / DAY_MS); return lag < 0 ? -lag : Math.max(0, lag - 3); };
+
+export function matchLines(lines, existing, { cardId = "", windowDays = 3, looseDays = 5, postOnly = false } = {}) {
   const used = new Set();
   const results = lines.map((line, i) => ({ line, idx: i, status: line.amt < 0 ? "credit" : "new", existing: null, reason: "", key: "", repeat: 1 }));
 
@@ -253,7 +258,7 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
 
   const spend = results.filter(r => r.status !== "credit");
   const pool = existing.map((tx, k) => ({ tx, k }));
-  const days = (a, b) => Math.abs(Math.round((a - b) / DAY_MS));
+  const days = postOnly ? postLag : (a, b) => Math.abs(Math.round((a - b) / DAY_MS));
 
   // 0. same fingerprint as an earlier import
   for (const r of spend) {
@@ -321,14 +326,14 @@ export function matchLines(lines, existing, { cardId = "", windowDays = 3, loose
 // Statement lines still "new" after matchLines may be purchases the user logged on the WRONG card. `others` = logged transactions on other
 // cards that no statement has confirmed. Same amount and a close date, with a similar name (or the same/next day): the line takes that entry.
 // Sets status "moved" and r.existing on the matched lines. Each logged transaction is used once.
-export function matchOtherCards(results, others, { windowDays = 3 } = {}) {
+export function matchOtherCards(results, others, { windowDays = 3, postOnly = false } = {}) {
   const used = new Set();
   const cands = [];
   for (const r of results) {
     if (r.status !== "new" || r.line.fee) continue;
     others.forEach((tx, k) => {
       if (Math.abs((Number(tx.amt) || 0) - r.line.amt) >= 0.005) return;
-      const dd = Math.abs(Math.round(((tx.timestamp || 0) - r.line.ts) / DAY_MS));
+      const dd = postOnly ? postLag(tx.timestamp || 0, r.line.ts) : Math.abs(Math.round(((tx.timestamp || 0) - r.line.ts) / DAY_MS));
       if (dd > windowDays) return;
       const sim = descSimilarity(r.line.merchant || r.line.desc, tx.desc);
       if (!(sim >= 0.34 || dd <= 1)) return;
