@@ -1112,3 +1112,20 @@ body:has(#demoBar) { padding-top: 28px; }
 .cf-empty { color: #94a3b8; font-size: 0.8rem; padding: 6px; }
 .cf-foot { display: flex; justify-content: flex-end; }
 .cf-foot .btn-backup { padding: 6px 12px; font-size: 0.78rem; }
+
+/* Overseas split: pick one of the two uncapped cards for the last slice */
+.fcy-pick { padding: 10px; }
+.fp-head { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 8px; }
+.ct-rank-inline { position: static; flex: none; }
+.fcy-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fcy-pick-opt { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--surface-variant); border-radius: 10px; padding: 8px; min-width: 0; }
+.fcy-pick-opt.on { border-color: var(--fcy-cyan); background: rgba(56, 189, 248, 0.08); }
+.fcy-pick-sel { all: unset; display: flex; flex-direction: column; gap: 2px; cursor: pointer; font-size: 0.78rem; line-height: 1.35; }
+.fcy-pick-sel .fp-name { font-weight: 700; font-size: 0.9rem; }
+.fcy-pick-sel .fp-tag { color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.fcy-pick-sel .fp-mi { color: var(--success, #4ade80); font-weight: 600; }
+.fcy-pick-sel .fp-fee { color: #94a3b8; font-size: 0.72rem; }
+.fp-caveat { font-size: 0.7rem; color: var(--warning); line-height: 1.35; }
+.fp-vs { margin-top: 8px; font-size: 0.74rem; color: #94a3b8; }
+@media (max-width: 380px) { .fcy-pick-grid { grid-template-columns: 1fr; } }
+.fp-head b { white-space: nowrap; }
