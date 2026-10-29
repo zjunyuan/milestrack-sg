@@ -173,9 +173,52 @@ async function readByOcr(pdf, progress) {
     if (out.v.ok) break;
   }
   if (out.c.rows.length < 2) throw new Error(NO_LINES);
+  if (!out.v.ok) {                                                   // last try: the statement's own summary figures (majority of the readings)
+    const fig = summaryVote(passes);
+    const fixed = repairWithSummary(out.c.rows, fig);
+    const v = verifyBalance(out.c.lines, fixed, fig);
+    if (v.ok) return { name: "", last4: "", rows: fixed, verify: v };
+  }
   return { name: "", last4: "", rows: out.c.rows, verify: out.v };
 }
 
+// "Payments & Credits 35.19CR" and "Purchases & Debits 4.99" as read by most of the readings (one reading may misread a figure).
+export function summaryVote(passes) {
+  const MONEY = /(-?[\d,]+\.\d{2})/;
+  const pick = (re) => {
+    const votes = passes.map(lines => { for (const l of lines) { const i = l.search(re); if (i >= 0) { const m = MONEY.exec(l.slice(i).replace(re, "")); if (m) return Math.abs(parseFloat(m[1].replace(/,/g, ""))); } } return null; }).filter(v => v !== null);
+    if (!votes.length) return null;
+    const top = [...new Set(votes)].sort((a, b) => votes.filter(x => x === b).length - votes.filter(x => x === a).length)[0];
+    return votes.filter(x => x === top).length > votes.length / 2 || votes.length === 1 ? top : null;
+  };
+  return { credits: pick(/Payments\s*&\s*Credits/i), debits: pick(/Purchases\s*&\s*Debits/i) };
+}
+// Identical lines are easy to lose (nine refunds of 0.91 in a row) and a lost "CR" turns a credit into a debit. When the statement's own totals are
+// off by an amount that exactly one explanation covers, apply it; anything ambiguous is left alone and the usual error shows.
+export function repairWithSummary(rows, fig) {
+  if (fig.credits == null || fig.debits == null) return rows;
+  const out = rows.slice(), eps = 0.015, isTx = (r) => /^\d{2} \w{3} \d{4}$/.test(String(r[0])), amt = (r) => parseFloat(r[3]) || 0;
+  const pos = out.map((r, i) => (isTx(r) && amt(r) > 0 ? i : -1)).filter(i => i >= 0);
+  const excess = Math.round((pos.reduce((a, i) => a + amt(out[i]), 0) - fig.debits) * 100) / 100;
+  if (excess > eps) {
+    const sols = [];
+    for (let a = 0; a < pos.length; a++) {
+      if (Math.abs(amt(out[pos[a]]) - excess) < eps) sols.push([pos[a]]);
+    }
+    if (!sols.length) for (let a = 0; a < pos.length; a++) for (let b = a + 1; b < pos.length; b++) if (Math.abs(amt(out[pos[a]]) + amt(out[pos[b]]) - excess) < eps) sols.push([pos[a], pos[b]]);
+    if (sols.length === 1) sols[0].sort((x, y) => y - x).forEach(i => out.splice(i, 1));
+  }
+  const credSum = out.filter(r => isTx(r) && amt(r) < 0).reduce((a, r) => a + amt(r), 0);
+  const gap = Math.round((fig.credits + credSum) * 100) / 100;
+  if (gap > eps) {
+    const by = new Map();
+    out.filter(r => isTx(r) && amt(r) < 0).forEach(r => { const k = (-amt(r)).toFixed(2); by.set(k, [...(by.get(k) || []), r]); });
+    const fits = [];
+    for (const [a, list] of by) for (const k of [1, 2, 3]) if (Math.abs(parseFloat(a) * k - gap) < eps && list.length >= 2) fits.push([a, k, list[0]]);
+    if (fits.length === 1) for (let n = 0; n < fits[0][1]; n++) out.push(fits[0][2].slice());
+  }
+  return out;
+}
 const isTxRow = (r) => /^\d{2} \w{3} \d{4}$/.test(String(r[0]));
 export function combineOcr(passes, repair) {
   const parsed = passes.map(lines => ({ lines, rows: pdfTextToRows(lines, { lenient: true, repair }) }));
@@ -196,7 +239,7 @@ export function combineOcr(passes, repair) {
 
 // Read by text recognition, the lines must add up: previous balance + the lines (credits count negative) = the statement's total.
 // Returns { ok, ... }; ok is false when a figure is missing or the totals differ, and the caller refuses the import.
-export function verifyBalance(lines, rows) {
+export function verifyBalance(lines, rows, fig = {}) {
   const MONEY = /(-?[\d,]+\.\d{2})\s*(CR|DR)?\b/i;
   const val = (m) => parseFloat(m[1].replace(/,/g, "")) * (/CR/i.test(m[2] || "") ? -1 : 1);
   const firstAfter = (re) => { for (const l of lines) { const i = l.search(re); if (i >= 0) { const m = MONEY.exec(l.slice(i).replace(re, "")); if (m) return val(m); } } return null; };
@@ -204,9 +247,15 @@ export function verifyBalance(lines, rows) {
   const prev = firstAfter(/Previous\s+(Statement\s+)?Balance/i);
   const total = lastAfter(/TOTAL\s+DUE|TOTAL\s+BALANCE|SUB\s*TOTAL/i);
   const sum = rows.filter(r => /^\d{2} \w{3} \d{4}$/.test(r[0])).reduce((a, r) => a + (parseFloat(r[3]) || 0), 0);
-  if (prev === null || total === null) return { ok: false, missing: true, sum };
+  // The statement's own summary ("Payments & Credits 35.19CR", "Purchases & Debits 4.99") is the sturdier check: it also holds when the account
+  // ends in credit (then "Total Due" reads 0.00 and the real balance is printed as a credit elsewhere).
+  const credits = fig.credits ?? firstAfter(/Payments\s*&\s*Credits/i), debits = fig.debits ?? firstAfter(/Purchases\s*&\s*Debits/i);
+  const txs = rows.filter(r => /^\d{2} \w{3} \d{4}$/.test(r[0])).map(r => parseFloat(r[3]) || 0);
+  const sumDeb = txs.filter(a => a > 0).reduce((a, b) => a + b, 0), sumCred = -txs.filter(a => a < 0).reduce((a, b) => a + b, 0);
+  const summaryOk = credits !== null && debits !== null && Math.abs(sumDeb - debits) < 0.015 && Math.abs(sumCred - Math.abs(credits)) < 0.015;
+  if (prev === null || total === null) return summaryOk ? { ok: true, prev, total, sum: Math.round(sum * 100) / 100, diff: 0 } : { ok: false, missing: true, sum };
   const diff = Math.round((prev + sum - total) * 100) / 100;
-  return { ok: Math.abs(diff) < 0.015, prev, total, sum: Math.round(sum * 100) / 100, diff };
+  return { ok: summaryOk || Math.abs(diff) < 0.015, prev, total, sum: Math.round(sum * 100) / 100, diff };
 }
 
 // A text PDF reads exactly, so a card section that does not add up (previous balance + lines = the section total) means a layout I misread.
