@@ -394,7 +394,7 @@ export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   if (/altitude/.test(n)) return pick("dbs-altitude");
   if (/yuu/.test(n)) return pick("dbs-yuu");
   if (/woman|mastercard world|world mastercard/.test(n)) return pick("dbs-wwmc");
-  if (/preferred visa|ppv/.test(n)) return pick("uob-ppv-contactless", "uob-ppv-online");
+  if (/preferred (platinum )?visa|preferred platinum|ppv/.test(n)) return pick("uob-ppv-contactless", "uob-ppv-online");
   if (/lady/.test(n)) return pick("uob-ls-dining", "uob-ls-travel");
   if (/krisflyer/.test(n)) return pick("kf-uob");
   if (/trust/.test(n)) return pick("trust-freedom");

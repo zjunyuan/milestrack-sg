@@ -532,6 +532,17 @@ function afterRows(rows, fileName = "") {
   renderMapping(); recompute();
 }
 
+// A file may hold several cards (a combined UOB PDF): returns [{ label, rows, name, last4 }], one per card section, else one entry.
+async function readParts(file) {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+    const { readPdfParts } = await import("./pdf-statement.js");
+    const parts = await readPdfParts(file, () => prompt(`This PDF (${file.name}) is password protected. Enter the password (it is only used on this device):`));
+    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows }]
+      : parts.map(p => ({ label: `${file.name} · ${p.name || "card"}${p.last4 ? " ····" + p.last4 : ""}`, rows: p.rows }));
+  }
+  return [{ label: file.name, rows: await readRows(file) }];
+}
+
 async function readRows(file) {
   if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
     const { readPdfLines } = await import("./pdf-statement.js");
@@ -553,7 +564,9 @@ async function onFile(file) {
   $("stmtMapping").innerHTML = ""; $("stmtReview").innerHTML = ""; $("stmtFileNote").style.display = "none";
   const card = ALL_MASTER_CARDS.find(c => c.id === $("stCard").value); S.card = card || null;
   try {
-    afterRows(await readRows(file), file.name);
+    const parts = await readParts(file);
+    if (parts.length > 1) { loadParts(parts); return; }
+    afterRows(parts[0].rows, file.name);
   } catch (err) {
     console.error("Statement read failed", err);
     $("stmtFileNote").style.display = "block";
@@ -569,17 +582,26 @@ async function onFiles(list) {
   if (files.length === 1) return onFile(files[0]);
   const note = $("stmtFileNote");
   $("stmtReview").innerHTML = ""; setBatchUi(true);
-  const loaded = [];
+  const parts = [];
   for (let k = 0; k < files.length; k++) {
     note.style.display = "block"; note.textContent = `Reading ${k + 1} of ${files.length}: ${files[k].name}`;
-    const F = blankFile(); F.fileName = files[k].name;
-    try {
-      const rows = await readRows(files[k]);
-      S = F; prepareCore(rows, files[k].name);
-      if (F.card) computeCore();
-    } catch (err) {
-      console.error("Statement read failed", files[k].name, err);
-      F.error = err && err.message ? err.message : String(err);
+    try { parts.push(...await readParts(files[k])); }
+    catch (err) { console.error("Statement read failed", files[k].name, err); parts.push({ label: files[k].name, error: err && err.message ? err.message : String(err) }); }
+  }
+  loadParts(parts);
+}
+
+// Each part (a file, or one card's section of a combined PDF) works out its own card; the review lists them with their counts.
+function loadParts(parts) {
+  const note = $("stmtFileNote");
+  $("stmtReview").innerHTML = ""; setBatchUi(true);
+  const loaded = [];
+  for (const part of parts) {
+    const F = blankFile(); F.fileName = part.label;
+    if (part.error) F.error = part.error;
+    else {
+      try { S = F; prepareCore(part.rows, part.label); if (F.card) computeCore(); }
+      catch (err) { console.error("Statement read failed", part.label, err); F.error = err && err.message ? err.message : String(err); }
     }
     loaded.push(F);
   }
