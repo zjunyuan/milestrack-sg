@@ -11,7 +11,8 @@ import {
   APP_VERSION,
   DEFAULT_VAULT,
   MCC_DATABASE,
-  normalizeVault
+  normalizeVault,
+  cardShort
 } from "./config.js";
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { escapeHtml } from "./retailers.js";
@@ -181,7 +182,7 @@ export function renderCards() {
     const currentFilter = filterSelect.value;
     filterSelect.innerHTML = '<option value="ALL">All Cards</option>';
     state.cards.forEach(c => {
-      filterSelect.innerHTML += `<option value="${c.id}">${c.name.split(' ')[0]} ${c.name.split(' ')[1] || ''}</option>`;
+      filterSelect.innerHTML += `<option value="${c.id}">${escapeHtml(cardShort(c))}</option>`;
     });
     filterSelect.value = currentFilter || 'ALL';
   }
@@ -415,7 +416,7 @@ export function renderTransactions() {
 
     if (queryClean) {
       const matchDesc = (tx.desc || '').toLowerCase().includes(queryClean);
-      const matchCard = card.name.toLowerCase().includes(queryClean);
+      const matchCard = card.name.toLowerCase().includes(queryClean) || cardShort(card).toLowerCase().includes(queryClean);
       const matchDate = (tx.date || '').toLowerCase().includes(queryClean);
       const matchCategory = (tx.bonusCategory || '').toLowerCase().includes(queryClean);
       return matchDesc || matchCard || matchDate || matchCategory;
@@ -443,7 +444,7 @@ export function renderTransactions() {
     row.innerHTML = `
       <div style="flex:1; min-width:0; padding-right:8px;">
         <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.desc}</div>
-        <div class="tx-meta">${card.name} • ${tx.date}</div>
+        <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}</div>
       </div>
       <div>
         <div class="tx-miles">+${fmtNum(tx.miles)} mi</div>
@@ -479,7 +480,7 @@ export function renderCategoryTracker() {
       const spent = Number(c.currentSpend) || 0;
       if (!isUncapped) catTotalCap += cap;
       catTotalSpent += spent;
-      chips.push(`<span class="category-chip">${c.bank} ${c.name.split(' ')[1] || ''}: <b>$${fmtNum(spent, 0)}</b>/${isUncapped ? '∞' : '$' + fmtAuto(cap)}</span>`);
+      chips.push(`<span class="category-chip">${escapeHtml(cardShort(c))}: <b>$${fmtNum(spent, 0)}</b>/${isUncapped ? '∞' : '$' + fmtAuto(cap)}</span>`);
     });
 
     const catRemaining = Math.max(0, catTotalCap - catTotalSpent);
@@ -974,7 +975,7 @@ export function renderArchiveData() {
     listEl.innerHTML += `
       <div style="background:var(--surface-variant); padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.85rem; font-weight:700; color:#fff;">${card.name}</span>
+          <span style="font-size:0.85rem; font-weight:700; color:#fff;">${escapeHtml(cardShort(card))}</span>
           <span style="font-size:0.85rem; font-weight:700; color:var(--accent);">+${fmtNum(item.miles)} mi</span>
         </div>
         <div class="progress-bar-bg" style="height:5px;">

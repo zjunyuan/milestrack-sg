@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.31.3";
+export const APP_VERSION = "v1.32.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -159,6 +159,7 @@ export function normalizeVault(data) {
 export const ALL_MASTER_CARDS = [
   { 
     id: 'dbs-yuu', 
+    shortName: 'DBS yuu',
     name: 'DBS yuu Card (10 mpd)', 
     bank: 'yuu', 
     image: 'assets/cards/dbs-yuu.png',
@@ -178,6 +179,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-contactless', 
+    shortName: 'UOB PPV.Tap',
     name: 'UOB Preferred Visa (Mobile Tap)', 
     bank: 'UOB', 
     image: 'assets/cards/uob-ppv.png',
@@ -197,6 +199,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-online', 
+    shortName: 'UOB PPV.Online',
     name: 'UOB Preferred Visa (Online)', 
     bank: 'UOB', 
     image: 'assets/cards/uob-ppv.png',
@@ -216,6 +219,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-contactless', 
+    shortName: 'UOB VS.Tap',
     name: 'UOB Visa Signature (Contactless / Petrol)', 
     bank: 'UOB', 
     image: 'assets/cards/uob-vs.png',
@@ -236,6 +240,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-fcy', 
+    shortName: 'UOB VS.FCY',
     name: 'UOB Visa Signature (FCY Overseas)', 
     bank: 'UOB', 
     image: 'assets/cards/uob-vs.png',
@@ -256,6 +261,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-rewards', 
+    shortName: 'Citi Rewards',
     name: 'Citi Rewards', 
     bank: 'Citi', 
     image: 'assets/cards/citi-rewards.png',
@@ -276,6 +282,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'ocbc-rewards', 
+    shortName: 'OCBC Rewards',
     name: 'OCBC Rewards / Titanium', 
     bank: 'OCBC', 
     image: 'assets/cards/ocbc-rewards.png',
@@ -295,6 +302,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-wwmc', 
+    shortName: 'DBS WWMC',
     name: "DBS Woman's World Card", 
     bank: 'DBS', 
     image: 'assets/cards/dbs-wwmc.png',
@@ -314,6 +322,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-dining', 
+    shortName: 'UOB LS.Dining',
     name: "UOB Lady's Solitaire (Dining)", 
     bank: 'UOB', 
     image: 'assets/cards/uobladysolitaire.png',
@@ -333,6 +342,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-travel', 
+    shortName: 'UOB LS.Travel',
     name: "UOB Lady's Solitaire (Travel)", 
     bank: 'UOB', 
     image: 'assets/cards/uobladysolitaire.png',
@@ -352,6 +362,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'hsbc-rev', 
+    shortName: 'HSBC Revo',
     name: 'HSBC Revolution', 
     bank: 'HSBC', 
     image: 'assets/cards/hsbc-rev.png',
@@ -372,6 +383,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'kf-uob', 
+    shortName: 'KrisFlyer UOB',
     name: 'KrisFlyer UOB Credit Card', 
     bank: 'UOB', 
     image: 'assets/cards/kf-uob.png',
@@ -392,6 +404,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-world-mc', 
+    shortName: 'Maybank World',
     name: 'Maybank World Mastercard', 
     bank: 'Maybank', 
     image: 'assets/cards/maybank-world.png',
@@ -412,6 +425,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-horizon-vs', 
+    shortName: 'Maybank Horizon',
     name: 'Maybank Horizon Visa Signature', 
     bank: 'Maybank', 
     image: 'assets/cards/maybank-horizon.png',
@@ -432,6 +446,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-vantage', 
+    shortName: 'DBS Vantage',
     name: 'DBS Vantage Card', 
     bank: 'DBS', 
     image: 'assets/cards/dbs-vantage.png',
@@ -452,6 +467,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-prvi', 
+    shortName: 'UOB PRVI',
     name: 'UOB PRVI Miles', 
     bank: 'UOB', 
     image: 'assets/cards/uob-prvi.png',
@@ -471,6 +487,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-altitude', 
+    shortName: 'DBS Altitude',
     name: 'DBS Altitude Card', 
     bank: 'DBS', 
     image: 'assets/cards/dbs-altitude.png',
@@ -490,6 +507,7 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-pm', 
+    shortName: 'Citi PremierMiles',
     name: 'Citi PremierMiles', 
     bank: 'Citi', 
     image: 'assets/cards/citi-pm.png',
@@ -894,4 +912,9 @@ export function applyRateSchedule(today = new Date().toLocaleDateString("en-CA")
     c.baseMpd = hit && hit.baseMpd != null ? hit.baseMpd : orig.baseMpd;
     c.bonusMpd = hit && hit.bonusMpd != null ? hit.bonusMpd : orig.bonusMpd;
   }
+}
+
+/** Short label for lists, pills and filters; falls back to the full name. */
+export function cardShort(card) {
+  return (card && (card.shortName || card.name)) || 'Card';
 }
