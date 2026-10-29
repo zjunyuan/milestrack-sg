@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.0";
+export const APP_VERSION = "v1.44.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -274,7 +274,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'citi-rewards', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: 'Citi Rewards info sheet (official, 2023): up to 3.25% admin fee on the converted amount. DCC 1%. Checked 29 Oct 2026.',
+    fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
     shortName: 'Citi Rewards',
     name: 'Citi Rewards', 
     bank: 'Citi', 
@@ -547,7 +547,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'citi-pm', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: 'Citi Rewards info sheet (official, 2023): up to 3.25% admin fee on the converted amount. DCC 1%. Checked 29 Oct 2026.',
+    fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
     shortName: 'Citi PremierMiles',
     name: 'Citi PremierMiles', 
     bank: 'Citi', 

@@ -30,6 +30,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/demo.js`: `?demo` runs the app on generated sample data with no Firebase (sign-in skipped, writes held in memory, a banner with an exit link). `firebase.js` hands off to it with a guard at the top of each exported function; `vault-guard.js` stays off in demo so demo balances never replace the remembered real ones. **If you add a Firestore collection, a transaction field or a setting that a screen depends on, update `demo.js` too** (unknown writes are harmless no-ops).
 - `js/layout-report.js`: `?layout` shows a 📐 button that copies a phone layout report (viewport, keyboard, element positions, recent focus events) for pasting back; `?layout=0` turns it off.
 - `js/ui.js`: DOM rendering, modals, audit sheets, cap bars. `js/app.js` is the bootstrapper, event wiring, and SW registration.
+- `docs/bank-tnc/`: reference PDFs of bank T&Cs (not loaded by the app) with a README listing each document's date and whether it states an FX fee. Replace a PDF when the bank updates it.
 - `sw.js`: service worker. `CORE_ASSETS` and `CARD_ASSETS` list every cached file.
 
 ## Domain model (config.js)
