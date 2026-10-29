@@ -31,6 +31,8 @@ const CARD_FIELDS = {
 // Annual fee alert dates for every non-UOB card (UOB cards keep their own inputs above). Stored in state.feeCards[key] = { renewal, day }.
 export const feeRenewalId = key => `feeRenewal_${key}`;
 export const feeDayId = key => `feeDay_${key}`;
+// Cards whose fee is auto-waived or that have none never get a fee alert (config.js annualFee).
+const feeFree = c => c.annualFee === "waived" || c.annualFee === "none";
 function addFeeFields() {
   const seen = new Set();
   for (const c of ALL_MASTER_CARDS) {
@@ -38,6 +40,7 @@ function addFeeFields() {
     const ids = familyOf(c.id).filter(id => ALL_MASTER_CARDS.some(x => x.id === id));
     ids.forEach(id => seen.add(id));
     const key = ids[0];
+    if (feeFree(c)) continue;
     CARD_FIELDS[key] = [...(CARD_FIELDS[key] || []),
       { id: feeRenewalId(key), kind: "month", yearly: true, label: "Annual fee renewal month", short: "Fee renews" },
       { id: feeDayId(key), kind: "day", label: "Statement date (day of month)", short: "Statement", hint: "Optional. The fee alert starts on this day of the month after the renewal month. Leave blank to start on the 1st." }
@@ -48,7 +51,7 @@ addFeeFields();
 
 // One entry per non-UOB physical card: { key, name, bank }, for the home-screen fee alerts.
 export function feeCardFamilies() {
-  return walletRows().filter(r => r.bank !== "uob").map(r => ({ key: r.key, ids: r.ids, name: r.name, bankLabel: (BANKS.find(b => b[0] === r.bank) || [, r.bank])[1] }));
+  return walletRows().filter(r => r.bank !== "uob" && !feeFree(r.card)).map(r => ({ key: r.key, ids: r.ids, name: r.name, bankLabel: (BANKS.find(b => b[0] === r.bank) || [, r.bank])[1] }));
 }
 
 const ordinal = n => { n = Number(n); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
@@ -94,7 +97,7 @@ function rowHtml(r) {
   const rule = postingRule(r.card);
   const basis = rule ? BASIS_LABEL[rule.basis] : null;
   const cycle = r.card.cycleType === "statement" ? "Statement cycle" : r.card.cycleType === "uncapped" ? "No monthly cap" : "Calendar month";
-  const expandable = fields.length || multi || basis;
+  const expandable = fields.length || multi || basis || feeFree(r.card);
   const masterAttrs = multi ? `class="wal-master"` : `class="wal-master card-wallet-check" value="${r.ids[0]}"`;
   const checked = r.ids.some(id => state.enabledCardIds.includes(id));
   return `<div class="wal-row ${checked ? "" : "off"}" data-key="${r.key}">
@@ -107,6 +110,7 @@ function rowHtml(r) {
     ${expandable ? `<div class="wal-body" hidden>
       <div class="wal-tags">
         <span class="wal-tag">${icon("calendar_clock")} ${cycle}</span>
+        ${feeFree(r.card) ? `<span class="wal-tag">${icon("receipt_long")} ${r.card.annualFee === "none" ? "No annual fee" : "Annual fee auto-waived"}</span>` : ""}
         ${basis ? `<span class="wal-tag">${icon(rule.basis === "transaction" ? "shopping_cart" : "receipt_long")} ${escapeHtml(basis.short)}</span>` : ""}
       </div>
       ${fields.map(fieldHtml).join("")}
