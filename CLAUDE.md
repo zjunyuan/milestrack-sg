@@ -53,7 +53,7 @@ Bump the version together in all of these, or clients keep serving stale cached 
 
 1. `js/config.js` → `APP_VERSION`
 2. `sw.js` → `CACHE_NAME` (`milestrack-cache-vX.Y.Z`)
-3. `index.html` → `js/app.js?v=X.Y.Z`
+3. `index.html` → `js/app.js?v=X.Y.Z` and `css/style.css?v=X.Y.Z` (the stylesheet link has no other cache-buster, so a stale copy can survive an update)
 4. `docs/firestore.rules` header comment (when the rules changed)
 
 New JS modules or card images must also be added to `CORE_ASSETS` / `CARD_ASSETS` in `sw.js`.

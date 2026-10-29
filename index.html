@@ -13,14 +13,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=1.34.1">
 </head>
 <body>
 
   <div class="auth-overlay" id="authOverlay" style="display:none;">
     <div class="auth-box">
       <span class="material-symbols-outlined" style="font-size:52px; color:var(--primary);">flight_takeoff</span>
-      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.34.0</span></h2>
+      <h2 style="font-size:1.35rem;">MilesTrack SG <span class="version-tag" id="authVersionTag">v1.34.1</span></h2>
       <p style="font-size:0.85rem; color:#94a3b8;">
         Independent points vaults and miles optimization for you and family.
       </p>
@@ -39,7 +39,7 @@
             <span class="material-symbols-outlined" style="color:var(--primary); font-size:22px;">flight_takeoff</span> 
             <span>MilesTrack SG</span>
           </h1>
-          <span class="version-tag" id="headerVersionTag">v1.34.0</span>
+          <span class="version-tag" id="headerVersionTag">v1.34.1</span>
         </div>
         <div class="header-actions">
           <span class="material-symbols-outlined" id="btnHeaderHistory" title="History">history</span>
@@ -681,7 +681,7 @@
     // service worker once and reloads (a half-applied update leaves a blank page). (3) If it still fails, shows what went wrong on screen
     // instead of a blank page, with a Copy button. Add ?debug to the address to see the panel and the error log at any time. Your data lives in Firebase and is not touched.
     (function () {
-      var VER = 'v1.34.0', log = [];
+      var VER = 'v1.34.1', log = [];
       function note(m) { log.push(String(m).slice(0, 400)); }
       window.addEventListener('error', function (e) {
         var t = e.target && e.target !== window && (e.target.src || e.target.href);
@@ -719,6 +719,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.34.0"></script>
+  <script type="module" src="js/app.js?v=1.34.1"></script>
 </body>
 </html>
