@@ -21,6 +21,7 @@ import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { renderTxChips } from "./history-chips.js";
+import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -681,6 +682,7 @@ export function onYuuMerchantChange() {
 }
 
 export function openModal() {
+  setLogContext(null);
   document.getElementById('editTxId').value = '';
   document.getElementById('descInput').value = '';
   document.getElementById('amtInput').value = '';
@@ -731,7 +733,11 @@ export function openEditModal(txId) {
 export async function deleteTransaction(txId) {
   const tx = state.transactions.find(t => t.id === txId);
   if (!tx || !confirm(`Delete "${tx.desc}" ($${fmtNum(Number(tx.amt || 0), 2)})?`)) return;
+  await removeTransaction(tx);
+}
 
+// Deletes a transaction and takes its points back out of the vault (no confirmation: used by Undo as well).
+export async function removeTransaction(tx) {
   const card = ALL_MASTER_CARDS.find(c => c.id === tx.cardId);
   const neverCounted = tx.source === "statement" && !tx.vaultCounted;     // imported without ticking "add to balances"
   if (card && !neverCounted && state.myVault[card.vaultKey]) {
@@ -772,42 +778,98 @@ export async function saveTransaction() {
     if (postTs < txTimestamp) return alert('The posting date cannot be before the transaction date.');
   }
 
-  if (editId) {
-    const oldTx = state.transactions.find(t => t.id === editId);
-    if (oldTx) {
-      const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
-      if (oldCard && state.myVault[oldCard.vaultKey]) {
-        const oldPts = Number(oldTx.earnedRawPoints) || 0;
-        state.myVault[oldCard.vaultKey].points = Math.max(0, (Number(state.myVault[oldCard.vaultKey].points) || 0) - oldPts);
+  const btn = document.getElementById('btnSaveLedger');
+  if (btn?.disabled) return;                      // already saving: ignore a second tap
+  const vaultBefore = JSON.stringify(state.myVault);
+  let vaultWritten = false;
+  const ctx = getLogContext();
+  if (btn) btn.disabled = true;
+
+  try {
+    if (editId) {
+      const oldTx = state.transactions.find(t => t.id === editId);
+      if (oldTx) {
+        const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
+        if (oldCard && state.myVault[oldCard.vaultKey]) {
+          const oldPts = Number(oldTx.earnedRawPoints) || 0;
+          state.myVault[oldCard.vaultKey].points = Math.max(0, (Number(state.myVault[oldCard.vaultKey].points) || 0) - oldPts);
+        }
       }
     }
+
+    const isEligible = isBonus && ((Number(card.currentSpend) || 0) < card.monthlyCap);
+    let earnedMiles = calcEarnedMiles(card, amt, isEligible ? card.bonusMpd : card.baseMpd);
+    let earnedRawPoints = Math.round(earnedMiles / (state.myVault[card.vaultKey]?.ratio || 1));
+
+    if (state.myVault[card.vaultKey]) {
+      state.myVault[card.vaultKey].points = (Number(state.myVault[card.vaultKey].points) || 0) + earnedRawPoints;
+      await updateVaultDoc(state.myVaultKey, state.myVault);
+      vaultWritten = true;
+    }
+
+    const txRecordId = editId || String(Date.now());
+    const payload = {
+      id: txRecordId,
+      owner: state.myVaultKey,
+      timestamp: txTimestamp,
+      desc,
+      amt,
+      cardId,
+      bonusCategory: isBonus ? 'bonus' : 'base',
+      miles: earnedMiles,
+      earnedRawPoints,
+      date: displayDateStr,
+      ...(postTs ? { postTs } : {})
+    };
+    await saveTxToFirestore(txRecordId, payload);
+
+    closeModal();
+    const what = `${cardShort(card)} · S$${fmtNum(amt, 2)} · +${fmtNum(Math.round(earnedMiles))} mi`;
+    if (editId) {
+      showToast(`Updated: ${what}`);
+    } else if (ctx && ctx.kind === 'split') {
+      const n = markSplitLogged(ctx.part, payload);
+      const allDone = n >= splitTotal();
+      showToast(allDone ? `All ${splitTotal()} cards logged ✅` : `Logged ${n} of ${splitTotal()}: ${what}`, {
+        actionLabel: 'Undo last',
+        onAction: () => undoLogged(payload)
+      });
+    } else {
+      showToast(`Logged: ${what}`, { actionLabel: 'Undo', onAction: () => undoLogged(payload) });
+      if (ctx && ctx.kind === 'single') clearRecommender();
+    }
+    setLogContext(null);
+  } catch (err) {
+    console.error('Save transaction failed:', err);
+    // Put the in-memory balances back; if the vault write had gone through, write it back too.
+    try { state.myVault = JSON.parse(vaultBefore); } catch (e) { /* keep as is */ }
+    if (vaultWritten) { try { await updateVaultDoc(state.myVaultKey, state.myVault); } catch (e) { /* nothing more to do */ } }
+    showToast(`Not saved. ${err && err.message ? err.message : 'Check your connection and try again.'} Your entry is still on screen.`, { kind: 'error' });
+  } finally {
+    if (btn) btn.disabled = false;
   }
+}
 
-  const isEligible = isBonus && ((Number(card.currentSpend) || 0) < card.monthlyCap);
-  let earnedMiles = calcEarnedMiles(card, amt, isEligible ? card.bonusMpd : card.baseMpd);
-  let earnedRawPoints = Math.round(earnedMiles / (state.myVault[card.vaultKey]?.ratio || 1));
-
-  if (state.myVault[card.vaultKey]) {
-    state.myVault[card.vaultKey].points = (Number(state.myVault[card.vaultKey].points) || 0) + earnedRawPoints;
-    await updateVaultDoc(state.myVaultKey, state.myVault);
+async function undoLogged(tx) {
+  try {
+    await removeTransaction(tx);
+    unmarkSplitByTx(tx.id);
+    showToast('Undone: transaction removed');
+  } catch (err) {
+    console.error('Undo failed:', err);
+    showToast('Could not undo. Delete it from History instead.', { kind: 'error' });
   }
+}
 
-  const txRecordId = editId || String(Date.now());
-  await saveTxToFirestore(txRecordId, {
-    id: txRecordId,
-    owner: state.myVaultKey,
-    timestamp: txTimestamp,
-    desc,
-    amt,
-    cardId,
-    bonusCategory: isBonus ? 'bonus' : 'base',
-    miles: earnedMiles,
-    earnedRawPoints,
-    date: displayDateStr,
-    ...(postTs ? { postTs } : {})
-  });
-
-  closeModal();
+// Empties the recommender after a single-card log so the next purchase starts fresh.
+function clearRecommender() {
+  const input = document.getElementById('mccInput');
+  const amtEl = document.getElementById('recAmount');
+  if (input) input.value = '';
+  if (amtEl) amtEl.value = '';
+  const clearBtn = document.getElementById('btnClearMcc'); if (clearBtn) clearBtn.style.display = 'none';
+  const area = document.getElementById('recResultArea'); if (area) area.innerHTML = '';
+  window.dispatchEvent(new Event('rec-cleared'));
 }
 
 // Monthly & Annual Archive Helpers

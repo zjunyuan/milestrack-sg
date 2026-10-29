@@ -1,6 +1,7 @@
 import { fmtNum, fmtAuto } from "./format.js";
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort } from "./config.js";
 import { state } from "./state.js";
+import { setLogContext, syncSplit } from "./log-feedback.js";
 import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
 import {
   buildRetailerList,
@@ -548,7 +549,7 @@ function renderRecommendationCore() {
           rate: nowRate,
           rateNote: step.gate && step.gate.locked ? ' now' : (step.isBase ? ' general' : ''),
           rank: idx + 1,
-          btn: `data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
+          btn: `data-part="${idx}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
           chips: stepChipsHtml(step)
         });
       });
@@ -567,11 +568,13 @@ function renderRecommendationCore() {
         ${moreHtml(mccData, effectiveChannel, '')}
       `;
 
+      const splitKey = `${descName}|${amt}|${state.isKrisPlusMode}|${state.isOverseasMode}|` + allocationSteps.map(st => `${st.card.id}:${st.amount}`).join(',');
       resultArea.querySelectorAll('.btn-apply-rec').forEach(btn => {
         btn.addEventListener('click', () => {
-          applyRecommendation(btn.dataset.cardid, parseFloat(btn.dataset.amount), btn.dataset.desc);
+          applyRecommendation(btn.dataset.cardid, parseFloat(btn.dataset.amount), btn.dataset.desc, { kind: 'split', key: splitKey, part: btn.dataset.part, total: allocationSteps.length });
         });
       });
+      syncSplit(resultArea, splitKey, allocationSteps.length);
       return;
     }
   }
@@ -1071,9 +1074,10 @@ function decorateRuleTools() {
   box.querySelector('#btnRuleReset')?.addEventListener('click', () => removeRule(code));
 }
 
-export function applyRecommendation(cardId, amt, desc) {
+export function applyRecommendation(cardId, amt, desc, ctx = { kind: 'single' }) {
   // Open (and reset) the modal FIRST: openModal() clears the fields, so filling them before it wiped them.
   openModal();
+  setLogContext(ctx);
 
   const cardSelect = document.getElementById('cardSelect');
   const amtInput = document.getElementById('amtInput');
