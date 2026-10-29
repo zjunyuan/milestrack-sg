@@ -986,3 +986,21 @@ body:has(#demoBar) { padding-top: 28px; }
 @media (min-width: 900px) {
   .tx-chips { display: none; }
 }
+
+/* Logging confirmation toast (v1.37.0) and split checklist */
+.log-toast {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) translateY(160px);
+  max-width: min(92vw, 440px); z-index: 1200;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.3;
+  background: rgba(30, 31, 36, 0.97); color: #fff; border: 1px solid var(--success, #4ade80);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45); transition: transform 0.25s ease; pointer-events: none;
+}
+.log-toast.err { border-color: var(--danger, #f87171); }
+.log-toast.visible { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.log-toast .lt-action { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 4px 6px; }
+.split-progress { font-size: 0.78rem; font-weight: 700; color: var(--primary); padding: 2px 4px 8px; }
+.split-progress.done { color: var(--success, #4ade80); }
+.card-tile.ct-logged { opacity: 0.6; }
+.card-tile.ct-logged .ct-log { background: transparent; color: var(--success, #4ade80); border: 1px solid var(--success, #4ade80); }

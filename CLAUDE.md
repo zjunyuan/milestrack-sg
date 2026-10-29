@@ -21,6 +21,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/summary.js`: monthly summary block at the top of History (cap use per card entry, where miles came from, deltas vs last month).
 - `js/history-table.js`: desktop History table, filters (category, amount, trans/post dates), sort and totals; `state.txView` holds the view.
 - `js/history-chips.js`: phone filter chips (Card, Category, Amount, Dates, Sort) and their bottom sheet; desktop hides them and uses the table filters.
+- `js/log-feedback.js`: the log toast (Undo / error), the log-form context (single vs split part) and the split-payment checklist state. `saveTransaction()` in `ui.js` uses it; failures roll back the vault and keep the form open.
 - `js/retailers.js`: ~300 curated SG brand → MCC entries (`conf`, `aliases`, `alt`, `promo`), text normalisation helpers.
 - `js/merchants.js`: typeahead for the recommender input. `js/search-mode.js` holds the Retailer / MCC switch (`state.searchMode`); it only filters suggestions, and the recommender still resolves both kinds of text.
 - `js/settings-ui.js`: the Settings sheet (Cards / Dates / Data tabs, one row per physical card with its own inputs). The input ids are read by `saveSettings()` in `ui.js`, so keep them when changing the layout.
