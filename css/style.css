@@ -1027,6 +1027,7 @@ body:has(#demoBar) { padding-top: 28px; }
 }
 
 /* v1.40.0: History select mode (mass delete) */
+.tx-listhead { display: flex; align-items: center; justify-content: space-between; margin: 10px 2px 8px; font-size: 0.8rem; color: #94a3b8; }
 .history-select { margin-left: 10px; background: none; border: 1px solid var(--surface-variant); color: var(--primary); border-radius: 8px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .history-select.active { background: var(--primary); color: var(--on-primary); }
 .tx-selectbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--primary); border-radius: 12px; font-size: 0.82rem; position: sticky; top: 0; z-index: 3; }
