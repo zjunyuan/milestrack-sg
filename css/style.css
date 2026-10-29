@@ -1011,3 +1011,8 @@ body:has(#demoBar) { padding-top: 28px; }
 .log-toast .lt-msg { font-weight: 600; }
 .log-toast .lt-action { background: rgba(255,255,255,0.95); color: #14532d; }
 .log-toast.err .lt-action { color: #7f1d1d; }
+
+/* v1.37.3: dismiss button, roomier toast */
+.log-toast { padding: 18px 16px 18px 22px; gap: 14px; font-size: 1.1rem; min-width: min(86vw, 320px); }
+.log-toast .lt-msg { flex: 1; }
+.log-toast .lt-close { flex: none; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,0.22); color: #fff; font-size: 1.1rem; line-height: 1; cursor: pointer; }
