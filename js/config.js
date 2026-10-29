@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.43.6";
+export const APP_VERSION = "v1.44.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -160,6 +160,8 @@ export function normalizeVault(data) {
 export const ALL_MASTER_CARDS = [
   { 
     id: 'dbs-yuu', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS yuu',
     name: 'DBS yuu Card (10 mpd)', 
@@ -181,6 +183,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-contactless', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB PPV.Tap',
     name: 'UOB Preferred Visa (Mobile Tap)', 
     bank: 'UOB', 
@@ -201,6 +205,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-online', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB PPV.Online',
     name: 'UOB Preferred Visa (Online)', 
     bank: 'UOB', 
@@ -221,6 +227,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-contactless', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB VS.Tap',
     name: 'UOB Visa Signature (Contactless / Petrol)', 
     bank: 'UOB', 
@@ -242,6 +250,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-fcy', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB VS.FCY',
     name: 'UOB Visa Signature (FCY Overseas)', 
     bank: 'UOB', 
@@ -263,6 +273,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-rewards', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Citi Rewards info sheet (official, 2023): up to 3.25% admin fee on the converted amount. DCC 1%. Checked 29 Oct 2026.',
     shortName: 'Citi Rewards',
     name: 'Citi Rewards', 
     bank: 'Citi', 
@@ -284,6 +296,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'ocbc-rewards', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "OCBC: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Dec 2019. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'OCBC Rewards',
     name: 'OCBC Rewards / Titanium', 
     bank: 'OCBC', 
@@ -304,6 +318,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-wwmc', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS WWMC',
     name: "DBS Woman's World Card", 
@@ -325,6 +341,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-dining', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB LS.Dining',
     name: "UOB Lady's Solitaire (Dining)", 
     bank: 'UOB', 
@@ -345,6 +363,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-travel', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB LS.Travel',
     name: "UOB Lady's Solitaire (Travel)", 
     bank: 'UOB', 
@@ -365,6 +385,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'hsbc-rev', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "HSBC: 3.25% (1% network + 2.25% bank) since 4 Jan 2023 per MileLion, quoting HSBC's SMS to customers. Not yet confirmed from HSBC's own pages.",
     annualFee: 'none',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'HSBC Revo',
     name: 'HSBC Revolution', 
@@ -387,6 +409,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'kf-uob', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'KrisFlyer UOB',
     name: 'KrisFlyer UOB Credit Card', 
     bank: 'UOB', 
@@ -408,6 +432,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-world-mc', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "Maybank: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Sep 2021. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'Maybank World',
     name: 'Maybank World Mastercard', 
     bank: 'Maybank', 
@@ -429,6 +455,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-horizon-vs', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "Maybank: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Sep 2021. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'Maybank Horizon',
     name: 'Maybank Horizon Visa Signature', 
     bank: 'Maybank', 
@@ -450,6 +478,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-vantage', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     shortName: 'DBS Vantage',
     name: 'DBS Vantage Card', 
     bank: 'DBS', 
@@ -471,6 +501,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-prvi', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Feb 2020. The bank's own page gives no percentage, so not yet confirmed from the bank.",
     shortName: 'UOB PRVI',
     name: 'UOB PRVI Miles', 
     bank: 'UOB', 
@@ -491,6 +523,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-altitude', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS Altitude',
     name: 'DBS Altitude Card', 
@@ -512,6 +546,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-pm', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Citi Rewards info sheet (official, 2023): up to 3.25% admin fee on the converted amount. DCC 1%. Checked 29 Oct 2026.',
     shortName: 'Citi PremierMiles',
     name: 'Citi PremierMiles', 
     bank: 'Citi', 
@@ -532,6 +568,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'trust-freedom', 
+    fcyFee: 0,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Trust Freedom key facts sheet (official): no fee, Visa rate. Checked 29 Oct 2026.',
     annualFee: 'none',
     shortName: 'Trust Freedom',
     name: 'Trust Freedom (Miles mode)', 
