@@ -7,7 +7,7 @@ import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, maskNumbers, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
 import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
@@ -345,13 +345,14 @@ function makeCtx() {
   for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
   const base = Date.now();
   const importId = "imp" + base.toString(36);
-  return { bucketSpend, vaultDeltas: {}, base, importId, stamp: { importId, importedAt: base }, seq: 0, done: 0, seenKeys: new Set(), touched: new Set(), addVault: $("stAddVault").checked };
+  return { bucketSpend, vaultDeltas: {}, base, importId, stamp: { importId, importedAt: base }, seq: 0, done: 0, seenKeys: new Set(), touched: new Set(), masked: 0, addVault: $("stAddVault").checked };
 }
 
 // Applies the lines of the current file (S). Shared by single and batch imports; ctx carries the totals across files.
 async function applyLines(ctx) {
   const { bucketSpend, vaultDeltas, stamp, base, addVault } = ctx;
   const card = S.card;
+  const scrub = v => { const r = maskNumbers(v); ctx.masked += r.masked; return r.text; };   // card and account numbers never get saved in full
   const addDelta = (map, key, raw) => { if (key && raw) map[key] = (map[key] || 0) + raw; };
   const dateStr = ts => new Date(ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" });
   const prevOf = old => { const prev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) prev[f] = old[f]; return prev; };
@@ -371,10 +372,10 @@ async function applyLines(ctx) {
       bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
       const id = String(base + (ctx.seq++));
       await saveTxToFirestore(id, {
-        id, owner: state.myVaultKey, timestamp: l.ts, desc: friendlyName(l), stmtDesc: l.desc, amt: l.amt, cardId: tCard.id,
+        id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
-        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: l.ref } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
       });
       addDelta(vaultDeltas, tCard.vaultKey, est.earnedRawPoints); ctx.done++;
     } else if (r.status === "matched" && r.existing && (r.dateChanged || r.unconfirmed || S.post[i])) {
@@ -383,7 +384,7 @@ async function applyLines(ctx) {
       const old = { ...r.existing }; delete old.firestoreId;
       const oc = ALL_MASTER_CARDS.find(x => x.id === old.cardId) || card;
       const pt = S.post[i] ? postFor(oc, l) : null;
-      const patch = { stmtKey: r.key, stmtConfirmed: true, stmtDesc: l.desc, ...(r.dateChanged ? { timestamp: l.ts, date: dateStr(l.ts) } : {}), ...(pt ? { postTs: pt } : {}) };
+      const patch = { stmtKey: r.key, stmtConfirmed: true, stmtDesc: scrub(l.desc), ...(r.dateChanged ? { timestamp: l.ts, date: dateStr(l.ts) } : {}), ...(pt ? { postTs: pt } : {}) };
       await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev: prevOf(old), ...patch });
       ctx.done++;
     } else if ((r.status === "differs" || r.status === "moved") && c === "statement" && r.existing) {
@@ -411,7 +412,7 @@ async function applyLines(ctx) {
         ...(addVault && Object.keys(adj).length ? { vaultAdj: adj } : {}),
         cardId: nc.id, bonusCategory, timestamp: r.dateChanged ? l.ts : old.timestamp, date: r.dateChanged ? dateStr(l.ts) : old.date,
         ...(pt ? { postTs: pt } : {}), amt: l.amt, amtOriginal: old.amtOriginal ?? old.amt, miles, earnedRawPoints: raw,
-        stmtKey: r.key, stmtConfirmed: true, stmtDesc: l.desc, reconciled: true, estimatedMiles: true
+        stmtKey: r.key, stmtConfirmed: true, stmtDesc: scrub(l.desc), reconciled: true, estimatedMiles: true
       });
       ctx.done++;
     }
@@ -469,7 +470,7 @@ async function applyImport() {
     await applyLines(ctx);
     await finishApply(ctx, [S]);
     closeStatementSheet();
-    alert(`Imported ${ctx.done} transaction${ctx.done === 1 ? "" : "s"}.${ctx.addVault ? "" : " Your bank points balances were not changed."} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
+    alert(`Imported ${ctx.done} transaction${ctx.done === 1 ? "" : "s"}.${ctx.addVault ? "" : " Your bank points balances were not changed."}${ctx.masked ? ` ${ctx.masked} card or account number${ctx.masked === 1 ? " was" : "s were"} masked to the last 4 digits before saving.` : ""} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
   } catch (err) {
     console.error("Statement import failed", err);
     alert(`Import stopped after ${ctx.done} of ${total}: ${err?.message || err}. Re-run the same file: lines already imported are recognised and skipped.`);
@@ -489,7 +490,7 @@ async function applyBatch() {
     for (const F of files) { S = F; btn.textContent = `Importing ${F.fileName}…`; await applyLines(ctx); }
     await finishApply(ctx, files);
     closeStatementSheet();
-    alert(`Imported ${ctx.done} transaction${ctx.done === 1 ? "" : "s"} from ${files.length} file${files.length === 1 ? "" : "s"}.${ctx.addVault ? "" : " Your bank points balances were not changed."} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
+    alert(`Imported ${ctx.done} transaction${ctx.done === 1 ? "" : "s"} from ${files.length} file${files.length === 1 ? "" : "s"}.${ctx.addVault ? "" : " Your bank points balances were not changed."}${ctx.masked ? ` ${ctx.masked} card or account number${ctx.masked === 1 ? " was" : "s were"} masked to the last 4 digits before saving.` : ""} Changed your mind? Open Import a bank statement again and tap "Undo last import".`);
   } catch (err) {
     console.error("Batch import failed", err);
     alert(`Import stopped after ${ctx.done} change${ctx.done === 1 ? "" : "s"}: ${err?.message || err}. Re-select the same files: lines already imported are recognised and skipped.`);
@@ -666,6 +667,28 @@ function renderCoverage() {
     <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends.</div>`;
 }
 
+// One-off clean-up of text saved before masking existed: finds entries whose saved bank text still holds a long number and masks it.
+const TEXT_FIELDS = ["desc", "stmtDesc", "stmtRef", "stmtNote", "fx"];
+export async function scrubSavedText() {
+  const hits = [];
+  for (const t of state.transactions) {
+    const patch = {}; let n = 0;
+    for (const f of TEXT_FIELDS) if (typeof t[f] === "string") { const r = maskNumbers(t[f]); if (r.masked) { patch[f] = r.text; n += r.masked; } }
+    if (n) hits.push({ t, patch, n });
+  }
+  if (!hits.length) { alert("Nothing to mask: no saved transaction text contains a card or account number."); return; }
+  const total = hits.reduce((a, h) => a + h.n, 0);
+  if (!confirm(`${total} card or account number${total === 1 ? "" : "s"} found in ${hits.length} saved transaction${hits.length === 1 ? "" : "s"}. Mask ${total === 1 ? "it" : "them"} to the last 4 digits? Amounts, dates and miles are not touched.`)) return;
+  let done = 0;
+  try {
+    for (const { t, patch } of hits) { const rec = { ...t }; delete rec.firestoreId; await saveTxToFirestore(t.id, { ...rec, ...patch }); done++; }
+    alert(`Masked ${total} number${total === 1 ? "" : "s"} in ${done} transaction${done === 1 ? "" : "s"}.`);
+  } catch (err) {
+    console.error("Masking failed", err);
+    alert(`Stopped after ${done} of ${hits.length}: ${err?.message || err}. Run it again to finish.`);
+  }
+}
+
 export function openStatementSheet() {
   const sel = $("stCard");
   const cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
@@ -688,4 +711,5 @@ export function initStatementImport() {
   $("stCard")?.addEventListener("change", e => { S.card = ALL_MASTER_CARDS.find(c => c.id === e.target.value); if (S.rows.length) recompute(); });
   $("stFile")?.addEventListener("change", e => onFiles(e.target.files));
   $("btnStmtApply")?.addEventListener("click", applyImport);
+  $("btnScrubNumbers")?.addEventListener("click", scrubSavedText);
 }

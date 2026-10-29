@@ -171,6 +171,23 @@ export function foreignAmount(desc) {
 }
 const COUNTRY_TAIL = /\s+(SINGAPORE|SINGAPO|SGP|SG|LONDON|GB|GBR|USA|US|JPN|JP|KOR|KR|HK|HKG|CN|MY|MYS|AU|AUS|IE|IRL|TH|THA|ID|IDN|TW|TWN|VN|VNM)(\s+(SINGAPORE|SGP|SG|GB|GBR|USA|US|JPN|KOR|CN|HK|MY|AU|IE|TH|ID|TW|VN))*$/i;
 // Best-effort readable merchant name: no store/terminal codes, city or country, currency amount or phone numbers.
+// ---------- card number masking ----------
+// Raw statement text can carry a full card or account number. Before any of it is saved, card numbers (13-19 digits that pass the Luhn
+// check, with or without spaces or dashes) and any other run of 9+ digits are cut down to their last four digits: "4111 1111 1111 1111" -> "****1111".
+// Shorter numbers (SG phone numbers, store codes, dates) are left alone. Returns { text, masked } where masked counts the numbers changed.
+function luhnOk(d) { let sum = 0, alt = false; for (let i = d.length - 1; i >= 0; i--) { let n = d.charCodeAt(i) - 48; if (alt) { n *= 2; if (n > 9) n -= 9; } sum += n; alt = !alt; } return sum % 10 === 0; }
+export function maskNumbers(input) {
+  let masked = 0;
+  let text = String(input == null ? "" : input);
+  text = text.replace(/(?<![\d*•xX])(?:\d[ -]?){12,18}\d(?!\d)/g, m => {
+    const d = m.replace(/\D/g, "");
+    if (d.length >= 13 && d.length <= 19 && luhnOk(d)) { masked++; return "****" + d.slice(-4); }
+    return m;
+  });
+  text = text.replace(/\d{9,}/g, m => { masked++; return "****" + m.slice(-4); });
+  return { text, masked };
+}
+
 export function cleanMerchant(desc) {
   let t = String(desc || "").replace(/\s+/g, " ").trim();
   t = t.replace(/[•*xX]{2,}[\s•*xX-]*\d{4}/g, "").replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, "")    // masked card number and a posting date inside the text
