@@ -223,7 +223,7 @@ export function renderCards() {
 
     // Plain uncapped cards have no bar worth showing; tiers and min-spend cards stay.
     if (isUncapped && !tierInfo && !statusNotice) {
-      select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
+      select.innerHTML += `<option value="${card.id}">${escapeHtml(cardShort(card))}</option>`;
       return;
     }
 
@@ -237,7 +237,7 @@ export function renderCards() {
         <div class="card-header-left">
           ${thumbHtml}
           <div>
-            <div class="card-name">${card.name}</div>
+            <div class="card-name">${escapeHtml(cardShort(card))}</div>
             <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
             ${postingChipHtml(card)}
           </div>
@@ -259,7 +259,7 @@ export function renderCards() {
     });
     container.appendChild(cardEl);
 
-    select.innerHTML += `<option value="${card.id}">${card.name}</option>`;
+    select.innerHTML += `<option value="${card.id}">${escapeHtml(cardShort(card))}</option>`;
   });
 
   onCardSelectChange();
@@ -295,7 +295,7 @@ export function openCardDetailModal(cardId) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
     tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : '';
   }
-  document.getElementById('modalCardName').innerText = card.name;
+  document.getElementById('modalCardName').innerText = cardShort(card);
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
   const cycleEl = document.getElementById('modalCardCycle');
   let postEl = document.getElementById('modalCardPosting');
@@ -1269,7 +1269,7 @@ export function populateReconcileSelectors() {
   const prevCard = cardSelect.value;
   cardSelect.innerHTML = '';
   state.cards.forEach(c => {
-    cardSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    cardSelect.innerHTML += `<option value="${c.id}">${escapeHtml(cardShort(c))}</option>`;
   });
   cardSelect.value = prevCard || state.cards[0]?.id || '';
 
@@ -1346,7 +1346,7 @@ export function renderReconcileView() {
   listEl.innerHTML = '';
 
   if (activeTxns.length === 0) {
-    listEl.innerHTML = `<div class="detail-tx-empty" style="padding:10px;">No charges logged on ${card.name} for this billing window.</div>`;
+    listEl.innerHTML = `<div class="detail-tx-empty" style="padding:10px;">No charges logged on ${escapeHtml(cardShort(card))} for this billing window.</div>`;
   } else {
     activeTxns.slice().reverse().forEach(tx => {
       listEl.innerHTML += `

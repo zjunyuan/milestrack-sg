@@ -1,7 +1,7 @@
 // Transaction date vs posting date: the "how each card counts" sheet (opened from the card chips, Settings and the statement import) and the hint on the log form.
 // The rules and date logic are in posting.js.
 import { state } from "./state.js";
-import { ALL_MASTER_CARDS } from "./config.js";
+import { ALL_MASTER_CARDS, cardShort } from "./config.js";
 import { escapeHtml } from "./retailers.js";
 import { POSTING_RULES, POSTING_META, BASIS_LABEL, postingRule, bannerRows, slipLine, expectedPosting, SLIP_ALERT_MIN } from "./posting.js";
 
@@ -45,7 +45,7 @@ export function openPostingSheet() {
       : r.phase === "ending"
         ? `Anything you pay from about <b>${fmtDay(new Date(r.lastDay.getFullYear(), r.lastDay.getMonth(), r.lastDay.getDate() - 2))}</b> may post after the cycle ends. If you need it to count, pay earlier or accept it may land in the next cycle.`
         : `Purchases made in the last 2 to 3 days of the previous cycle may post now and count here.`;
-    return `<div class="hm-row"><div class="hm-row-main"><b>${escapeHtml(r.cards.map(c => c.name.replace(/\s*\(.*\)$/, "")).filter((n, i, a) => a.indexOf(n) === i).join(", "))}</b><div class="hm-sub">${when} ${advice}</div></div></div>`;
+    return `<div class="hm-row"><div class="hm-row-main"><b>${escapeHtml(r.cards.map(c => cardShort(c)).filter((n, i, a) => a.indexOf(n) === i).join(", "))}</b><div class="hm-sub">${when} ${advice}</div></div></div>`;
   }).join("") : "";
 
   const groups = [["posting", "Counted by posting date"], ["grace", "Posting date, with a grace period (Maybank)"], ["transaction", "Counted by transaction date"]];
@@ -56,7 +56,7 @@ export function openPostingSheet() {
     const rule = POSTING_RULES[list[0].id];
     return `<div class="post-group"><div class="post-group-title">${BASIS_LABEL[basis].icon} ${escapeHtml(title)}</div>
       <div class="hm-note">${escapeHtml(rule.note)}</div>
-      <div class="post-cards">${list.map(c => `<span class="hm-chip ${state.enabledCardIds.includes(c.id) ? "" : "hm-out"}">${escapeHtml(c.name)}${basis === "grace" ? ` <small>by the ${POSTING_RULES[c.id].graceDay}th</small>` : ""}</span>`).join("")}</div></div>`;
+      <div class="post-cards">${list.map(c => `<span class="hm-chip ${state.enabledCardIds.includes(c.id) ? "" : "hm-out"}">${escapeHtml(cardShort(c))}${basis === "grace" ? ` <small>by the ${POSTING_RULES[c.id].graceDay}th</small>` : ""}</span>`).join("")}</div></div>`;
   }).join("");
 
   const tips = `<h3 class="post-h">What the app does</h3>

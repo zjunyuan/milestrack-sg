@@ -1,7 +1,7 @@
 // Settings & Card Wallet sheet: icon tabs, one row per physical card grouped by bank, per-card settings inside each row, and a dates overview.
 // The inputs keep their original ids (uobLsRenewalInput, uobVsCutoff, citiApprovalInput, ...), so saveSettings() in ui.js reads them unchanged.
 import { state } from "./state.js";
-import { ALL_MASTER_CARDS, APP_VERSION } from "./config.js";
+import { ALL_MASTER_CARDS, APP_VERSION, cardShort } from "./config.js";
 import { familyOf } from "./statements.js";
 import { escapeHtml } from "./retailers.js";
 import { postingRule, BASIS_LABEL } from "./posting.js";
@@ -45,7 +45,7 @@ function walletRows() {
     const ids = familyOf(c.id).filter(id => ALL_MASTER_CARDS.some(x => x.id === id));
     ids.forEach(id => seen.add(id));
     const first = ALL_MASTER_CARDS.find(x => x.id === ids[0]);
-    rows.push({ key: ids[0], ids, name: ids.length > 1 ? first.name.replace(/\s*\(.*\)$/, "") : first.name, bank: bankOf(first.id), card: first });
+    rows.push({ key: ids[0], ids, name: ids.length > 1 ? cardShort(first).replace(/\.[^.]*$/, "") : cardShort(first), bank: bankOf(first.id), card: first });
   }
   return rows;
 }
@@ -89,7 +89,7 @@ function rowHtml(r) {
       ${fields.map(fieldHtml).join("")}
       ${multi ? `<div class="wal-chan"><div class="hm-note">${icon("alt_route")} Channels in your wallet</div>${r.ids.map(id => {
         const c = ALL_MASTER_CARDS.find(x => x.id === id);
-        return `<label class="wal-chan-item"><input type="checkbox" class="card-wallet-check" value="${id}" ${state.enabledCardIds.includes(id) ? "checked" : ""}> <span>${escapeHtml(c.name)}</span></label>`;
+        return `<label class="wal-chan-item"><input type="checkbox" class="card-wallet-check" value="${id}" ${state.enabledCardIds.includes(id) ? "checked" : ""}> <span>${escapeHtml(cardShort(c))}</span></label>`;
       }).join("")}</div>` : ""}
     </div>` : ""}
   </div>`;
