@@ -9,7 +9,7 @@ import { postingRule, BASIS_LABEL } from "./posting.js";
 const $ = id => document.getElementById(id);
 const icon = (name, cls = "") => `<span class="material-symbols-outlined ${cls}">${name}</span>`;
 
-const BANKS = [["uob", "UOB"], ["dbs", "DBS"], ["citi", "Citi"], ["ocbc", "OCBC"], ["hsbc", "HSBC"], ["mb", "Maybank"]];
+const BANKS = [["uob", "UOB"], ["dbs", "DBS"], ["citi", "Citi"], ["ocbc", "OCBC"], ["hsbc", "HSBC"], ["mb", "Maybank"], ["trust", "Trust"]];
 const bankOf = id => (id.startsWith("kf-uob") || id.startsWith("uob-")) ? "uob" : id.split("-")[0];
 
 // Per-card settings, keyed by the first entry of each card family. kind "month" = a renewal / start month, "day" = statement cycle start day.
