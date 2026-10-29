@@ -29,5 +29,6 @@ export const state = {
     kf: ""
   },
   uobStatementDay: 23,   // day of the month UOB statements come out (annual fee alert starts then)
+  feeCards: {},          // fee alert dates for non-UOB cards: { [cardKey]: { renewal: "YYYY-MM", day: 1-31 } }
   feeAlerts: {}          // per UOB card: { cycle: "2026-08", status: "requested" | "snoozed", until: ms }
 };
