@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.3";
+export const APP_VERSION = "v1.44.4";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -433,7 +433,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'mb-world-mc', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "Maybank: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Sep 2021. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "Maybank important notice (official, maybank2u.com.sg, notice 24 Sep 2021): bank administrative fee 2.25% plus 1% Visa/Mastercard conversion charge = 3.25%, from 1 Nov 2021, all foreign-currency card transactions. GST not mentioned. 2021 notice; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'Maybank World',
     name: 'Maybank World Mastercard', 
     bank: 'Maybank', 
@@ -456,7 +456,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'mb-horizon-vs', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "Maybank: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Sep 2021. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "Maybank important notice (official, maybank2u.com.sg, notice 24 Sep 2021): bank administrative fee 2.25% plus 1% Visa/Mastercard conversion charge = 3.25%, from 1 Nov 2021, all foreign-currency card transactions. GST not mentioned. 2021 notice; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'Maybank Horizon',
     name: 'Maybank Horizon Visa Signature', 
     bank: 'Maybank', 
