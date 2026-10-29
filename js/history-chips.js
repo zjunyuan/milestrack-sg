@@ -1,5 +1,6 @@
 // Phone filters for the History list: a row of chips (Card, Category, Amount, Dates, Sort), each opening a small bottom sheet.
 // Desktop uses the filter row and the sortable table instead (see history-table.js); the chip row is hidden there by CSS.
+import { cardFilterLabel, catFilterLabel, cardsHtml, catsHtml, paintFilters, toggleFilter } from "./col-filter.js";
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS, cardShort } from "./config.js";
 import { escapeHtml } from "./retailers.js";
@@ -34,12 +35,12 @@ export function renderTxChips(rows) {
   const el = document.getElementById('txChips');
   if (!el) return;
   const v = state.txView;
-  const card = state.txCardFilter !== 'ALL' ? ALL_MASTER_CARDS.find(c => c.id === state.txCardFilter) : null;
-  const cat = v.category === 'ALL' ? '' : (v.category === NO_CATEGORY ? 'Unrecognised' : v.category);
+  const card = cardFilterLabel(v);
+  const cat = catFilterLabel(v);
   const chip = (kind, text, on) => `<button type="button" class="tx-chip${on ? ' on' : ''}" data-chip="${kind}">${escapeHtml(text)} ▾</button>`;
   const anyOn = !!(card || cat || amountLabel(v) || datesCount(v));
   el.innerHTML =
-    chip('card', card ? cardShort(card) : 'Card', !!card) +
+    chip('card', card || 'Card', !!card) +
     chip('category', cat || 'Category', !!cat) +
     chip('amount', amountLabel(v) || 'Amount', !!amountLabel(v)) +
     chip('dates', datesCount(v) ? `Dates (${datesCount(v)})` : 'Dates', !!datesCount(v)) +
@@ -60,14 +61,11 @@ function openSheet(kind) {
   const v = state.txView;
   let title = '', body = '', items = [];
   if (kind === 'card') {
-    title = 'Card';
-    items = [{ label: 'All cards', value: 'ALL' }, ...state.cards.map(c => ({ label: cardShort(c), value: c.id }))];
-    body = options(items, state.txCardFilter, 'card');
+    title = 'Cards';
+    body = `<div class="cf-list cf-sheet">${cardsHtml()}</div><div class="tx-sheet-btns"><button type="button" class="btn-backup" data-act="reset-cf">Clear</button><button type="button" class="btn-submit" data-act="close">Done</button></div>`;
   } else if (kind === 'category') {
-    title = 'Category';
-    const { names, none } = categoryOptions(periodRows);
-    items = [{ label: 'All categories', value: 'ALL' }, ...names.map(n => ({ label: n, value: n })), ...(none ? [{ label: 'Unrecognised', value: NO_CATEGORY }] : [])];
-    body = options(items, v.category, 'category');
+    title = 'Categories';
+    body = `<div class="cf-list cf-sheet">${catsHtml()}</div><div class="tx-sheet-btns"><button type="button" class="btn-backup" data-act="reset-cf">Clear</button><button type="button" class="btn-submit" data-act="close">Done</button></div>`;
   } else if (kind === 'sort') {
     title = 'Sort by';
     items = SORTS.map(s => ({ label: s.label, value: s.label }));
@@ -86,6 +84,8 @@ function openSheet(kind) {
   } else return;
   sheet().innerHTML = `<div class="tx-sheet-head"><b>${title}</b><span class="tx-sheet-x" data-act="close">✕</span></div><div class="tx-sheet-body">${body}</div>`;
   sheet().dataset.items = JSON.stringify(items.map(i => i.value));
+  sheet().dataset.kind = kind;
+  paintFilters(sheet());
   overlay().classList.add('open');
 }
 
@@ -95,29 +95,28 @@ export function initHistoryChips(renderFn) {
     const b = e.target.closest('[data-chip]');
     if (!b) return;
     if (b.dataset.chip === 'clear') {
-      state.txCardFilter = 'ALL';
-      const sel = document.getElementById('txFilterCardSelect'); if (sel) sel.value = 'ALL';
-      Object.assign(state.txView, { category: 'ALL', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+      Object.assign(state.txView, { merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
       rerender();
     } else openSheet(b.dataset.chip);
   });
   overlay()?.addEventListener('click', (e) => { if (e.target === overlay()) close(); });
+  sheet()?.addEventListener('change', (e) => {          // several cards or categories can be ticked; the list behind updates as you go
+    const el = e.target.closest('input[data-f]'); if (!el) return;
+    toggleFilter(el.dataset.f, el.dataset.v); paintFilters(sheet()); rerender();
+  });
   sheet()?.addEventListener('click', (e) => {
     const v = state.txView;
     const opt = e.target.closest('.tx-opt');
     if (opt) {
       const vals = JSON.parse(sheet().dataset.items || '[]');
       const val = vals[Number(opt.dataset.i)];
-      if (opt.dataset.kind === 'card') {
-        state.txCardFilter = val;
-        const sel = document.getElementById('txFilterCardSelect'); if (sel) sel.value = val;
-      } else if (opt.dataset.kind === 'category') v.category = val;
-      else if (opt.dataset.kind === 'sort') { const s = SORTS.find(x => x.label === val) || SORTS[0]; v.sortKey = s.key; v.sortDir = s.dir; }
+      if (opt.dataset.kind === 'sort') { const s = SORTS.find(x => x.label === val) || SORTS[0]; v.sortKey = s.key; v.sortDir = s.dir; }
       return apply();
     }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
     if (act === 'close') close();
+    else if (act === 'reset-cf') { if (sheet().dataset.kind === 'card') v.cards = []; else v.cats = []; paintFilters(sheet()); rerender(); }
     else if (act === 'apply-amount') { v.amtMin = document.getElementById('txSheetMin').value; v.amtMax = document.getElementById('txSheetMax').value; apply(); }
     else if (act === 'reset-amount') { v.amtMin = ''; v.amtMax = ''; apply(); }
     else if (act === 'apply-dates') {

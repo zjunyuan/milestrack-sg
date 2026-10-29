@@ -19,10 +19,10 @@ export const TX_COLUMNS = [
 const DESC_FIRST = new Set(['date', 'post', 'amount', 'miles', 'mpd']);
 
 export function defaultView() {
-  return { sortKey: 'date', sortDir: 'desc', category: 'ALL', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' };
+  return { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' };
 }
 export function viewIsFiltered(v) {
-  return v.category !== 'ALL' || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
+  return !!v.merchant || v.cards.length > 0 || v.cats.length > 0 || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
 }
 
 const dayStart = (s) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
@@ -38,10 +38,9 @@ export function passesView(tx, v) {
   const lo = num(v.amtMin), hi = num(v.amtMax);
   if (lo !== null && amt < lo) return false;
   if (hi !== null && amt > hi) return false;
-  if (v.category !== 'ALL') {
-    const c = txCategory(tx);
-    if (v.category === NO_CATEGORY ? c : c !== v.category) return false;
-  }
+  if (v.merchant && !String(tx.desc || '').toLowerCase().includes(v.merchant.toLowerCase().trim())) return false;
+  if (v.cards.length && !v.cards.includes(tx.cardId)) return false;
+  if (v.cats.length && !v.cats.includes(txCategory(tx) || NO_CATEGORY)) return false;
   const tf = dayStart(v.transFrom), tt = dayEnd(v.transTo);
   if (tf !== null && !(tx.timestamp >= tf)) return false;
   if (tt !== null && !(tx.timestamp <= tt)) return false;
@@ -107,7 +106,9 @@ const fmtDay = (ms) => {
 export function tableHtml(rows, view, cardOf, select = null) {
   const head = TX_COLUMNS.map(c => {
     const on = view.sortKey === c.key;
-    return `<th class="${c.num ? 'num ' : ''}${on ? 'sorted' : ''}" data-sort="${c.key}">${c.label}${on ? (view.sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
+    const act = c.key === 'merchant' ? !!view.merchant : c.key === 'card' ? view.cards.length > 0 : c.key === 'category' ? view.cats.length > 0 : false;
+    const filt = ['merchant', 'card', 'category'].includes(c.key) ? ` <span class="th-filter material-symbols-outlined${act ? ' on' : ''}" data-filter="${c.key}" title="Filter ${c.label.toLowerCase()}">filter_alt</span>` : '';
+    return `<th class="${c.num ? 'num ' : ''}${on ? 'sorted' : ''}" data-sort="${c.key}">${c.label}${on ? (view.sortDir === 'asc' ? ' ▲' : ' ▼') : ''}${filt}</th>`;
   }).join('') + '<th></th>';
   const selHead = select ? `<th class="sel"><input type="checkbox" data-sel="all-toggle" ${rows.length && rows.every(t => select.ids.has(String(t.id))) ? 'checked' : ''} aria-label="Select all shown"></th>` : '';
   const body = rows.map(t => {
