@@ -1082,3 +1082,13 @@ body:has(#demoBar) { padding-top: 28px; }
 .fcy-view { display: flex; gap: 6px; margin-top: 8px; }
 .fcy-view button { background: none; border: 1px solid var(--surface-variant); color: #94a3b8; border-radius: 8px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
 .fcy-view button.on { background: var(--fcy-cyan); border-color: var(--fcy-cyan); color: #06222f; }
+.fcy-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+@media (max-width: 520px) { .fcy-opts { grid-template-columns: 1fr; } }
+.fcy-opt { border: 1px solid var(--surface-variant); border-radius: 10px; padding: 8px 10px; font-size: 0.78rem; line-height: 1.4; }
+.fcy-opt.best { border-color: var(--fcy-cyan); background: rgba(56, 189, 248, 0.08); }
+.fcy-opt-t { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; margin-bottom: 2px; }
+.fcy-opt small, .fcy-table td small { display: block; color: var(--warning); font-size: 0.68rem; }
+.fcy-vs { margin-top: 4px; color: #94a3b8; font-size: 0.72rem; }
+.fcy-sec { margin-top: 10px; font-size: 0.72rem; font-weight: 700; color: #94a3b8; }
+.fcy-hidden { margin-top: 8px; font-size: 0.74rem; color: #94a3b8; }
+.fcy-hidden summary { cursor: pointer; }
