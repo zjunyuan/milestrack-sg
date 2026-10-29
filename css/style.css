@@ -869,7 +869,7 @@ input:checked + .slider:before { transform: translateX(22px); }
   body.show-history .desktop-grid > .tab-content:not(#tabContentHistory) { display: none !important; }
   body.show-history #tabContentHistory {
     display: grid !important; grid-column: 1 / -1;
-    grid-template-columns: 340px 1fr; grid-template-rows: auto auto auto auto auto 1fr; column-gap: 24px; row-gap: 14px; align-items: start;
+    grid-template-columns: 300px 1fr; grid-template-rows: auto auto auto auto auto 1fr; column-gap: 20px; row-gap: 14px; align-items: start;
   }
   body.show-history .desktop-grid { grid-template-columns: 1fr; }
   .history-back { display: inline; }
@@ -1016,3 +1016,11 @@ body:has(#demoBar) { padding-top: 28px; }
 .log-toast { padding: 18px 16px 18px 22px; gap: 14px; font-size: 1.1rem; min-width: min(86vw, 320px); }
 .log-toast .lt-msg { flex: 1; }
 .log-toast .lt-close { flex: none; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,0.22); color: #fff; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+
+/* v1.37.4: the History table needs more room than the 1180px app column gives it */
+@media (min-width: 900px) {
+  body.show-history .app-container { max-width: min(1600px, 100%); }
+  .tx-table td.cat { white-space: normal; max-width: 210px; line-height: 1.25; }
+  .tx-table th, .tx-table td { padding-left: 6px; padding-right: 6px; }
+  .tx-table td.merch { max-width: 170px; }
+}
