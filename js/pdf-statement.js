@@ -74,27 +74,39 @@ function loadTesseract() {
 async function ocrPdfLines(pdf, progress, psm = "4", attempt = 1) {
   progress && progress("This PDF has no text, so I'm reading it as a picture. Loading the text recognition tool (first time only)…");
   const T = await loadTesseract();
-  const worker = await T.createWorker("eng");
-  await worker.setParameters({ tessedit_pageseg_mode: psm });         // 4 = one column of text, 6 = one block, 11 = sparse; each misses different lines
-  const lines = [];
+  const n = pdf.numPages;
+  const cores = Math.max(1, (navigator.hardwareConcurrency || 2) - 1);
+  const size = Math.max(1, Math.min(n, 3, cores, (navigator.deviceMemory || 4) <= 2 ? 1 : 3));   // several pages at once; capped so a phone does not run out of memory
+  const workers = await Promise.all(Array.from({ length: size }, async () => {
+    const w = await T.createWorker("eng");
+    await w.setParameters({ tessedit_pageseg_mode: psm });             // 4 = one column of text, 6 = one block, 11 = sparse; each misses different lines
+    return w;
+  }));
+  const pages = new Array(n);
+  let next = 0, done = 0;
+  const tell = () => progress && progress(`Reading page ${Math.min(done + 1, n)} of ${n} by text recognition${attempt > 1 ? ` (second look, ${attempt} of up to 3)` : ""}${size > 1 ? `, ${size} pages at a time` : ""}, about 10 to 20 seconds a page…`);
+  tell();
   try {
-    for (let p = 1; p <= pdf.numPages; p++) {
-      progress && progress(`Reading page ${p} of ${pdf.numPages} by text recognition${attempt > 1 ? ` (second look, ${attempt} of up to 3)` : ""}, about 10 to 20 seconds a page…`);
-      const page = await pdf.getPage(p);
-      const base = page.getViewport({ scale: 1 });
-      const scale = Math.min(5.5, 4200 / Math.max(base.width, base.height));    // about 400 dpi; a lower resolution misreads amounts
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: ctx, canvas, viewport }).promise;
-      const { data } = await worker.recognize(canvas);
-      lines.push(...String(data.text || "").split("\n").map(l => l.replace(/\s+$/, "")));
-      canvas.width = canvas.height = 0;
-    }
-  } finally { await worker.terminate(); }
-  return lines;
+    await Promise.all(workers.map(async (worker) => {
+      while (next < n) {
+        const p = ++next;
+        const page = await pdf.getPage(p);
+        const base = page.getViewport({ scale: 1 });
+        const scale = Math.min(5.5, 4200 / Math.max(base.width, base.height));    // about 400 dpi; a lower resolution misreads amounts
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+        const { data } = await worker.recognize(canvas);
+        pages[p - 1] = String(data.text || "").split("\n").map(l => l.replace(/\s+$/, ""));
+        canvas.width = canvas.height = 0;
+        done++; tell();
+      }
+    }));
+  } finally { await Promise.all(workers.map(w => w.terminate())); }
+  return pages.flat();
 }
 
 const NO_LINES = "No transaction lines found in this PDF. It may be a scanned image, or a layout I don't know yet.";
