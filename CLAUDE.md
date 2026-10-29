@@ -30,6 +30,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/demo.js`: `?demo` runs the app on generated sample data with no Firebase (sign-in skipped, writes held in memory, a banner with an exit link). `firebase.js` hands off to it with a guard at the top of each exported function; `vault-guard.js` stays off in demo so demo balances never replace the remembered real ones. **If you add a Firestore collection, a transaction field or a setting that a screen depends on, update `demo.js` too** (unknown writes are harmless no-ops).
 - `js/layout-report.js`: `?layout` shows a 📐 button that copies a phone layout report (viewport, keyboard, element positions, recent focus events) for pasting back; `?layout=0` turns it off.
 - `js/ui.js`: DOM rendering, modals, audit sheets, cap bars. `js/app.js` is the bootstrapper, event wiring, and SW registration.
+- `docs/bank-tnc/`: reference PDFs of bank T&Cs (not loaded by the app) with a README listing each document's date and whether it states an FX fee. Replace a PDF when the bank updates it.
 - `sw.js`: service worker. `CORE_ASSETS` and `CARD_ASSETS` list every cached file.
 
 ## Domain model (config.js)
@@ -38,6 +39,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
   - `engine`: how miles round. `uob-5` / `ocbc-5` use S$5 blocks, `dbs-5` is DBS, `citi-1` is per dollar, `yuu-10` is special.
   - `cycleType`: `calendar` | `statement` (needs `cutoffDay`) | `uncapped`. `monthlyCap: 999999` means effectively uncapped.
   - `channelMode`: `inperson` | `online` | `both`. `isContactlessOnly`, `minSpend`, `bonusMpd`, `baseMpd`, `vaultKey` (→ `DEFAULT_VAULT`).
+  - `fcyFee` (% on foreign-currency spend, including the 1% Visa/Mastercard fee) and `fcyFeeSource` (where it came from, official vs secondary, and the date checked). Data only for now: the recommender does not use it yet. Re-check against the bank's own pages when a bank changes its fee.
 - **MCC rules** (`MCC_DATABASE`): `{ name, notes (HTML), candidatesLocal: [{id, baseRate}], candidatesOverseas: [...] }`. Empty lists mean excluded. Adding an entry overrides the generated fallback for that code. Every `id` must exist in `ALL_MASTER_CARDS`.
 - **Precedence**: an active household rule (Firestore `milestrack_mccRules`, primary-only write, optional expiry) replaces the `MCC_DATABASE` entry. Next comes `MCC_DATABASE`, then the generated fallback from `mcc.js` (base-rate uncapped cards, or a "commonly excluded" result).
 - **Bank-rule cards**: `js/cardrules.js` generates candidates for UOB VS/PPV (contactless and online), OCBC Rewards, Citi Rewards, HSBC Revolution, DBS WWMC and Maybank Horizon air tickets from each bank's exclusion/eligibility list, overriding their hand-written `MCC_DATABASE` entries. Sources and dates are in its header.

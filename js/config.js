@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.43.6";
+export const APP_VERSION = "v1.44.5";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -160,6 +160,8 @@ export function normalizeVault(data) {
 export const ALL_MASTER_CARDS = [
   { 
     id: 'dbs-yuu', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS yuu',
     name: 'DBS yuu Card (10 mpd)', 
@@ -181,6 +183,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-contactless', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PPV.Tap',
     name: 'UOB Preferred Visa (Mobile Tap)', 
     bank: 'UOB', 
@@ -201,6 +205,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ppv-online', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PPV.Online',
     name: 'UOB Preferred Visa (Online)', 
     bank: 'UOB', 
@@ -221,6 +227,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-contactless', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB VS.Tap',
     name: 'UOB Visa Signature (Contactless / Petrol)', 
     bank: 'UOB', 
@@ -242,6 +250,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-vs-fcy', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB VS.FCY',
     name: 'UOB Visa Signature (FCY Overseas)', 
     bank: 'UOB', 
@@ -263,6 +273,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-rewards', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
     shortName: 'Citi Rewards',
     name: 'Citi Rewards', 
     bank: 'Citi', 
@@ -284,6 +296,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'ocbc-rewards', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "OCBC Fees and Charges (official, ocbc.com/assets/pdf/fees_charges.pdf, version 1 Oct 2025): 3.25% of the foreign amount (1% network + 2.25% bank) since 3 Dec 2019. Extra 1% on SGD spend processed overseas (DCC, overseas websites billed in SGD). GST not mentioned. Checked 29 Oct 2026.",
     shortName: 'OCBC Rewards',
     name: 'OCBC Rewards / Titanium', 
     bank: 'OCBC', 
@@ -304,6 +318,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-wwmc', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS WWMC',
     name: "DBS Woman's World Card", 
@@ -325,6 +341,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-dining', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB LS.Dining',
     name: "UOB Lady's Solitaire (Dining)", 
     bank: 'UOB', 
@@ -345,6 +363,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-ls-travel', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB LS.Travel',
     name: "UOB Lady's Solitaire (Travel)", 
     bank: 'UOB', 
@@ -365,6 +385,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'hsbc-rev', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "HSBC credit cards FAQ (official, hsbc.com.sg/credit-cards/faq): 2.25% bank fee + 1% Visa/Mastercard fee = 3.25% on foreign-currency transactions (worked example). Extra 1% on DCC and on SGD transactions processed overseas. GST not mentioned; the FAQ is undated and the Fees and Charges PDF was not read. MileLion dates the 3.25% from 4 Jan 2023. Checked 29 Oct 2026.",
     annualFee: 'none',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'HSBC Revo',
     name: 'HSBC Revolution', 
@@ -387,6 +409,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'kf-uob', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'KrisFlyer UOB',
     name: 'KrisFlyer UOB Credit Card', 
     bank: 'UOB', 
@@ -408,6 +432,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-world-mc', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "Maybank important notice (official, maybank2u.com.sg, notice 24 Sep 2021): bank administrative fee 2.25% plus 1% Visa/Mastercard conversion charge = 3.25%, from 1 Nov 2021, all foreign-currency card transactions. GST not mentioned. 2021 notice; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'Maybank World',
     name: 'Maybank World Mastercard', 
     bank: 'Maybank', 
@@ -429,6 +455,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'mb-horizon-vs', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "Maybank important notice (official, maybank2u.com.sg, notice 24 Sep 2021): bank administrative fee 2.25% plus 1% Visa/Mastercard conversion charge = 3.25%, from 1 Nov 2021, all foreign-currency card transactions. GST not mentioned. 2021 notice; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'Maybank Horizon',
     name: 'Maybank Horizon Visa Signature', 
     bank: 'Maybank', 
@@ -450,6 +478,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-vantage', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     shortName: 'DBS Vantage',
     name: 'DBS Vantage Card', 
     bank: 'DBS', 
@@ -471,6 +501,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'uob-prvi', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: "UOB fee-revision notice (official, uob.com.sg .../news-announcements/revision-fees-charge.pdf): foreign exchange administrative fee 3.25% on the converted amount, all UOB personal credit cards, from 9 Mar 2020. Notice is from 2020 and gives no GST or DCC wording; MileLion's 25 May 2026 table still shows 3.25%. Checked 29 Oct 2026.",
     shortName: 'UOB PRVI',
     name: 'UOB PRVI Miles', 
     bank: 'UOB', 
@@ -491,6 +523,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'dbs-altitude', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'DBS fee page (official): 1% network + 2.25% bank, checked 29 Oct 2026. Paying in SGD abroad (DCC) is 1%.',
     annualFee: 'waived',   // 'waived' = auto-waived, 'none' = no fee: no fee alert for this card
     shortName: 'DBS Altitude',
     name: 'DBS Altitude Card', 
@@ -512,6 +546,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'citi-pm', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
     shortName: 'Citi PremierMiles',
     name: 'Citi PremierMiles', 
     bank: 'Citi', 
@@ -532,6 +568,8 @@ export const ALL_MASTER_CARDS = [
   },
   { 
     id: 'trust-freedom', 
+    fcyFee: 0,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Trust Freedom key facts sheet (official): no fee, Visa rate. Checked 29 Oct 2026.',
     annualFee: 'none',
     shortName: 'Trust Freedom',
     name: 'Trust Freedom (Miles mode)', 
