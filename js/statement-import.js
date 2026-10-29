@@ -7,7 +7,7 @@ import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, maskNumbers, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
+import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, maskNumbers, summarize, dayKey, detectCardHint, suggestCardId, familyOf, POSTING_ONLY_CARDS, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
 import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
@@ -117,14 +117,17 @@ function computeCore() {
   let lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order, flip: S.flip });
   // A file whose only date column is a posting date: that date is the posting date.
   const dateHdr = S.headerRow >= 0 && S.cols.date >= 0 ? String(S.rows[S.headerRow][S.cols.date] || "") : "";
-  if (/post/i.test(dateHdr)) lines.forEach(l => { if (l.postTs === undefined) l.postTs = l.ts; });
+  // OCBC labels its only date "transaction date" but it is the posting date, so it is recorded as such and never replaces my transaction date.
+  S.postOnly = POSTING_ONLY_CARDS.has(familyOf(S.card.id)[0]);
+  if (S.postOnly) lines.forEach(l => { l.postTs = l.ts; });
+  else if (/post/i.test(dateHdr)) lines.forEach(l => { if (l.postTs === undefined) l.postTs = l.ts; });
   if (S.since) { const t = parseDateStr(S.since, "ymd"); if (t) lines = lines.filter(l => l.ts >= t - 43200000); }
   const fam = familyOf(S.card.id);
   const existing = state.transactions.filter(t => fam.includes(t.cardId));
-  const m = matchLines(lines, existing, { cardId: keyCardId() });
+  const m = matchLines(lines, existing, { cardId: keyCardId(), postOnly: S.postOnly });
   // Bank statements win: a leftover line may be something logged on the wrong card (and not yet confirmed by any statement).
   const others = state.transactions.filter(t => !fam.includes(t.cardId) && !t.stmtConfirmed && !t.stmtKey && t.source !== "statement");
-  matchOtherCards(m.results, others);
+  matchOtherCards(m.results, others, { postOnly: S.postOnly });
   S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {}; S.post = {};
   // Entries of mine in the statement's period that it does not show (and no other statement has confirmed): the statement wins, so they go,
   // except the last GRACE_DAYS, which may post on the next statement.
@@ -137,7 +140,7 @@ function computeCore() {
   // What the statement changes on a matched entry: its date, and the "confirmed by a statement" mark.
   m.results.forEach(r => {
     if (!r.existing) return;
-    r.dateChanged = dayKey(r.existing.timestamp || 0) !== dayKey(r.line.ts);
+    r.dateChanged = !S.postOnly && dayKey(r.existing.timestamp || 0) !== dayKey(r.line.ts);   // a posting-only date never replaces my transaction date
     r.unconfirmed = !r.existing.stmtConfirmed && r.existing.source !== "statement";
   });
   // Posting-date cards: which cycle each line counts to, and whether my entry needs its posting date recorded.
@@ -145,6 +148,7 @@ function computeCore() {
     const c = r.existing && r.status !== "moved" ? ALL_MASTER_CARDS.find(x => x.id === r.existing.cardId) || S.card : targetCard(r.line, i);
     r.timing = r.status === "credit" ? null : statementTiming(c, r.line);
     if (r.existing && r.timing && r.timing.status === "posted-later" && Number(r.existing.postTs) !== r.line.postTs) S.post[i] = true;
+    if (S.postOnly && r.existing && r.status !== "credit" && Number(r.existing.postTs) !== r.line.postTs) S.post[i] = true;   // record the bank's posting date on my entry
   });
   m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : (r.status === "differs" || r.status === "moved") ? "statement" : "skip"; });
   S.lo = lines.length ? Math.min(...lines.map(l => l.ts)) : 0; S.hi = hiTs;
@@ -206,8 +210,9 @@ function rowHtml(r, i) {
 function timingSummary() {
   const later = S.results.filter(r => r.timing && r.timing.status === "posted-later").length;
   const slip = S.results.filter(r => r.timing && r.timing.status === "may-slip").length;
-  if (!later && !slip) return "";
-  return `<div class="hm-note st-post">🗓️ ${S.card.name.replace(/\s*\(.*\)$/, "")} counts spend by <b>posting date</b>.`
+  const only = S.postOnly ? `<div class="hm-note st-post">🗓️ This file only gives the <b>posting date</b> (when OCBC booked the charge, usually 1 to 3 days after you paid). Your own transaction dates are kept and the posting date is recorded beside them. Purchases with no entry of yours are added on their posting date.</div>` : "";
+  if (!later && !slip) return only;
+  return only + `<div class="hm-note st-post">🗓️ ${S.card.name.replace(/\s*\(.*\)$/, "")} counts spend by <b>posting date</b>.`
     + (later ? ` ${later} line${later === 1 ? "" : "s"} posted in a later cycle than the purchase and count there.` : "")
     + (slip ? ` ${slip} line${slip === 1 ? "" : "s"} were bought near the end of a cycle and this file has no posting date, so ${slip === 1 ? "it" : "they"} may count to the next cycle.` : "")
     + ` <a href="#" id="stPostInfo">How it works</a></div>`;
