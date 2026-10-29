@@ -35,6 +35,7 @@ import {
 } from "./config.js";
 import { isKnownMcc, normalizeRule } from "./mcc.js";
 import { state } from "./state.js";
+import { isDemo, startDemo, demoSaveTx, demoDeleteTx, demoUpdateVault, demoSettings, demoMerchant, demoRule } from "./demo.js";
 
 export let auth, db, googleProvider;
 
@@ -49,6 +50,7 @@ export function resolveVaultKey(email = "") {
 }
 
 export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
+  if (isDemo()) return startDemo(onAuthSuccess);   // sample data, no Firebase (js/demo.js)
   const app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
@@ -100,6 +102,7 @@ export async function loginWithGoogle() {
 }
 
 export async function logoutUser() {
+  if (isDemo()) { location.href = location.pathname; return; }
   if (confirm("Sign out?")) {
     await signOut(auth);
   }
@@ -222,40 +225,49 @@ export function subscribeToCloudData() {
 }
 
 export async function saveTxToFirestore(txRecordId, payload) {
+  if (isDemo()) return demoSaveTx(txRecordId, payload);
   await setDoc(doc(db, "milestrack_txns", txRecordId), payload);
 }
 
 export async function deleteTxFromFirestore(firestoreDocId) {
+  if (isDemo()) return demoDeleteTx(firestoreDocId);
   await deleteDoc(doc(db, "milestrack_txns", firestoreDocId));
 }
 
 export async function updateVaultDoc(targetVaultKey, vaultPayload) {
+  if (isDemo()) return demoUpdateVault(targetVaultKey, vaultPayload);
   // Writing the whole vault from a copy that was never confirmed by the server could overwrite real balances with blanks.
   if (targetVaultKey === state.myVaultKey && !state.vaultLoaded) throw new Error("Your balances have not finished loading from the cloud yet. Wait a moment and try again.");
   await setDoc(doc(db, "milestrack_vaults", targetVaultKey), vaultPayload);
 }
 
 export async function updateSettingsDoc(targetVaultKey, settingsPayload) {
+  if (isDemo()) return demoSettings(targetVaultKey, settingsPayload);
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), settingsPayload);
 }
 
 // Writes only the given fields, leaving the rest of the settings document alone (used for fee alert dismissals).
 export async function mergeSettingsDoc(targetVaultKey, partial) {
+  if (isDemo()) return demoSettings(targetVaultKey, partial);
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), partial, { merge: true });
 }
 
 export async function saveMerchantOverride(slug, data) {
+  if (isDemo()) return demoMerchant(slug, data);
   await setDoc(doc(db, "milestrack_merchants", slug), data);
 }
 
 export async function deleteMerchantOverride(slug) {
+  if (isDemo()) return demoMerchant(slug, null);
   await deleteDoc(doc(db, "milestrack_merchants", slug));
 }
 
 export async function saveMccRule(code, data) {
+  if (isDemo()) return demoRule(code, data);
   await setDoc(doc(db, "milestrack_mccRules", code), data);
 }
 
 export async function deleteMccRule(code) {
+  if (isDemo()) return demoRule(code, null);
   await deleteDoc(doc(db, "milestrack_mccRules", code));
 }
