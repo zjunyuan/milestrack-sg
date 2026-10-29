@@ -1,5 +1,5 @@
 import { fmtNum, fmtAuto } from "./format.js";
-import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort, FCY_MILE_VALUE_CENTS } from "./config.js";
 import { state } from "./state.js";
 import { setLogContext, syncSplit } from "./log-feedback.js";
 import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
@@ -17,6 +17,7 @@ import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-me
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { slipLine, slipRisk, SLIP_ALERT_MIN } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
+import { planOverseas, billedAmount } from "./fcy.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -26,6 +27,12 @@ export function calcEarnedMiles(card, amount, rate) {
     return Math.round(blocks * 5 * rate);
   }
   return Math.round(Math.floor(amount) * rate);
+}
+
+// Miles shown and planned in Overseas mode: earned on the billed amount, which includes the FX fee. Local mode is unchanged.
+function milesFor(card, amount, rate) {
+  const a = (state.isOverseasMode && !state.isKrisPlusMode) ? billedAmount(card, amount) : amount;
+  return calcEarnedMiles(card, a, rate);
 }
 
 export function checkOcbc6MpdPromo(input) {
@@ -164,10 +171,9 @@ export function resolveMccEntry(input) {
 
 
 // Rate an uncapped everyday card earns on spend with no bonus category, for the current mode.
-const OVERSEAS_GENERAL_MPD = { 'mb-world-mc': 3.2, 'mb-horizon-vs': 2.8, 'uob-prvi': 2.4, 'dbs-vantage': 2.2, 'dbs-altitude': 2.2, 'citi-pm': 2.2, 'trust-freedom': 1.3 };
 function generalRate(card) {
   if (state.isKrisPlusMode && card.id === 'kf-uob') return 3.0;
-  if (state.isOverseasMode) return OVERSEAS_GENERAL_MPD[card.id] ?? card.baseMpd;
+  if (state.isOverseasMode) return card.fcyMpd ?? card.baseMpd;   // top-tier overseas mpd, set per card in config.js
   return card.baseMpd;   // local: the card's current base rate (dated changes are applied by applyRateSchedule)
 }
 
@@ -223,7 +229,11 @@ function renderRecommendation() {
   appendKrisPlusNote();
 }
 
+let fcyAtMax = false;   // table view: false = as things stand now, true = every card at its top earn rate
+let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
+
 function renderRecommendationCore() {
+  lastFcy = null;
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -390,7 +400,7 @@ function renderRecommendationCore() {
   }
 
   // Branch 2: Smart Waterfall Split Mode
-  const scoredCandidates = myOwnedCandidates.map(cand => {
+  let scoredCandidates = myOwnedCandidates.map(cand => {
     const card = state.cards.find(c => c.id === cand.id);
     if (!card) return null;
     const currentSpend = Number(card.currentSpend) || 0;
@@ -461,6 +471,25 @@ function renderRecommendationCore() {
     }
   }
 
+  // Overseas: bonus cards only stay in the plan if they beat the best uncapped card AFTER the FX fee (see js/fcy.js).
+  // Their order is still the app's rate order with whitelist before blacklist. The best uncapped card (Trust vs Maybank World
+  // by net value) becomes the fallback, and both are offered in the panel under the result.
+  let fcyPlan = null;
+  if (state.isOverseasMode && !state.isKrisPlusMode) {
+    const chanOk = c => !((effectiveChannel === 'online' && c.channelMode === 'inperson') || (effectiveChannel === 'inperson' && c.channelMode === 'online') || (effectiveChannel === 'inperson' && !allowContactless && (c.isContactlessOnly || c.inPersonNeedsContactless)));
+    const rows = new Map();
+    const addRow = (card, listed) => { if (card && !rows.has(card.id) && chanOk(card)) rows.set(card.id, fcyRow(card, listed, amt)); };
+    scoredCandidates.forEach(sc => addRow(sc.card, sc.rate));
+    state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(c => addRow(c, generalRate(c)));
+    const rowMiles = r => r.room >= amt ? milesFor(r.card, amt, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, amt - r.room, r.card.baseMpd);
+    fcyPlan = planOverseas([...rows.values()], amt, { milesOf: rowMiles });
+    const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : 999999, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
+    const next = fcyPlan.bonus.map(toCand);
+    if (fcyPlan.best) next.push(toCand(fcyPlan.best));
+    if (next.length) scoredCandidates = next;
+    lastFcy = { amt, plan: fcyPlan };
+  }
+
   const primary = scoredCandidates[0];
   const requiresSplit = !primary.isUncapped && primary.remainingCap < amt;
 
@@ -474,7 +503,7 @@ function renderRecommendationCore() {
       if (takeAmt <= 0) continue;
 
       let finalStepRate = candidate.rate;
-      if (candidate.card.id === 'mb-world-mc' && state.isOverseasMode) {
+      if (candidate.card.id === 'mb-world-mc' && state.isOverseasMode && !fcyAtMax) {
         const cardCurrent = Number(candidate.card.currentSpend) || 0;
         const stepTotal = cardCurrent + takeAmt;
         if (stepTotal >= 4000) finalStepRate = 3.2;
@@ -483,9 +512,9 @@ function renderRecommendationCore() {
       }
 
       const gate = minSpendGate(candidate.card, { cardSpend: Number(candidate.card.currentSpend) || 0, amount: takeAmt, rate: finalStepRate, overseas: state.isOverseasMode });
-      const fullMiles = calcEarnedMiles(candidate.card, takeAmt, gate ? gate.unlockMpd : finalStepRate);
+      const fullMiles = milesFor(candidate.card, takeAmt, gate ? gate.unlockMpd : finalStepRate);
       const nowRate = gate && gate.locked ? candidate.card.baseMpd : (gate ? gate.unlockMpd : finalStepRate);
-      const earnedMiles = calcEarnedMiles(candidate.card, takeAmt, nowRate);
+      const earnedMiles = milesFor(candidate.card, takeAmt, nowRate);
       allocationSteps.push({
         card: candidate.card,
         amount: takeAmt,
@@ -525,7 +554,7 @@ function renderRecommendationCore() {
         ? 3.0 
         : (fallback.rate || fallback.card.baseMpd);
 
-      const earnedMiles = calcEarnedMiles(fallback.card, unallocatedAmt, fallbackRate);
+      const earnedMiles = milesFor(fallback.card, unallocatedAmt, fallbackRate);
       allocationSteps.push({
         card: fallback.card,
         amount: unallocatedAmt,
@@ -585,7 +614,7 @@ function renderRecommendationCore() {
     effectiveMpd = singleCard.card.baseMpd;
   }
 
-  const calculatedMiles = calcEarnedMiles(singleCard.card, amt, effectiveMpd);
+  const calculatedMiles = milesFor(singleCard.card, amt, effectiveMpd);
   let roundingWarning = '';
   if (singleCard.card.engine === 'uob-5' || singleCard.card.engine === 'ocbc-5') {
     const remainder = amt % 5;
@@ -737,11 +766,76 @@ function decorateTierCallouts() {
   }
 }
 
+
+// One planning row per card for the Overseas plan: the rate that applies, and how much of S$amt still earns it.
+// "Now" uses your spend so far; "At max rate" assumes the top tier is unlocked and no cap has been used.
+function fcyRow(card, listedRate, amt) {
+  const capped = card.monthlyCap < 999999;
+  const spend = fcyAtMax ? 0 : (Number(card.currentSpend) || 0);
+  let rate = listedRate;
+  const notes = [];
+  if (card.id === 'mb-world-mc') rate = fcyAtMax ? (card.fcyMpd ?? rate) : ((spend + amt >= 4000) ? 3.2 : (spend + amt >= 800 ? 2.8 : card.baseMpd));
+  if (!fcyAtMax) {
+    const gate = minSpendGate(card, { cardSpend: spend, amount: amt, rate, overseas: true });
+    if (gate && gate.locked) { rate = card.baseMpd; notes.push(`${gate.unlockMpd} mpd needs S$${fmtNum(gate.needMore, 2)} more spend`); }
+  } else {
+    const mn = card.tierRule && card.tierRule.kind === 'monthly' ? (card.id === 'mb-world-mc' ? 4000 : card.tierRule.steps[0].at) : card.minSpend;
+    if (mn > 0) notes.push(`needs S$${fmtNum(mn, 0)}/mo`);
+  }
+  const room = capped ? Math.max(0, card.monthlyCap - spend) : Infinity;
+  if (capped) notes.push(`bonus on S$${fmtNum(room, 0)} this month`);
+  return { card, rate, capped, room, note: notes.join(' · ') };
+}
+
+// Panel under the Overseas result: the two uncapped options side by side (no fee vs more miles with a fee), then the bonus cards
+// that beat them after fees, then the ones that do not. Display only: the tiles above come from the same plan.
+function decorateFcyFees() {
+  const box = document.getElementById('recResultArea');
+  if (!box) return;
+  box.querySelectorAll('.fcy-fees').forEach(n => n.remove());
+  if (!lastFcy || !state.isOverseasMode || state.isKrisPlusMode || !lastFcy.plan) return;
+  const { amt, plan } = lastFcy;
+  const v = plan.valueCents;
+  const money = x => `${x < 0 ? '-' : ''}S$${fmtNum(Math.abs(x), 2)}`;
+  const cents = x => x === null || x === undefined ? 'no extra miles' : `${x.toFixed(2)}¢`;
+  const mi = x => fmtNum(Math.round(x));
+  const optionHtml = (r, title) => {
+    if (!r) return '';
+    const isBest = plan.best && r.card.id === plan.best.card.id;
+    const other = plan.best && !isBest ? plan.best : null;
+    const vs = !isBest && plan.best && r.inc ? (r.inc.extraMiles > 0
+      ? `Extra vs ${escapeHtml(cardShort(plan.best.card))}: +${mi(r.inc.extraMiles)} mi for ${money(r.inc.extraFee)} = <b>${cents(r.inc.costPerExtraMileCents)}</b> per extra mile, ${r.inc.costPerExtraMileCents <= v ? 'below' : 'above'} your ${v}¢`
+      : `No extra miles over ${escapeHtml(cardShort(plan.best.card))}`) : '';
+    return `<div class="fcy-opt${isBest ? ' best' : ''}"><div class="fcy-opt-t">${title}${isBest ? ' · ✅ better at ' + v + '¢' : ''}</div>
+      <b>${escapeHtml(cardShort(r.card))}</b> <span>${r.rate} mpd</span>
+      <div>${mi(r.eco.miles)} mi · FX fee ${r.eco.feePct}% (${money(r.eco.fee)}) · net ${money(r.eco.net)}</div>
+      ${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}${vs ? `<div class="fcy-vs">${vs}</div>` : ''}</div>`;
+  };
+  const sameCard = plan.noFee && plan.withFee && plan.noFee.card.id === plan.withFee.card.id;
+  const opts = plan.withFee && plan.noFee && !sameCard
+    ? `<div class="fcy-opts">${optionHtml(plan.noFee, 'No FX fee')}${optionHtml(plan.withFee, 'More miles, pays a fee')}</div>`
+    : `<div class="fcy-opts">${optionHtml(plan.best, 'Uncapped')}</div>`;
+  const bonusRows = plan.bonus.map(r => `<tr><td>${escapeHtml(cardShort(r.card))}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</td><td>${mi(r.eco.miles)}</td><td>${money(r.eco.fee)}</td><td>${cents(r.inc.costPerExtraMileCents)}</td><td>+${money(r.inc.gain)}</td></tr>`).join('');
+  const bonusHtml = bonusRows ? `<div class="fcy-sec">Bonus cards that beat ${escapeHtml(cardShort(plan.best.card))} after fees (use these first, up to their caps)</div>
+    <table class="fcy-table"><thead><tr><th>Card</th><th>Miles</th><th>FX fee</th><th>Cost / extra mile</th><th>Gain</th></tr></thead><tbody>${bonusRows}</tbody></table>` : '';
+  const hiddenHtml = plan.hidden.length ? `<details class="fcy-hidden"><summary>Not worth using abroad at ${v}¢ (${plan.hidden.length})</summary>${plan.hidden.map(r =>
+    `<div>${escapeHtml(cardShort(r.card))}: ${money(r.inc.gain)} vs ${escapeHtml(cardShort(plan.best.card))}${r.inc.costPerExtraMileCents === null ? ', no extra miles' : `, ${cents(r.inc.costPerExtraMileCents)} per extra mile`}</div>`).join('')}</details>` : '';
+  const div = document.createElement('div');
+  div.className = 'fcy-fees';
+  div.innerHTML = `<details open><summary>💱 Overseas, after FX fees · S$${fmtAuto(amt)}${fcyAtMax ? ' · at max rates' : ''}</summary>
+    <div class="fcy-view"><button type="button" class="${fcyAtMax ? '' : 'on'}" data-fcy-view="now">Now</button><button type="button" class="${fcyAtMax ? 'on' : ''}" data-fcy-view="max">At max rate</button></div>
+    ${opts}${bonusHtml}${hiddenHtml}
+    <div class="fcy-foot">Miles are earned on the billed amount (spend + FX fee). Cost per extra mile = extra fee ÷ extra miles versus ${escapeHtml(cardShort(plan.best.card))}. Gain = extra miles × ${v}¢ − extra fee. Paying in SGD at the terminal adds a separate 1% and is not counted.</div></details>`;
+  div.querySelectorAll('[data-fcy-view]').forEach(b => b.addEventListener('click', () => { fcyAtMax = b.dataset.fcyView === 'max'; runRecommendation(); }));
+  box.appendChild(div);
+}
+
 export function runRecommendation() {
   updateOptionsBadge();
   applyRateSchedule();
   renderRecommendation();
   decorateTierCallouts();
+  decorateFcyFees();
   decorateRetailerTools();
   decorateRuleTools();
 }
