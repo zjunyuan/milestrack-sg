@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.44.2";
+export const APP_VERSION = "v1.44.3";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -297,7 +297,7 @@ export const ALL_MASTER_CARDS = [
   { 
     id: 'ocbc-rewards', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
-    fcyFeeSource: "OCBC: 3.25% per MileLion's overseas-spending table (25 May 2026), in force since Dec 2019. The bank's own page gives no percentage, so not yet confirmed from the bank.",
+    fcyFeeSource: "OCBC Fees and Charges (official, ocbc.com/assets/pdf/fees_charges.pdf, version 1 Oct 2025): 3.25% of the foreign amount (1% network + 2.25% bank) since 3 Dec 2019. Extra 1% on SGD spend processed overseas (DCC, overseas websites billed in SGD). GST not mentioned. Checked 29 Oct 2026.",
     shortName: 'OCBC Rewards',
     name: 'OCBC Rewards / Titanium', 
     bank: 'OCBC', 
