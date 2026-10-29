@@ -1004,3 +1004,10 @@ body:has(#demoBar) { padding-top: 28px; }
 .split-progress.done { color: var(--success, #4ade80); }
 .card-tile.ct-logged { opacity: 0.6; }
 .card-tile.ct-logged .ct-log { background: transparent; color: var(--success, #4ade80); border: 1px solid var(--success, #4ade80); }
+
+/* v1.37.2: solid colour so the toast stands apart from the dark app */
+.log-toast.ok { background: #16a34a; border-color: #bbf7d0; color: #fff; }
+.log-toast.err { background: #dc2626; border-color: #fecaca; color: #fff; }
+.log-toast .lt-msg { font-weight: 600; }
+.log-toast .lt-action { background: rgba(255,255,255,0.95); color: #14532d; }
+.log-toast.err .lt-action { color: #7f1d1d; }
