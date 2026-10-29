@@ -20,6 +20,7 @@ import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
+import { renderTxChips } from "./history-chips.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -433,6 +434,8 @@ export function renderTransactions() {
       + (none ? `<option value="${NO_CATEGORY}">Unrecognised</option>` : '');
     catSel.value = view.category;
   }
+
+  renderTxChips(inPeriodRows);
 
   const filteredTxns = inPeriodRows.filter(tx => {
     const card = cardOf(tx);

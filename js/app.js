@@ -18,6 +18,7 @@ import { initPostingUi } from "./posting-ui.js";
 import { initSettingsUi } from "./settings-ui.js";
 import { initSearchMode } from "./search-mode.js";
 import { initLayoutReport } from "./layout-report.js";
+import { initHistoryChips } from "./history-chips.js";
 import { 
   renderPresets, 
   renderCards, 
@@ -286,6 +287,7 @@ document.getElementById('btnClearTxSearch')?.addEventListener('click', () => {
   }
 });
 
+initHistoryChips(renderTransactions);
 // History advanced filters (category, amount range, date ranges)
 const txViewInputs = { txFilterCategory: 'category', txAmtMin: 'amtMin', txAmtMax: 'amtMax', txTransFrom: 'transFrom', txTransTo: 'transTo', txPostFrom: 'postFrom', txPostTo: 'postTo' };
 Object.entries(txViewInputs).forEach(([id, key]) => {
