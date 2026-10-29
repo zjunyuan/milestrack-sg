@@ -9,6 +9,7 @@ import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } fr
 import { fmtNum } from "./format.js";
 import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, matchOtherCards, summarize, dayKey, detectCardHint, suggestCardId, familyOf, FX_SIBLING, parseDateStr, isChannelSplit, looksOnline } from "./statements.js";
 import { readXls } from "./xls.js";
+import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
@@ -34,7 +35,12 @@ function lookupBrand(merchant) {
 }
 const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
 
-const S = { chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, post: {}, fileName: "" };
+const REMOVED_KEY = "milestrack_last_removed";   // entries the last import removed, kept on this device so Undo can put them back
+const loadRemoved = () => { try { return JSON.parse(localStorage.getItem(REMOVED_KEY) || "null"); } catch { return null; } };
+const saveRemoved = (v) => { try { if (v) localStorage.setItem(REMOVED_KEY, JSON.stringify(v)); else localStorage.removeItem(REMOVED_KEY); } catch { /* storage unavailable */ } };
+const GRACE_DAYS = 7;   // entries this close to the end of a statement may simply post on the next one
+
+const S = { stale: [], recent: [], remove: {}, chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, post: {}, fileName: "" };
 
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
@@ -116,6 +122,13 @@ function recompute() {
   const others = state.transactions.filter(t => !fam.includes(t.cardId) && !t.stmtConfirmed && !t.stmtKey && t.source !== "statement");
   matchOtherCards(m.results, others);
   S.results = m.results; S.missing = m.missing; S.choice = {}; S.chan = {}; S.post = {};
+  // Entries of mine in the statement's period that it does not show (and no other statement has confirmed): the statement wins, so they go,
+  // except the last GRACE_DAYS, which may post on the next statement.
+  const hiTs = lines.length ? Math.max(...lines.map(l => l.ts)) : 0;
+  const graceCut = hiTs - GRACE_DAYS * 86400000;
+  S.stale = m.missing.filter(t => !t.stmtConfirmed && t.source !== "statement" && (t.timestamp || 0) <= graceCut);
+  S.recent = m.missing.filter(t => !S.stale.includes(t));
+  S.remove = {}; S.stale.forEach(t => { S.remove[t.id] = true; });
   if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs" || r.status === "moved") S.chan[i] = guessEntry(r.line); });
   // What the statement changes on a matched entry: its date, and the "confirmed by a statement" mark.
   m.results.forEach(r => {
@@ -220,8 +233,12 @@ function renderReview() {
     ${group("new", "➕ New: not in your list yet", true)}
     ${group("matched", "✅ Already in your list")}
     ${group("credit", "↩️ Refunds and payments (skipped)")}
-    ${S.missing.length ? `<details class="st-group"><summary>🕓 Logged by you, not on this statement (${S.missing.length})</summary>
-      ${S.missing.map(t => `<div class="st-line"><div class="st-line-main"><b>${escapeHtml(t.desc)}</b><span class="st-amt">${money(Number(t.amt))}</span></div><div class="st-sub">${dateLabel(t.timestamp)}. Possibly not posted yet, or logged on the wrong card. Left untouched.</div></div>`).join("")}</details>` : ""}`;
+    ${S.stale.length ? `<details class="st-group" open><summary>🗑️ Not on this statement: remove (${S.stale.length})</summary>
+      <div class="hm-note">The statement is the record, so these entries of yours are marked for removal. Untick any you want to keep. Check first that the file is the complete statement for the period.</div>
+      ${S.stale.map(t => `<label class="st-line st-remove"><div class="st-line-main"><span><input type="checkbox" class="st-rm" data-id="${escapeHtml(String(t.id))}" ${S.remove[t.id] ? "checked" : ""}> <b>${escapeHtml(t.desc)}</b></span><span class="st-amt">${money(Number(t.amt))}</span></div><div class="st-sub">${dateLabel(t.timestamp)} · ${escapeHtml(entryLabel(t.cardId))}</div></label>`).join("")}</details>` : ""}
+    ${S.recent.length ? `<details class="st-group"><summary>🕓 Too recent to judge, left alone (${S.recent.length})</summary>
+      ${S.recent.map(t => `<div class="st-line"><div class="st-line-main"><b>${escapeHtml(t.desc)}</b><span class="st-amt">${money(Number(t.amt))}</span></div><div class="st-sub">${dateLabel(t.timestamp)}. Within ${GRACE_DAYS} days of the end of this statement, so it may post on the next one.</div></div>`).join("")}</details>` : ""}`;
+  box.querySelectorAll(".st-rm").forEach(el => el.addEventListener("change", () => { S.remove[el.dataset.id] = el.checked; updateApplyLabel(); }));
   box.querySelectorAll(".st-add").forEach(el => el.addEventListener("change", () => { S.choice[el.dataset.i] = el.checked ? "add" : "skip"; updateApplyLabel(); }));
   box.querySelectorAll(".st-chan").forEach(el => el.addEventListener("change", () => { S.chan[el.dataset.i] = el.value; }));
   $("stBulk")?.addEventListener("change", e => {
@@ -237,19 +254,21 @@ function renderReview() {
 
 function plan() {
   let add = 0, update = 0, confirm = 0;
+  const remove = S.stale.filter(t => S.remove[t.id]).length;
   S.results.forEach((r, i) => {
     const c = S.choice[i];
     if (r.status === "new" && c === "add") add++;
     if (r.status === "differs" || r.status === "moved") { if (c === "statement") update++; else if (c === "new") add++; }
     else if (r.status === "matched" && r.existing) { if (r.dateChanged || S.post[i]) update++; else if (r.unconfirmed) confirm++; }
   });
-  return { add, update, confirm };
+  return { add, update, confirm, remove };
 }
 function updateApplyLabel() {
   const p = plan();
   const btn = $("btnStmtApply");
-  btn.disabled = p.add + p.update + p.confirm === 0;
-  btn.textContent = p.add + p.update + p.confirm === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}`;
+  const any = p.add + p.update + p.confirm + p.remove;
+  btn.disabled = any === 0;
+  btn.textContent = any === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}${p.remove ? `, remove ${p.remove}` : ""}`;
 }
 
 // Fields an import can change on an existing transaction; undo puts them back.
@@ -258,10 +277,13 @@ const UNDO_FIELDS = ["postTs", "amt", "miles", "earnedRawPoints", "estimatedMile
 // The most recent import still in the list: lines it added, and lines it changed.
 export function lastImport() {
   const tagged = state.transactions.filter(t => t.importId);
-  if (!tagged.length) return null;
+  const bk = loadRemoved();
+  const removedTxs = bk && Array.isArray(bk.txs) ? bk.txs : [];
+  if (!tagged.length) return removedTxs.length ? { id: bk.importId, at: bk.at || 0, added: [], updated: [], removed: removedTxs } : null;
   const latest = tagged.reduce((a, t) => ((t.importedAt || 0) > (a.importedAt || 0) ? t : a), tagged[0]);
+  if (removedTxs.length && (bk.at || 0) > (latest.importedAt || 0)) return { id: bk.importId, at: bk.at || 0, added: [], updated: [], removed: removedTxs };
   const rows = tagged.filter(t => t.importId === latest.importId);
-  return { id: latest.importId, at: latest.importedAt || 0, added: rows.filter(t => !t.importUpdated), updated: rows.filter(t => t.importUpdated) };
+  return { id: latest.importId, at: latest.importedAt || 0, added: rows.filter(t => !t.importUpdated), updated: rows.filter(t => t.importUpdated), removed: bk && bk.importId === latest.importId ? removedTxs : [] };
 }
 
 function refreshUndo() {
@@ -270,14 +292,14 @@ function refreshUndo() {
   if (!li) { box.style.display = "none"; box.innerHTML = ""; return; }
   const when = new Date(li.at).toLocaleString("en-SG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   box.style.display = "";
-  box.innerHTML = `<span>↩️ Last import (${escapeHtml(when)}): ${li.added.length} added${li.updated.length ? `, ${li.updated.length} changed` : ""}.</span> <button type="button" class="btn-backup" id="btnStmtUndo" style="margin-top:6px;">Undo last import</button>`;
+  box.innerHTML = `<span>↩️ Last import (${escapeHtml(when)}): ${li.added.length} added${li.updated.length ? `, ${li.updated.length} changed` : ""}${li.removed && li.removed.length ? `, ${li.removed.length} removed` : ""}.</span> <button type="button" class="btn-backup" id="btnStmtUndo" style="margin-top:6px;">Undo last import</button>`;
   $("btnStmtUndo").addEventListener("click", undoLastImport);
 }
 
 // Deletes the lines the last import added and puts back what it changed. Points balances move only for lines that were counted into them.
 async function undoLastImport() {
   const li = lastImport(); if (!li) return;
-  if (!confirm(`Undo the last import? ${li.added.length} added line${li.added.length === 1 ? "" : "s"} will be deleted${li.updated.length ? ` and ${li.updated.length} changed line${li.updated.length === 1 ? "" : "s"} put back as they were` : ""}.`)) return;
+  if (!confirm(`Undo the last import? ${li.added.length} added line${li.added.length === 1 ? "" : "s"} will be deleted${li.updated.length ? `, ${li.updated.length} changed line${li.updated.length === 1 ? "" : "s"} put back as they were` : ""}${li.removed && li.removed.length ? ` and ${li.removed.length} removed entr${li.removed.length === 1 ? "y" : "ies"} restored` : ""}.`)) return;
   const btn = $("btnStmtUndo"); if (btn) btn.disabled = true;
   const vaultMinus = {};
   const take = (tx, raw) => { const c = ALL_MASTER_CARDS.find(x => x.id === tx.cardId); if (c && raw) vaultMinus[c.vaultKey] = (vaultMinus[c.vaultKey] || 0) + raw; };
@@ -296,6 +318,7 @@ async function undoLastImport() {
     let touched = false;
     for (const [k, raw] of Object.entries(vaultMinus)) if (state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) - raw); touched = true; }
     if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
+    if (li.removed && li.removed.length) { await restoreTransactions(li.removed); saveRemoved(null); }
     alert("Import undone.");
   } catch (err) {
     console.error("Undo import failed", err);
@@ -308,8 +331,8 @@ async function applyImport() {
   const card = S.card, btn = $("btnStmtApply");
   const addVault = $("stAddVault").checked;
   const p = plan();
-  const total = p.add + p.update + p.confirm;
-  if (!confirm(`Add ${p.add}, update ${p.update}${p.confirm ? ` and confirm ${p.confirm}` : ""} transaction${total === 1 ? "" : "s"} for ${card.name}? Where the statement disagrees with an entry of yours, the statement wins (you can undo the import).`)) return;
+  const total = p.add + p.update + p.confirm + p.remove;
+  if (!confirm(`Add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}${p.remove ? ` and REMOVE ${p.remove} entr${p.remove === 1 ? "y" : "ies"} that ${p.remove === 1 ? "is" : "are"} not on the statement` : ""} for ${card.name}? Where the statement disagrees with an entry of yours, the statement wins (you can undo the import).`)) return;
   btn.disabled = true;
   const bucketSpend = {};
   for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
@@ -376,6 +399,12 @@ async function applyImport() {
         });
         done++;
       }
+    }
+    const toRemove = S.stale.filter(t => S.remove[t.id]);
+    if (toRemove.length) {
+      const { deleted, failed } = await deleteTransactionsBulk(toRemove);
+      if (deleted.length) { saveRemoved({ importId, at: base, txs: deleted }); done += deleted.length; }
+      if (failed.length) alert(`${failed.length} entr${failed.length === 1 ? "y" : "ies"} could not be removed. Re-run the import to try again.`);
     }
     if (addVault) {
       let touched = false;

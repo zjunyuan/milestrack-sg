@@ -104,14 +104,16 @@ const fmtDay = (ms) => {
   return d.toLocaleDateString('en-SG', o);
 };
 
-export function tableHtml(rows, view, cardOf) {
+export function tableHtml(rows, view, cardOf, select = null) {
   const head = TX_COLUMNS.map(c => {
     const on = view.sortKey === c.key;
     return `<th class="${c.num ? 'num ' : ''}${on ? 'sorted' : ''}" data-sort="${c.key}">${c.label}${on ? (view.sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`;
   }).join('') + '<th></th>';
+  const selHead = select ? `<th class="sel"><input type="checkbox" data-sel="all-toggle" ${rows.length && rows.every(t => select.ids.has(String(t.id))) ? 'checked' : ''} aria-label="Select all shown"></th>` : '';
   const body = rows.map(t => {
     const mpd = txMpd(t);
-    return `<tr data-id="${escapeHtml(String(t.id))}">
+    return `<tr data-id="${escapeHtml(String(t.id))}"${select && select.ids.has(String(t.id)) ? ' class="selected"' : ''}>
+      ${select ? `<td class="sel"><input type="checkbox" class="tx-sel" ${select.ids.has(String(t.id)) ? 'checked' : ''} aria-label="Select"></td>` : ''}
       <td>${fmtDay(t.timestamp)}</td>
       <td class="${t.postTs ? '' : 'dim'}">${fmtDay(t.postTs)}</td>
       <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}</td>
@@ -120,8 +122,8 @@ export function tableHtml(rows, view, cardOf) {
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>
       <td class="num miles">+${fmtNum(Number(t.miles) || 0, 0)}</td>
       <td class="num${mpd > 0 && mpd < 1 ? ' dim' : ''}">${mpd.toFixed(2)}</td>
-      <td class="acts"><button class="btn-tx-action btn-edit" data-act="edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button><button class="btn-tx-action btn-delete" data-act="delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button></td>
+      <td class="acts">${select ? '' : `<button class="btn-tx-action btn-edit" data-act="edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button><button class="btn-tx-action btn-delete" data-act="delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>`}</td>
     </tr>`;
   }).join('');
-  return `<table class="tx-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  return `<table class="tx-table"><thead><tr>${selHead}${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
