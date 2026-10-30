@@ -6,7 +6,7 @@ import { DEFAULT_VAULT } from "./config.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { mergeSettingsDoc } from "./firebase.js";
-import { reconcile, suspects, bigChecks, checkedShort, balanceFromBank, checkpointsFor, outflowsFor, saveBalance, saveOutflow, deleteOutflow,
+import { reconcile, reconcileLedgers, ledgersOf, worstRow, suspects, bigChecks, checkedShort, balanceFromBank, checkpointsFor, outflowsFor, saveBalance, saveOutflow, deleteOutflow,
   setVaultFromBank, saveBankCheck, currencyName, unitName, cardName, fmtDate, BANK_LABEL } from "./reconcile.js";
 
 const $ = (id) => document.getElementById(id);
@@ -21,7 +21,7 @@ const parseDay = (s) => { const d = new Date(`${s}T12:00:00`); return isNaN(d) ?
 // Short status for a Vault tile: { cls, text } or null when the currency has no checkpoint.
 export function tileStatus(vk) {
   if (!checkpointsFor(vk).length) return null;
-  const r = reconcile(vk)[0];
+  const r = worstRow(vk);
   if (!r || r.status === "baseline") return { cls: "pc-wait", text: "Bank balance noted" };
   const [label, cls] = STATUS[r.status];
   return { cls, text: `${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""} · ${fmtDate(r.to)}` };
@@ -89,7 +89,8 @@ function balanceHtml(vk, unit) {
   return `<div class="pc-bal">
     <div>Bank balance on ${fmtDate(b.asOf)}: <b>${n(b.bank)} ${escapeHtml(unit)}</b>${b.since ? ` · expected since: +${n(b.since)}` : ""}${b.out ? ` · moved out since: −${n(b.out)}` : ""}</div>
     <div>Vault now: <b>${n(have)}</b>${Math.abs(diff) > 0 ? ` · from the bank: <b>${n(b.points)}</b> (${diff > 0 ? "+" : "−"}${n(Math.abs(diff))})` : " · same as the bank"}</div>
-    ${Math.abs(diff) > 0 ? `<button type="button" class="btn-backup" id="ptsUseBank">Use the bank's figure (${n(b.points)})</button>` : ""}
+    ${b.partial ? `<div class="hm-note st-warn">This bank keeps a separate balance for each card, and ${b.missing && b.missing.length ? b.missing.map(id => escapeHtml(cardName(id))).join(", ") : "a card"} has no statement yet, so the total can't be compared. Import its statement first.</div>`
+      : Math.abs(diff) > 0 ? `<button type="button" class="btn-backup" id="ptsUseBank">Use the bank's figure (${n(b.points)})</button>` : ""}
   </div>`;
 }
 
@@ -112,12 +113,18 @@ function rowHtml(r, unit, withSuspects = true) {
   </div>`;
 }
 function rowsHtml(vk, unit) {
+  const led = reconcileLedgers(vk);
+  if (led.length) {                                               // this bank keeps a balance for each card: one check per card
+    return `<div class="pc-sec"><b>Statements, card by card</b>${led.map(l => `<div class="pc-cardrow"><b>${escapeHtml(l.cardId ? cardName(l.cardId) : "Card ending " + l.ledger)}</b>${
+      l.rows.length ? l.rows.slice(0, 12).map(r => rowHtml(r, unit)).join("") : `<div class="hm-note">${l.cardId ? "No check yet." : "Import this statement once with the card chosen so it can be matched to your entries."}</div>`}</div>`).join("")}</div>`;
+  }
   const rows = reconcile(vk);
   if (!rows.length) return "";
   return `<div class="pc-sec"><b>Statements and balances</b>${rows.slice(0, 12).map(r => rowHtml(r, unit)).join("")}</div>`;
 }
 // Banks that print each card's points (DBS, OCBC): the same check per card, so a shortfall points at one card.
 function cardRowsHtml(vk, unit) {
+  if (Object.keys(ledgersOf(vk)).length) return "";
   const ids = new Set();
   for (const r of checkpointsFor(vk)) for (const c of r.byCard || []) if (c.cardId) ids.add(c.cardId);
   if (ids.size < 2) return "";

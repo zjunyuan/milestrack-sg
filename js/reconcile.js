@@ -195,7 +195,45 @@ export function checkedShort() {
 // ---------- the Vault from the last statement ----------
 
 // Latest bank balance plus what the app expects since then, minus what you moved out since. Null when there is no checkpoint.
+// Banks that keep a separate balance for each card (Citi: the Rewards Visa and Mastercard are not pooled) save one record per card with
+// `ledger` (the card's last 4). { ledger: { cardId, last } } for the cards that have a statement.
+export function ledgersOf(vk) {
+  const m = {};
+  for (const r of checkpointsFor(vk)) {
+    if (!r.ledger || r.kind !== "statement") continue;
+    m[r.ledger] = { cardId: (r.byCard || []).find(c => c.last4 === r.ledger)?.cardId || (r.byCard || [])[0]?.cardId || "", last: r };
+  }
+  return m;
+}
+// One check per card for a vault with per-card balances, worst latest status first.
+export function reconcileLedgers(vk) {
+  const out = [];
+  for (const [ledger, { cardId }] of Object.entries(ledgersOf(vk))) out.push({ ledger, cardId, rows: cardId ? reconcile(vk, cardId) : [] });
+  return out;
+}
+const SEVERITY = { short: 4, over: 3, pending: 2, ok: 1, baseline: 0 };
+export function worstRow(vk) {
+  if (!Object.keys(ledgersOf(vk)).length) return reconcile(vk)[0] || null;
+  const latest = reconcileLedgers(vk).map(l => l.rows[0]).filter(Boolean);
+  return latest.sort((a, b) => (SEVERITY[b.status] || 0) - (SEVERITY[a.status] || 0))[0] || null;
+}
 export function balanceFromBank(vk, now = Date.now()) {
+  const led = ledgersOf(vk);
+  if (Object.keys(led).length) {                                  // per-card balances: add the cards' latest figures together
+    let bank = 0, since = 0, asOf = 0, unmapped = false;
+    const covered = new Set();
+    for (const { cardId, last } of Object.values(led)) {
+      bank += Number(last.closing) || 0; asOf = Math.max(asOf, last.ts);
+      if (!cardId) { unmapped = true; continue; }
+      const fam = familyIds(cardId); fam.forEach(f => covered.add(f));
+      since += expectedCredits(vk, fam).filter(c => c.lo > last.ts && c.lo <= now + 60 * DAY).reduce((x, c) => x + c.pts, 0);
+    }
+    const lastTs = Math.max(...Object.values(led).map(l => l.last.ts));
+    const out = outflowsFor(vk).filter(o => o.ts > lastTs).reduce((x, o) => x + (Number(o.pts) || 0), 0);
+    const used = new Set((state.transactions || []).map(t => t.cardId));
+    const missing = ALL_MASTER_CARDS.filter(c => c.vaultKey === vk && used.has(c.id) && !covered.has(c.id)).map(c => c.id);
+    return { asOf, bank, since, out, points: Math.max(0, Math.round(bank + since - out)), partial: unmapped || missing.length > 0, missing };
+  }
   const cps = checkpointsFor(vk); if (!cps.length) return null;
   const last = cps[cps.length - 1];
   const since = expectedCredits(vk).filter(c => c.lo > last.ts && c.lo <= now + 60 * DAY).reduce((s, c) => s + c.pts, 0);
@@ -215,11 +253,11 @@ export async function saveStatementPoints(list, last4s = {}) {
   const seen = new Set();
   for (const p of list) {
     if (!p.vaultKey || !p.asOf) continue;
-    const id = `${state.myVaultKey}_${p.vaultKey}_${ymd(p.asOf)}`;
+    const id = `${state.myVaultKey}_${p.vaultKey}_${p.ledger ? p.ledger + "_" : ""}${ymd(p.asOf)}`;
     if (seen.has(id)) continue; seen.add(id);
     const single = (p.byCard || []).length <= 1 && p.fileCard;
     const byCard = (p.byCard || []).map(c => ({ ...c, cardId: last4s[c.last4] || (single ? p.fileCard : "") || "" }));
-    const rec = { kind: "statement", source: "statement", bank: p.bank, vaultKey: p.vaultKey, ts: p.asOf, from: p.from || null,
+    const rec = { kind: "statement", source: "statement", bank: p.bank, vaultKey: p.vaultKey, ledger: p.ledger || "", ts: p.asOf, from: p.from || null,
       opening: p.opening, earned: p.earned, redeemed: p.redeemed, adjusted: p.adjusted, closing: p.closing, expiring: p.expiring || 0,
       expiryDate: p.expiryDate || null, items: (p.items || []).map(i => ({ ts: i.ts || null, what: String(i.what || "").slice(0, 60), pts: i.pts })),
       byCard, verified: p.verified !== false, at: Date.now() };
