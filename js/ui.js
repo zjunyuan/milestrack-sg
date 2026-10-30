@@ -32,7 +32,7 @@ import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows } from "./col-filter.js";
-import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
+import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
@@ -613,7 +613,7 @@ export function renderTransactions() {
     row.innerHTML = `
       ${sel.on ? `<input type="checkbox" class="tx-sel tx-sel-phone" ${sel.ids.has(String(tx.id)) ? 'checked' : ''} aria-label="Select">` : ''}
       <div style="flex:1; min-width:0; padding-right:8px;">
-        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}</div>
+        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}${mccChip(tx)}</div>
         <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}${isStatementEntry(tx) ? ' • <span class="tx-stmt" title="Confirmed by a bank statement">✓ statement</span>' : ''}</div>
       </div>
       <div>

@@ -41,6 +41,14 @@ export function deltaText(d) {
   };
 }
 
+// The MCC the merchant name resolves to (same lookup as categoryOf), shown beside the description in History.
+export function mccOf(desc) {
+  try {
+    const r = findRetailerForInput(desc, state.merchantOverrides);
+    return r && r.mcc ? String(r.mcc) : null;
+  } catch (_) { return null; }
+}
+
 const categoryCache = new Map();
 export function categoryOf(desc) {
   const key = String(desc || '').toLowerCase();
