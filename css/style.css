@@ -1143,3 +1143,7 @@ body:has(#demoBar) { padding-top: 28px; }
 .cv-table td.cv-click { cursor: pointer; }
 .cv-table td.cv-click:hover, .cv-table td.cv-click:focus-visible { outline: 1px solid var(--primary); }
 .tx-stmt { color: #4ade80; font-size: 0.68rem; font-weight: 600; }
+
+.ms-cat { cursor: pointer; }
+.ms-cat:hover .ms-line span:first-child { color: var(--primary); }
+.ms-card h3 .ms-dim { font-weight: 400; text-transform: none; letter-spacing: 0; }

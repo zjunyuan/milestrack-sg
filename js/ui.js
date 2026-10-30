@@ -1123,6 +1123,12 @@ export function renderArchiveData() {
     const data = coverageData(targetYear);
     summaryEl.innerHTML = `<details class="st-cover" id="historyCoverage"><summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div></details>`
       + (isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m) => getStatementCycleForMonth(c, y, m).spent));
+    summaryEl.querySelectorAll('[data-ms-cat]').forEach(row => {
+      if (!row.dataset.msCat) { row.removeAttribute('role'); row.style.cursor = 'default'; return; }
+      const go = () => { state.txView.cats = [row.dataset.msCat]; renderTransactions(); document.getElementById('txList')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      row.addEventListener('click', go);
+      row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
     const covEl = document.getElementById('historyCoverage');
     covEl.open = wasOpen;
     covEl.querySelectorAll('[data-cv-ym]').forEach(td => {
