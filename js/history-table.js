@@ -117,7 +117,7 @@ export function tableHtml(rows, view, cardOf, select = null) {
       ${select ? `<td class="sel"><input type="checkbox" class="tx-sel" ${select.ids.has(String(t.id)) ? 'checked' : ''} aria-label="Select"></td>` : ''}
       <td>${fmtDay(t.timestamp)}</td>
       <td class="${t.postTs ? '' : 'dim'}">${fmtDay(t.postTs)}</td>
-      <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}</td>
+      <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}${(t.stmtKey || t.stmtConfirmed || t.source === 'statement') ? ' <span class="tx-stmt" title="Confirmed by a bank statement">✓</span>' : ''}</td>
       <td>${escapeHtml(cardShort(cardOf(t)))}</td>
       <td class="cat ${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>
