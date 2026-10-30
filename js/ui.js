@@ -24,7 +24,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
-import { trustExpiry } from "./expiry.js";
+import { trustExpiry, pointsExpiry } from "./expiry.js";
 import { transferPlan } from "./transfer.js";
 import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
@@ -803,21 +803,30 @@ export function renderExpiryRadar() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  const expiries = [
-    { key: 'dbs_pts', name: 'DBS Points', expiry: new Date(currentYear + 1, Math.floor(currentMonth / 3) * 3 + 3, 0), pts: state.myVault.dbs_pts?.points || 0 },
-    { key: 'uob_uni', name: 'UOB UNI$', expiry: new Date(currentYear + 2, Math.floor(currentMonth / 3) * 3 + 3, 0), pts: state.myVault.uob_uni?.points || 0 },
-    { key: 'yuu_pts', name: 'yuu Points', expiry: new Date(currentYear + 2, currentMonth + 1, 0), pts: state.myVault.yuu_pts?.points || 0 }
-  ];
-
-  expiries.forEach(item => {
-    const diffDays = Math.max(0, Math.ceil((item.expiry - now) / (1000 * 60 * 60 * 24)));
+  // DBS, UOB and yuu: dated batches from the logged entries (see js/expiry.js for the rules and their sources).
+  const DAY = 1000 * 60 * 60 * 24;
+  for (const key of ['dbs_pts', 'uob_uni', 'yuu_pts']) {
+    const bal = state.myVault[key]?.points || 0;
+    const pe = pointsExpiry(key, state.transactions, ALL_MASTER_CARDS, bal, now);
+    if (!pe) continue;
+    const fmtD = d => d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (!pe.next) {
+      container.innerHTML += `
+      <div class="radar-item">
+        <div><div style="font-size:0.85rem; font-weight:600;">${pe.name}</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(Number(bal))} pts · no dated entries logged yet</div></div>
+        <span class="radar-badge badge-safe">—</span>
+      </div>`;
+      continue;
+    }
+    const d = Math.max(0, Math.ceil((pe.next.expiry - now) / DAY));
+    const more = pe.batches.length > 1 ? ` · ${pe.batches.length - 1} later batch${pe.batches.length > 2 ? 'es' : ''}` : '';
+    const old = pe.untracked > 0 ? ` · ${fmtNum(pe.untracked)} pts earned before the app, date unknown` : '';
     container.innerHTML += `
       <div class="radar-item">
-        <div><div style="font-size:0.85rem; font-weight:600;">${item.name}</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(Number(item.pts))} pts</div></div>
-        <span class="radar-badge ${diffDays <= 90 ? 'badge-crit' : 'badge-safe'}">${diffDays}d left</span>
-      </div>
-    `;
-  });
+        <div><div style="font-size:0.85rem; font-weight:600;">${pe.name}</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(pe.next.pts)} pts expire ${fmtD(pe.next.expiry)}${more}${old}</div></div>
+        <span class="radar-badge ${d <= 90 ? 'badge-crit' : 'badge-safe'}">${d}d left</span>
+      </div>`;
+  }
   // Trust Miles expire per earn year (from the logged entries, not the vault total).
   const te = trustExpiry(state.transactions, ALL_MASTER_CARDS, now);
   if (te) {
