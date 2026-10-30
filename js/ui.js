@@ -23,6 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
+import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
@@ -106,6 +107,14 @@ export function yuuUnlockNote(card, merchantText) {
   const per = new Set(state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card)).map(tx => detectYuuMerchant(tx.desc)).filter(Boolean));
   if (per.has(brand)) return `<div class="ct-chip ct-chip-ok">🐼 ${escapeHtml(brand)} already counts as one of your ${per.size} yuu merchants</div>`;
   return `<div class="ct-chip ct-chip-ok">🐼 New yuu merchant: ${escapeHtml(brand)} would be #${per.size + 1} of 4</div>`;
+}
+
+// Base vs bonus miles as the bank credits them (separately, bonus later), against what is logged this cycle.
+function splitBlockHtml(card, txns) {
+  const r = splitForCycle(card, txns); if (!r || !txns.length) return '';
+  const how = r.rule.bonusRound === 'month' ? `bonus worked out once on the cycle's eligible spend (S$${fmtNum(r.eligible, 2)}), rounded down to S$${r.rule.block}` : `bonus worked out per transaction, rounded down to S$${r.rule.block}`;
+  const d = r.drift === 0 ? 'matches what you logged' : `${r.drift > 0 ? '+' : ''}${fmtNum(r.drift, 0)} mi vs logged ${fmtNum(r.logged, 0)} (rounding)`;
+  return `<div class="fee-alert"><div class="fee-alert-desc"><b>Base vs bonus (what the bank should credit)</b><br>Base ${fmtNum(r.base, 0)} mi, credited with the transaction.<br>Bonus ${fmtNum(r.bonus, 0)} mi, credited ${escapeHtml(r.rule.timing)}; ${how}.<br>Total ${fmtNum(r.total, 0)} mi: ${d}.</div></div>`;
 }
 
 // yuu: every entry earns a fixed rate; the 10 mpd bonus is a month-level extra shown here, added as one "yuu bonus" entry once met.
@@ -330,6 +339,7 @@ export function openCardDetailModal(cardId) {
   if (tierAlert) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
     tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : (card.id === 'dbs-yuu' ? `<div class="fee-alert"><div class="fee-alert-desc"><b>yuu partner merchants this cycle</b>${yuuChipsHtml(card, { spend: true })}${yuuMilesHtml(card, activeTxns)}</div></div>` : '');
+    if (hasSplit(card)) tierAlert.innerHTML += splitBlockHtml(card, activeTxns);
   }
   const yuuBtn = document.getElementById('btnYuuBonus');
   if (yuuBtn) yuuBtn.onclick = async () => {
@@ -394,15 +404,24 @@ export function renderVault() {
   container.innerHTML = '';
   let myGrandTotalMiles = 0;
 
+  // Bonus miles of this month's entries on cards whose bank credits the bonus later: the vault already counts them, the bank does not yet.
+  const nowD = new Date(), pendingByVault = {};
+  for (const tx of state.transactions) {
+    const c = ALL_MASTER_CARDS.find(x => x.id === tx.cardId); if (!c || !hasSplit(c)) continue;
+    const d = new Date(countsTs(tx, c)); if (d.getFullYear() !== nowD.getFullYear() || d.getMonth() !== nowD.getMonth()) continue;
+    pendingByVault[c.vaultKey] = (pendingByVault[c.vaultKey] || 0) + entryBonusMiles(c, tx);
+  }
+
   for (const [key, item] of Object.entries(state.myVault)) {
     const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
     myGrandTotalMiles += equivMiles;
+    const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. about ${fmtNum(pendingByVault[key], 0)} mi bonus the bank credits next month</span>` : '';
 
     container.innerHTML += `
       <div class="vault-item">
         <span class="vault-label">${item.name}</span>
         <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>
+        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${pend}
       </div>
     `;
   }

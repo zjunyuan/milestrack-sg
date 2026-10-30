@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.54.0";
+export const APP_VERSION = "v1.55.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -999,3 +999,17 @@ export function applyRateSchedule(today = new Date().toLocaleDateString("en-CA")
 export function cardShort(card) {
   return (card && (card.shortName || card.name)) || 'Card';
 }
+
+// Cards whose bank credits BASE and BONUS points separately (source: MileLion "How do banks calculate credit card points", Jun 2024; re-check against each bank's T&Cs).
+// bonusRound: 'month' = bonus worked out once on the cycle's total eligible spend (cents included), 'txn' = per transaction.
+// block: S$ block the spend is rounded down to. baseRound: 'block' (down to the block) or 'dollar' (nearest S$1). timing: when the bank credits the bonus.
+export const BONUS_SPLIT = {
+  'uob-vs-contactless': { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next statement month' },
+  'uob-vs-fcy':         { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next statement month' },
+  'uob-ls-dining':      { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next calendar month' },
+  'uob-ls-travel':      { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next calendar month' },
+  'hsbc-rev':           { bonusRound: 'month', block: 1, baseRound: 'dollar', timing: 'by the end of the next calendar month' },
+  'ocbc-rewards':       { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
+  'mb-horizon-vs':      { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
+  'dbs-wwmc':           { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' }
+};
