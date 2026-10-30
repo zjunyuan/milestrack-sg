@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.55.1";
+export const APP_VERSION = "v1.56.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -134,15 +134,17 @@ export function detectYuuMerchant(desc = "") {
   return null;
 }
 
+// transfer: smallest block the bank converts to KrisFlyer miles (pts -> miles); `step` = smaller blocks allowed after the first one (HSBC 6 -> 2).
+// Source: MileLion "Which credit cards have the smallest miles conversion blocks" (Feb 2026), secondary; HSBC step confirmed by the user. Re-check against each bank.
 export const DEFAULT_VAULT = {
-  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end' },
-  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval' },
-  citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)' },
-  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires' },
+  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end', transfer: { pts: 5000, miles: 10000 } },
+  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
+  citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)', transfer: { pts: 10000, miles: 10000 } },
+  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires', transfer: { pts: 5000, miles: 10000 } },
   yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
-  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned' },
-  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned' },
-  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity' },
+  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 25000, miles: 10000 } },
+  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned', transfer: { pts: 30000, miles: 10000, step: { pts: 6, miles: 2 }, note: 'KrisFlyer converts HSBC points at 3:1, lower than the 2.5:1 most other airlines give. The 4 mpd rate in this app assumes 2.5:1.' } },
+  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000 } },
   kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' },
   trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)' }
 };
