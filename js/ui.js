@@ -419,13 +419,14 @@ export function renderVault() {
     const tp = transferPlan(item);
     if (tp) { xferMiles += tp.miles; xferOrphan += tp.orphanMiles; }
     const xfer = (tp && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer">${tp.firstBlock ? `Below the first block: ${fmtNum(tp.nextIn, 0)} more ${escapeHtml(item.unit)} to transfer` : `Transferable now: ${fmtNum(tp.miles, 0)} mi`}${tp.orphanPts && !tp.firstBlock ? ` · ${fmtNum(tp.orphanPts, 0)} ${escapeHtml(item.unit)} orphaned (about ${fmtNum(tp.orphanMiles, 0)} mi), ${fmtNum(tp.nextIn, 0)} more to the next block` : ''}</span>` : '';
+    const xnote = (tp && item.transfer.note && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer vault-xfer-note">ℹ️ ${escapeHtml(item.transfer.note)}</span>` : '';
     const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. about ${fmtNum(pendingByVault[key], 0)} mi bonus the bank credits next month</span>` : '';
 
     container.innerHTML += `
       <div class="vault-item">
         <span class="vault-label">${item.name}</span>
         <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${pend}
+        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${xnote}${pend}
       </div>
     `;
   }

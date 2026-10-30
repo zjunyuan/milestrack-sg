@@ -302,6 +302,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .vault-miles-unit { font-size: 0.82rem; font-weight: 500; color: var(--accent); }
 .vault-raw-pts { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
 .vault-xfer { font-size: 0.72rem; color: var(--accent); font-weight: 500; line-height: 1.35; }
+.vault-xfer-note { color: #94a3b8; }
 .vault-xfer-total { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
 
 .radar-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
