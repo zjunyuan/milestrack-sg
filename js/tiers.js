@@ -89,7 +89,7 @@ export function minSpendGate(card, { cardSpend = 0, amount = 0, rate = 0, overse
   if (!(min > 0) || !(unlockMpd > card.baseMpd)) return null;
   const after = cardSpend + amount;
   const locked = after < min;
-  return { min, spend: cardSpend, after, locked, needMore: Math.max(0, min - after), unlockMpd };
+  return { min, spend: cardSpend, after, locked, needMore: Math.max(0, min - after), unlockMpd, lockedMpd: card.lockedMpd ?? card.baseMpd };
 }
 
 // "18 Nov" for a cycle that ends in `daysLeft` days.

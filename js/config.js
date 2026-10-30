@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.53.0";
+export const APP_VERSION = "v1.53.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -180,11 +180,12 @@ export const ALL_MASTER_CARDS = [
     minSpend: 800, 
     bonusMpd: 10.0, 
     baseMpd: 0.14, 
+    lockedMpd: 2.78,   // partner-merchant rate while the S$800 + 4 merchants condition is not met: 10 yuu pts per S$1 (1 base + 9 Bonus Reward 1, no minimum). Source: MileLion review, 6 Oct 2025 (secondary).
     engine: 'yuu-10', 
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: 'badge-gold', 
-    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. CHAGEE counts only when paid in its app. Req: S$800 min spend + 4 distinct merchants.', 
+    hint: 'Cold Storage, Giant, Guardian, 7-11, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+. CHAGEE counts only when paid in its app. Req: S$800 min spend + 4 distinct merchants. Without them: about 2.78 mpd at partners, 0.14 mpd elsewhere.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-yuu'
