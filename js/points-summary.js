@@ -23,8 +23,8 @@
 
 const MON = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, SEPT: 8, OCT: 9, NOV: 10, DEC: 11 };
 const ts = (d, mon, y) => { const m = MON[String(mon).toUpperCase()]; return m === undefined ? null : new Date(+y < 100 ? 2000 + +y : +y, m, +d, 12).getTime(); };
-const numTok = t => /^-?[\d,]+(\.\d+)?$/.test(t) || t === "-";
-const num = t => (t === "-" || t == null ? 0 : Number(String(t).replace(/,/g, "")) || 0);
+const numTok = t => /^-?[\d,]+(\.\d+)?-?$/.test(t) || t === "-";                  // UOB prints a negative as "145.00-"
+const num = t => { if (t === "-" || t == null) return 0; const s = String(t); const v = Number(s.replace(/,/g, "").replace(/-$/, "")) || 0; return /-$/.test(s) ? -v : v; };
 const toks = l => String(l).trim().split(/\s+/).filter(Boolean);
 const numericRow = (l, min) => { const t = toks(l); return t.length >= min && t.every(numTok) ? t.map(num) : null; };
 const dateIn = (s) => { const m = /(\d{1,2})\s+([A-Za-z]{3,4})\w*\s+(\d{2,4})/.exec(s || ""); return m ? ts(m[1], m[2], m[3]) : null; };
