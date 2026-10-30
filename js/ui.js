@@ -23,6 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
+import { trustExpiry } from "./expiry.js";
 import { transferPlan } from "./transfer.js";
 import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
@@ -811,6 +812,16 @@ export function renderExpiryRadar() {
       </div>
     `;
   });
+  // Trust Miles expire per earn year (from the logged entries, not the vault total).
+  const te = trustExpiry(state.transactions, ALL_MASTER_CARDS, now);
+  if (te) {
+    const d = Math.max(0, Math.ceil((te.next.expiry - now) / (1000 * 60 * 60 * 24)));
+    container.innerHTML += `
+      <div class="radar-item">
+        <div><div style="font-size:0.85rem; font-weight:600;">Trust Miles</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(te.next.miles)} mi earned in ${te.next.year}, end of ${te.next.expiry.getFullYear()}</div></div>
+        <span class="radar-badge ${d <= 90 ? 'badge-crit' : 'badge-safe'}">${d}d left</span>
+      </div>`;
+  }
 }
 
 export function onCardSelectChange() {
