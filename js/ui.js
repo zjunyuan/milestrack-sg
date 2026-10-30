@@ -1115,12 +1115,15 @@ export function renderArchiveData() {
   document.getElementById('archiveTotalMiles').innerText = `+${fmtNum(Math.round(totalMiles))} mi`;
   document.getElementById('archiveBlendedMpd').innerText = `${blendedMpd} blended mpd`;
 
-  // Which cards and months have a statement imported (tap a ✓ to see that card's entries for that month).
-  const covEl = document.getElementById('historyCoverage');
-  if (covEl) {
-    const wasOpen = covEl.open;
+  // Month view: the monthly summary. Above it, which cards and months have a statement imported (tap a ✓ to see that card's entries).
+  // Both live inside #monthlySummary so the desktop History grid (which places the tab's children by position) is not disturbed.
+  const summaryEl = document.getElementById('monthlySummary');
+  if (summaryEl) {
+    const wasOpen = !!document.getElementById('historyCoverage')?.open;
     const data = coverageData(targetYear);
-    covEl.innerHTML = `<summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div>`;
+    summaryEl.innerHTML = `<details class="st-cover" id="historyCoverage"><summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div></details>`
+      + (isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m) => getStatementCycleForMonth(c, y, m).spent));
+    const covEl = document.getElementById('historyCoverage');
     covEl.open = wasOpen;
     covEl.querySelectorAll('[data-cv-ym]').forEach(td => {
       const go = () => {
@@ -1132,12 +1135,6 @@ export function renderArchiveData() {
       td.addEventListener('click', go);
       td.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     });
-  }
-
-  // Month view: deltas vs last month and the monthly summary. Full-year view has neither.
-  const summaryEl = document.getElementById('monthlySummary');
-  if (summaryEl) {
-    summaryEl.innerHTML = isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m) => getStatementCycleForMonth(c, y, m).spent);
   }
   if (!isFullYear) {
     const dt = deltaText(monthDeltas(targetYear, targetMonth));
