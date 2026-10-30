@@ -102,6 +102,8 @@ export const CARD_RULES = {
     source: "OCBC Rewards T&C, updated 5 Oct 2026" },
   "citi-rewards": { local: (c) => (citiExcluded(c) ? 0 : 4.0), overseas: (c) => (citiExcluded(c) ? 0 : 4.0),
     source: "Citi Rewards 10X T&C (1 Apr 2024); in-store list in CITI_INSTORE_MCCS" },
+  "citi-rewards-visa": { local: (c) => (citiExcluded(c) ? 0 : 4.0), overseas: (c) => (citiExcluded(c) ? 0 : 4.0),
+    source: "Citi Rewards Visa: same 10X rules as the Mastercard (assumed; check the Visa's own T&C)" },
   "hsbc-rev": { local: (c) => (hsbcEligible(c) ? 4.0 : 0), overseas: (c) => (hsbcEligible(c) ? 4.0 : 0),
     source: "HSBC Revolution T&C, effective 1 Apr 2026" },
   "dbs-wwmc": { local: (c) => (DBS_ONLINE_EXCLUDED.has(c) ? 0 : 4.0), overseas: (c) => (DBS_ONLINE_EXCLUDED.has(c) ? 0 : 4.0),

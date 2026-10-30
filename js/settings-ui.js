@@ -25,6 +25,9 @@ const CARD_FIELDS = {
   "citi-rewards": [
     { id: "citiApprovalInput", kind: "month", label: "Approval month (5-year cycle)", short: "Approved" },
     { id: "citiCutoff", kind: "day", label: "Statement cycle starts on day", short: "Cycle from", hint: "The day after your statement date. Statement date 28th means enter 29." }
+  ],
+  "citi-rewards-visa": [
+    { id: "citiVisaCutoff", kind: "day", label: "Statement cycle starts on day", short: "Cycle from", hint: "The day after your statement date. Statement date 28th means enter 29." }
   ]
 };
 

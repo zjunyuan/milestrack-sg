@@ -23,7 +23,7 @@ MilesTrack SG is a responsive, installable Progressive Web App (PWA) built with 
   - **DBS yuu 10 mpd Tracker:** Tracks the S$800 monthly threshold and 4-distinct-merchant qualification requirement.
 
 ### 2. Multi-Card Cap & Billing Cycle Engine
-- **Independent Billing Windows:** Supports **Calendar Month** (1st to end-of-month) and custom **Statement Month** cutoffs (e.g., UOB VS 18th–17th, Citi Rewards 15th–14th).
+- **Independent Billing Windows:** Supports **Calendar Month** (1st to end-of-month) and custom **Statement Month** cutoffs (e.g., UOB VS 18th–17th, Citi Rewards Mastercard 15th–14th, Citi Rewards Visa 29th–28th).
 - **Category Cap Pooling:** Groups pooled capacities across dining, supermarkets, shopping, transport, and travel.
 - **UOB S$5 Rounding Protection:** Flags transaction amounts that lose miles due to integer-divided S$5 UNI$ blocks.
 - **UOB Annual Fee Defense:** Scans card renewal dates to issue warnings 45 days before automatic UNI$ point deductions.
@@ -115,6 +115,7 @@ The household admin (primary role) can set which cards earn a bonus on any categ
 - **Replaces, not adds:** a household rule replaces the built-in entry for that category (both lists) while it is active. The editor starts from the built-in rules, so you only change what differs. After the valid-until date passes, the built-in rules apply again and the admin sees an "expired" prompt to renew or remove it.
 - **Everyone benefits:** rules are stored in Firestore (`milestrack_mccRules`, one document per MCC) and every member's recommender uses them. Results show a **🏠 Household rule** line with the date set and the expiry.
 - **Remove:** **↺ Remove rule (use built-in)** deletes the document.
+- **Citi Rewards Visa:** a separate card from the Citi Rewards Mastercard (same 4 mpd rules and S$1,000 cap, its own statement cycle from the 29th, points share the `citi_typ` vault). Switch it on in Settings > Cards; on the first statement import pick the card once so its last 4 digits are remembered.
 - **Still in code:** the Citi Rewards in-person category whitelist, Maybank World overseas spend tiers, and the OCBC 6 mpd S$1,000 cap.
 - **Firestore:** publish the updated `docs/firestore.rules`. Everyone signed in as a household member can read `milestrack_mccRules`; only the primary role can write it.
 

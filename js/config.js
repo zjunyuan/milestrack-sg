@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.57.0";
+export const APP_VERSION = "v1.58.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -65,7 +65,7 @@ export const CATEGORY_POOLS = [
     id: "shopping",
     name: "Online Shopping & Fashion",
     icon: "🛍️",
-    cardIds: ["ocbc-rewards", "dbs-wwmc", "citi-rewards", "uob-ppv-online"],
+    cardIds: ["ocbc-rewards", "dbs-wwmc", "citi-rewards", "citi-rewards-visa", "uob-ppv-online"],
     notes: "OCBC 6 mpd promo, Shopee, Lazada, Taobao, Uniqlo, fashion whitelists."
   },
   {
@@ -286,8 +286,8 @@ export const ALL_MASTER_CARDS = [
     id: 'citi-rewards', 
     fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
     fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
-    shortName: 'Citi Rewards',
-    name: 'Citi Rewards', 
+    shortName: 'Citi Rewards MC',
+    name: 'Citi Rewards Mastercard', 
     bank: 'Citi', 
     image: 'assets/cards/citi-rewards.png',
     vaultKey: 'citi_typ', 
@@ -298,6 +298,28 @@ export const ALL_MASTER_CARDS = [
     engine: 'citi-1', 
     cycleType: 'statement', 
     cutoffDay: 15, 
+    strategyType: 'blacklist',
+    badgeClass: '', 
+    hint: 'Online shopping & in-store fashion. ⚠️ Excludes in-app mobile wallets (Kris+)!', 
+    isContactlessOnly: false,
+    channelMode: 'both',
+    themeClass: 'thumb-citi'
+  },
+  { 
+    id: 'citi-rewards-visa', 
+    fcyFee: 3.25,   // % charged on foreign-currency spend (incl. the 1% Visa/Mastercard fee); not used by the recommender yet
+    fcyFeeSource: 'Citi PremierMiles Cardmembers Agreement cl. 6.9 (official, docs/bank-tnc): up to 3.25% on the converted SGD amount. DCC 1%. SGD spend with overseas merchants 1%. GST not mentioned. Checked 29 Oct 2026.',
+    shortName: 'Citi Rewards Visa',
+    name: 'Citi Rewards Visa', 
+    bank: 'Citi', 
+    vaultKey: 'citi_typ', 
+    monthlyCap: 1000, 
+    minSpend: 0, 
+    bonusMpd: 4.0, 
+    baseMpd: 0.4, 
+    engine: 'citi-1', 
+    cycleType: 'statement', 
+    cutoffDay: 29, 
     strategyType: 'blacklist',
     badgeClass: '', 
     hint: 'Online shopping & in-store fashion. ⚠️ Excludes in-app mobile wallets (Kris+)!', 
@@ -816,6 +838,7 @@ export const MCC_DATABASE = {
     candidatesLocal: [
       { id: "ocbc-rewards", baseRate: 4.0 },
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "hsbc-rev", baseRate: 4.0 },
       { id: "uob-ppv-contactless", baseRate: 4.0 },
       { id: "uob-ppv-online", baseRate: 4.0 }
@@ -823,7 +846,8 @@ export const MCC_DATABASE = {
     candidatesOverseas: [
       { id: "uob-vs-fcy", baseRate: 4.0 },
       { id: "ocbc-rewards", baseRate: 4.0 },
-      { id: "citi-rewards", baseRate: 4.0 }
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 }
     ]
   },
   "5651": {
@@ -831,6 +855,7 @@ export const MCC_DATABASE = {
     notes: "Apparel bonus eligible across Citi, OCBC Rewards, and HSBC.",
     candidatesLocal: [
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "ocbc-rewards", baseRate: 4.0 },
       { id: "hsbc-rev", baseRate: 4.0 },
       { id: "uob-ppv-contactless", baseRate: 4.0 },
@@ -838,6 +863,7 @@ export const MCC_DATABASE = {
     ],
     candidatesOverseas: [
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "uob-vs-fcy", baseRate: 4.0 },
       { id: "ocbc-rewards", baseRate: 4.0 }
     ]
@@ -847,6 +873,7 @@ export const MCC_DATABASE = {
     notes: "Fashion apparel bonus eligible across Citi & OCBC Rewards.",
     candidatesLocal: [
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "ocbc-rewards", baseRate: 4.0 },
       { id: "hsbc-rev", baseRate: 4.0 },
       { id: "uob-ppv-contactless", baseRate: 4.0 },
@@ -854,6 +881,7 @@ export const MCC_DATABASE = {
     ],
     candidatesOverseas: [
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "uob-vs-fcy", baseRate: 4.0 },
       { id: "ocbc-rewards", baseRate: 4.0 }
     ]
@@ -934,6 +962,7 @@ export const MCC_DATABASE = {
     notes: "All general retail and souvenir spending.",
     candidatesLocal: [
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "dbs-wwmc", baseRate: 4.0 },
       { id: "uob-ppv-online", baseRate: 4.0 },
       { id: "hsbc-rev", baseRate: 4.0 }

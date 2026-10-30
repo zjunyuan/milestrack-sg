@@ -177,6 +177,7 @@ export function subscribeToCloudData() {
         ALL_MASTER_CARDS.forEach(c => {
           if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
           if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
+          if (c.id === 'citi-rewards-visa') c.cutoffDay = data.cutoffDays.citiVisa || 29;
         });
       }
       state.cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));

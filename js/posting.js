@@ -30,6 +30,7 @@ export const POSTING_RULES = {
   "dbs-yuu": TXN,
   "dbs-wwmc": TXN,
   "citi-rewards": POST,
+  "citi-rewards-visa": POST,
   "hsbc-rev": POST,
   "ocbc-rewards": POST,
   "uob-ppv-contactless": POST, "uob-ppv-online": POST,
