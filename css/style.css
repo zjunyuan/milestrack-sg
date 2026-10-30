@@ -1162,3 +1162,25 @@ body:has(#demoBar) { padding-top: 28px; }
 .yuu-fix { margin-top: 8px; font-size: 0.74rem; color: var(--warning); }
 .yuu-fix.ok { color: var(--accent); }
 .yuu-fix .btn-backup { margin-top: 6px; }
+
+/* Points check (v1.59.0) */
+.vault-item[data-vk] { cursor: pointer; }
+.pc-chip { display: inline-block; align-self: flex-start; margin-top: 4px; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.pc-ok { color: #7ee2a8; } .pc-wait { color: #94a3b8; } .pc-bad { color: #ffb4a9; } .pc-over { color: #ffd27a; }
+.pc-sec { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; }
+.pc-sec > summary { cursor: pointer; font-weight: 700; }
+.pc-cp { border: 1px solid var(--surface-variant); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.pc-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pc-head .pc-chip { margin-top: 0; }
+.pc-nums { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.pc-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pc-row > .form-control { flex: 1 1 140px; min-width: 0; }
+.pc-big { border-top: 1px dashed var(--surface-variant); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.pc-sus { background: rgba(255,180,169,0.06); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.pc-susrow { border-left: 3px solid #ffb4a9; padding-left: 8px; }
+.pc-bal { background: rgba(158,202,255,0.06); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; margin-top: 8px; }
+.pc-bad-list { display: flex; flex-direction: column; gap: 2px; color: #ffb4a9; }
+.pc-thr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; }
+.pc-thr input { width: 90px; flex: 0 0 auto; }
+.pc-cardrow { display: flex; flex-direction: column; gap: 4px; }
+.pc-outs { display: flex; flex-direction: column; gap: 4px; }

@@ -1,3 +1,4 @@
+import { tileStatus } from "./reconcile-ui.js";
 import { fmtNum, fmtAuto } from "./format.js";
 import { tierStatus } from "./tiers.js";
 import { 
@@ -431,11 +432,13 @@ export function renderVault() {
     const xnote = '';
     const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. ~${fmtNum(pendingByVault[key], 0)} mi bonus due next month</span>` : '';
 
+    const pc = key !== 'kf_direct' ? tileStatus(key) : null;
+    const chip = pc ? `<span class="pc-chip ${pc.cls}">${escapeHtml(pc.text)}</span>` : '';
     container.innerHTML += `
-      <div class="vault-item">
+      <div class="vault-item" data-vk="${key}">
         <span class="vault-label">${item.name}</span>
         <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${xnote}${pend}
+        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${xnote}${pend}${chip}
       </div>
     `;
   }
@@ -1430,6 +1433,7 @@ export async function saveSettings() {
     feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
     feeCards: collectFeeCards(),
     stmtCoverage: state.stmtCoverage || {},
+    bigCheck: state.bigCheck || 250,
     uobRenewals: {
       solitaire: val('uobLsRenewalInput') || state.uobRenewals.solitaire,
       visaSig: val('uobVsRenewalInput') || state.uobRenewals.visaSig,

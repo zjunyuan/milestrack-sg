@@ -35,7 +35,7 @@ import {
 } from "./config.js";
 import { isKnownMcc, normalizeRule } from "./mcc.js";
 import { state } from "./state.js";
-import { isDemo, startDemo, demoSaveTx, demoDeleteTx, demoUpdateVault, demoSettings, demoMerchant, demoRule } from "./demo.js";
+import { isDemo, startDemo, demoSaveTx, demoDeleteTx, demoUpdateVault, demoSettings, demoMerchant, demoRule, demoPoints } from "./demo.js";
 
 export let auth, db, googleProvider;
 
@@ -167,6 +167,7 @@ export function subscribeToCloudData() {
       if (data.citiApprovalDate) state.citiApprovalDate = data.citiApprovalDate;
       if (data.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...data.uobRenewals };
       if (Number.isFinite(Number(data.uobStatementDay)) && Number(data.uobStatementDay) >= 1) state.uobStatementDay = Math.min(31, Number(data.uobStatementDay));
+      if (Number(data.bigCheck) > 0) state.bigCheck = Number(data.bigCheck);
       state.stmtCoverage = (data.stmtCoverage && typeof data.stmtCoverage === 'object') ? data.stmtCoverage : {};
       state.feeCards = (data.feeCards && typeof data.feeCards === 'object') ? data.feeCards : {};
       state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
@@ -208,6 +209,14 @@ export function subscribeToCloudData() {
     state.mccRules = next;
     window.dispatchEvent(new CustomEvent('rules-updated'));
   }, (err) => console.error("MCC rules listener error:", err));
+
+  // What the banks say about points (v1.59.0): statement points summaries, typed balances, transfers and redemptions.
+  onSnapshot(query(collection(db, "milestrack_points"), where("owner", "==", state.myVaultKey), limit(2000)), (snap) => {
+    const next = [];
+    snap.forEach((d) => next.push({ ...d.data(), id: d.id }));
+    state.pointsLog = next.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    window.dispatchEvent(new CustomEvent('points-updated'));
+  }, (err) => console.error("Points log listener error:", err));
 
   const txQuery = query(
     collection(db, "milestrack_txns"), 
@@ -253,6 +262,16 @@ export async function updateSettingsDoc(targetVaultKey, settingsPayload) {
 export async function mergeSettingsDoc(targetVaultKey, partial) {
   if (isDemo()) return demoSettings(targetVaultKey, partial);
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), partial, { merge: true });
+}
+
+export async function savePointsRecord(id, rec) {
+  if (isDemo()) return demoPoints(id, rec);
+  await setDoc(doc(db, "milestrack_points", id), { ...rec, owner: state.myVaultKey });
+}
+
+export async function deletePointsRecord(id) {
+  if (isDemo()) return demoPoints(id, null);
+  await deleteDoc(doc(db, "milestrack_points", id));
 }
 
 export async function saveMerchantOverride(slug, data) {

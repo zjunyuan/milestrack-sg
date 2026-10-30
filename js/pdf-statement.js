@@ -4,6 +4,8 @@
 // is read by text recognition (Tesseract.js, loaded on demand and run on this device), and its lines are only accepted when they add up
 // to the statement's own balances (verifyBalance), because a misread amount would otherwise overwrite a correct entry.
 
+import { readPointsSummary } from "./points-summary.js";
+
 const PDFJS_VERSION = "6.2.108";
 const BASE = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/`;
 let lib = null;
@@ -147,14 +149,16 @@ export async function readPdfLines(file, askPassword) {
 
 // One PDF can hold several cards (UOB prints one section per card). Returns [{ name, last4, rows }]: one entry per card section,
 // or a single entry with no name when the PDF has one card only. Only the last four digits of a card number are ever kept.
+// Each part also carries `points`: the statement's points summary (points-summary.js), the same list on every part of one file.
 export async function readPdfParts(file, askPassword, progress) {
   const { lines, ocr, pdf } = await readAllLines(file, askPassword, progress);
-  if (ocr) return [await readByOcr(pdf, progress)];
+  if (ocr) { const p = await readByOcr(pdf, progress); return [{ ...p, points: readPointsSummary(p.lines || []) }]; }
+  const points = readPointsSummary(lines);
   const sections = splitCardSections(lines);
-  if (sections) return sections;
+  if (sections) return sections.map(s => ({ ...s, points }));
   const rows = pdfTextToRows(lines);
   if (rows.length < 2) throw new Error(NO_LINES);
-  return [{ name: "", last4: "", rows, verify: null }];
+  return [{ name: "", last4: "", rows, verify: null, points }];
 }
 
 // Text recognition drops or garbles a line now and then, and different settings miss different lines. So: read with one setting, check the
@@ -177,9 +181,9 @@ async function readByOcr(pdf, progress) {
     const fig = summaryVote(passes);
     const fixed = repairWithSummary(out.c.rows, fig);
     const v = verifyBalance(out.c.lines, fixed, fig);
-    if (v.ok) return { name: "", last4: "", rows: fixed, verify: v };
+    if (v.ok) return { name: "", last4: "", rows: fixed, verify: v, lines: passes.flat() };
   }
-  return { name: "", last4: "", rows: out.c.rows, verify: out.v };
+  return { name: "", last4: "", rows: out.c.rows, verify: out.v, lines: passes.flat() };
 }
 
 // "Payments & Credits 35.19CR" and "Purchases & Debits 4.99" as read by most of the readings (one reading may misread a figure).

@@ -13,6 +13,8 @@ import { readXls } from "./xls.js";
 import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
+import { readPointsSummary, rowsToLines } from "./points-summary.js";
+import { saveStatementPoints, pointsLine } from "./reconcile.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -454,6 +456,11 @@ async function finishApply(ctx, files) {
     for (const [k, raw] of Object.entries(ctx.vaultDeltas)) if (raw && state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) + raw); touched = true; }
     if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
   }
+  // The banks' points summaries become dated checkpoints for the points check (reconcile.js). Card rows map by last 4 digits.
+  const last4s = { ...loadRemembered() };
+  for (const F of files) if (F.hint && F.hint.last4 && F.card) last4s[F.hint.last4] = F.card.id;
+  const pts = files.flatMap(F => (F.points || []).map(p => ({ ...p, fileCard: F.card && F.card.id })));
+  if (pts.length) { try { await saveStatementPoints(pts, last4s); } catch (e) { console.error("Points summary save failed", e); } }
   const cover = {};
   for (const F of files) {
     if (F.hint && F.hint.last4) { const m = loadRemembered(); m[F.hint.last4] = F.card.id; saveRemembered(m); }
@@ -542,14 +549,14 @@ async function readParts(file) {
     if (bad) return [{ label: file.name, error: bad.missing
       ? "This PDF has no text, so I read it as a picture, but couldn't find the statement's own balances to check the lines against, so nothing can be imported safely. Please tell me and I'll look at it."
       : `This PDF has no text, so I read it as a picture, and the lines don't add up to the statement (the lines total S$${bad.sum.toFixed(2)}, previous balance S$${bad.prev.toFixed(2)}, statement total S$${bad.total.toFixed(2)}: S$${Math.abs(bad.diff).toFixed(2)} out). A misread amount could overwrite a correct entry, so nothing was imported. Try again, or add these by hand.` }];
-    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows }]
+    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows, points: parts[0].points }]
       : parts.map(p => {
         const label = `${file.name} · ${p.name || "card"}${p.last4 ? " ····" + p.last4 : ""}`;
         const v = p.verify;
         if (v && v.text && !v.ok) return { label, error: v.missing
           ? "I couldn't find this card's previous balance in the PDF, so I can't check its lines against the statement. Nothing was imported for this card. Please tell me and I'll look at it."
           : `This card's lines don't add up to the statement (previous balance S$${v.prev.toFixed(2)} + lines S$${v.sum.toFixed(2)} should be S$${v.total.toFixed(2)}: S$${Math.abs(v.diff).toFixed(2)} out). A line may be missing, so nothing was imported for this card. Please tell me and I'll look at it.` };
-        return { label, rows: p.rows };
+        return { label, rows: p.rows, points: p.points };
       });
   }
   return [{ label: file.name, rows: await readRows(file) }];
@@ -589,7 +596,11 @@ function loadParts(parts) {
     const F = blankFile(); F.fileName = part.label;
     if (part.error) F.error = part.error;
     else {
-      try { S = F; prepareCore(part.rows, part.label); if (F.card) computeCore(); }
+      try {
+        S = F; prepareCore(part.rows, part.label); if (F.card) computeCore();
+        // The points summary: read from the PDF, or from the rows above a CSV's header (the HSBC script writes it there).
+        F.points = part.points || readPointsSummary(rowsToLines(part.rows.slice(0, F.headerRow > 0 ? F.headerRow : 20)));
+      }
       catch (err) { console.error("Statement read failed", part.label, err); F.error = err && err.message ? err.message : String(err); }
     }
     loaded.push(F);
@@ -648,7 +659,8 @@ function renderBatchCounts() {
     tot = sumPlans([tot, p]); ready++;
     const check = n.differs + n.moved;
     el.className = "st-file-counts";
-    el.textContent = F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found";
+    el.textContent = (F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found")
+      + (F.points && F.points.length ? ` · ${F.points.map(pointsLine).join(" · ")}` : "");
   });
   const head = $("stBatchHead");
   if (head) head.innerHTML = `<b>${B.files.length} files</b> · add ${tot.add} · update ${tot.update} · confirm ${tot.confirm}${tot.remove ? ` · remove ${tot.remove}` : ""}${waiting ? ` · <span class="st-warn">${waiting} need a card</span>` : ""}<div class="hm-note">Tap Details on a file to review its lines. Files are imported oldest first; overlapping files are not counted twice.</div>`;

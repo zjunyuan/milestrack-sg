@@ -12,6 +12,7 @@ import {
 import { initRetailerSuggest } from "./merchants.js";
 import { initHeymax } from "./heymax.js";
 import { initStatementImport } from "./statement-import.js";
+import { initPointsCheck, openPointsCheck } from "./reconcile-ui.js";
 import { initVaultGuard } from "./vault-guard.js";
 import { initKrisPlusBrowser } from "./krisplus-browse.js";
 import { initPostingUi } from "./posting-ui.js";
@@ -93,6 +94,7 @@ window.addEventListener('vault-updated', () => {
 });
 
 window.addEventListener('all-vaults-updated', renderAllVaultsTally);
+window.addEventListener('points-updated', renderVault);
 
 window.addEventListener('merchants-updated', runRecommendation);
 window.addEventListener('rules-updated', runRecommendation);
@@ -261,6 +263,9 @@ initSearchMode();
 initLayoutReport();
 initHeymax();
 initStatementImport();
+initPointsCheck();
+document.getElementById("btnOpenPointsCheck")?.addEventListener("click", () => openPointsCheck());
+document.getElementById("vaultContainer")?.addEventListener("click", (e) => { const t = e.target.closest(".vault-item[data-vk]"); if (t && !e.target.closest("details")) openPointsCheck(t.dataset.vk); });
 initVaultGuard();
 initKrisPlusBrowser();
 initPostingUi();
