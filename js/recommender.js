@@ -514,7 +514,7 @@ function renderRecommendationCore() {
 
       const gate = minSpendGate(candidate.card, { cardSpend: Number(candidate.card.currentSpend) || 0, amount: takeAmt, rate: finalStepRate, overseas: state.isOverseasMode });
       const fullMiles = milesFor(candidate.card, takeAmt, gate ? gate.unlockMpd : finalStepRate);
-      const nowRate = gate && gate.locked ? candidate.card.baseMpd : (gate ? gate.unlockMpd : finalStepRate);
+      const nowRate = gate && gate.locked ? gate.lockedMpd : (gate ? gate.unlockMpd : finalStepRate);
       const earnedMiles = milesFor(candidate.card, takeAmt, nowRate);
       allocationSteps.push({
         card: candidate.card,
@@ -588,7 +588,7 @@ function renderRecommendationCore() {
           stepsHtml += fcyPickTileHtml(step.pick, step.amount, idx, `${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})`, keyFor);
           return;
         }
-        const nowRate = step.gate && step.gate.locked ? step.card.baseMpd : step.rate;
+        const nowRate = step.gate && step.gate.locked ? step.gate.lockedMpd : step.rate;
         stepsHtml += cardTileHtml({
           card: step.card,
           amount: step.amount,
@@ -763,8 +763,8 @@ function singleGateHtml(card, amt, rate, daysLeft) {
   const gate = minSpendGate(card, { cardSpend: Number(card.currentSpend) || 0, amount: amt, rate, overseas: state.isOverseasMode });
   const post = postNoteHtml(card, amt);
   if (!gate || !gate.locked) return post;
-  const extra = Math.max(0, calcEarnedMiles(card, amt, gate.unlockMpd) - calcEarnedMiles(card, amt, card.baseMpd));
-  return post + `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${card.baseMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
+  const extra = Math.max(0, calcEarnedMiles(card, amt, gate.unlockMpd) - calcEarnedMiles(card, amt, gate.lockedMpd));
+  return post + `<div class="unlock-note">⚠️ ${gate.unlockMpd} mpd needs S$${fmtNum(gate.min)} spend on this card this cycle: charge <b>S$${fmtNum(gate.needMore, 2)} more</b> by <b>${cycleEndLabel(daysLeft)}</b> (${daysLeft}d left). Until then this earns ${gate.lockedMpd} mpd; <b>+${fmtNum(Math.round(extra))} mi</b> is pending the unlock.</div>`;
 }
 
 // Adds a warning under the result when it names a card whose bonus tier is not unlocked yet.
