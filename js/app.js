@@ -21,6 +21,7 @@ import { initSettingsUi } from "./settings-ui.js";
 import { initSearchMode } from "./search-mode.js";
 import { initLayoutReport } from "./layout-report.js";
 import { initHistoryChips } from "./history-chips.js";
+import { openPartners, closePartners } from "./partners.js";
 import { initColFilters } from "./col-filter.js";
 import { 
   renderPresets, 
@@ -265,6 +266,9 @@ initHeymax();
 initStatementImport();
 initPointsCheck();
 document.getElementById("btnOpenPointsCheck")?.addEventListener("click", () => openPointsCheck());
+document.getElementById("btnOpenPartners")?.addEventListener("click", () => openPartners("asiamiles", state.myVault));
+document.getElementById("btnClosePartners")?.addEventListener("click", closePartners);
+document.getElementById("partnersOverlay")?.addEventListener("click", (e) => { if (e.target.id === "partnersOverlay") closePartners(); });
 document.getElementById("vaultContainer")?.addEventListener("click", (e) => { const t = e.target.closest(".vault-item[data-vk]"); if (t && !e.target.closest("details")) openPointsCheck(t.dataset.vk); });
 initVaultGuard();
 initKrisPlusBrowser();

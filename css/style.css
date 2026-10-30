@@ -310,6 +310,16 @@ input:checked + .slider:before { transform: translateX(22px); }
 .vx-note { color: #94a3b8; }
 .vx-note summary { cursor: pointer; list-style: none; }
 .vx-note summary::-webkit-details-marker { display: none; }
+.pt-total { font-size: 1.6rem; font-weight: 700; margin: 8px 0 10px; }
+.pt-total span { font-size: 0.8rem; font-weight: 500; color: #94a3b8; }
+.pt-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(148,163,184,.18); }
+.pt-name { font-weight: 600; font-size: 0.9rem; }
+.pt-sub { font-size: 0.72rem; color: #94a3b8; }
+.pt-num { text-align: right; font-weight: 600; white-space: nowrap; }
+.pt-none { color: #94a3b8; font-weight: 500; }
+.pt-flag { color: #fbbf24; border: 1px solid rgba(251,191,36,.45); border-radius: 4px; padding: 0 4px; margin-left: 4px; cursor: help; }
+.pt-notes { margin-top: 12px; font-size: 0.75rem; color: #94a3b8; }
+.pt-notes ul { padding-left: 16px; }
 .vault-xfer-total { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
 
 .radar-card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }

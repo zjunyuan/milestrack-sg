@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.59.5";
+export const APP_VERSION = "v1.60.0";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -146,6 +146,24 @@ export const DEFAULT_VAULT = {
   mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000 } },
   kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' },
   trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)', transfer: { pts: 1, miles: 1, min: 1, noteShort: 'S$27.25 fee per transfer', note: 'Trust charges S$27.25 (incl. GST) per transfer to KrisFlyer, so move the miles in one go. 1 Trust mile = 1 KrisFlyer mile, no block.' } }
+};
+
+// Other airline transfer partners (v1.60.0). Per airline, per currency: the smallest block the bank converts ({pts, miles}, optional min/step as in DEFAULT_VAULT.transfer).
+// `conf`: 'seen' = a source states this ratio for this airline; 'assumed' = the source only says the bank uses ONE ratio for all airline partners, so the KrisFlyer ratio is reused.
+// Sources (all secondary, Oct 2026): MileLion partner list (Apr 2026), MileLion smallest conversion blocks (Feb 2026), ShopBack Asia Miles guide (2026). Check each bank's own page before transferring: conversions cannot be reversed.
+export const TRANSFER_PARTNERS = {
+  asiamiles: {
+    name: 'Asia Miles (Cathay Pacific)', short: 'Asia Miles',
+    rules: {
+      hsbc_pts:   { pts: 25000, miles: 10000, conf: 'seen', note: 'HSBC converts 2.5:1 to most airlines other than KrisFlyer (MileLion, ShopBack).' },
+      ocbc_pts:   { pts: 10000, miles: 2900, conf: 'seen', note: 'OCBC$ to Asia Miles is 10,000 : 2,900 (MileLion), a poor rate; the 90\u00B0N miles rate is 1,000 : 750.' },
+      citi_typ:   { pts: 25000, miles: 10000, conf: 'assumed', note: 'MileLion says Citi uses one ratio for all airlines (25,000 : 10,000). ShopBack says 1:1, so check Citi\u2019s page.' },
+      citi_miles: { pts: 10000, miles: 10000, conf: 'assumed', note: 'Citi Miles are not covered separately by the sources; the KrisFlyer 1:1 block is reused.' },
+      uob_uni:    { pts: 5000, miles: 10000, conf: 'assumed', note: 'MileLion says UOB uses one ratio for all airlines; the KrisFlyer block is reused.' },
+      dbs_pts:    { pts: 5000, miles: 10000, conf: 'assumed', note: 'MileLion says DBS uses one ratio for all airlines; the KrisFlyer block is reused.' },
+      mb_treats:  { pts: 25000, miles: 10000, conf: 'assumed', note: 'MileLion lists Asia Miles for Maybank (minimum 5,000 miles) but no ratio; the KrisFlyer block is reused.' }
+    }
+  }
 };
 
 // Builds a complete vault from a stored Firestore doc. The app owns each currency's name, ratio, unit and rule;
