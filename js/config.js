@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.59.3";
+export const APP_VERSION = "v1.59.4";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -136,14 +136,14 @@ export function detectYuuMerchant(desc = "") {
 // transfer: smallest block the bank converts to KrisFlyer miles (pts -> miles); `step` = smaller blocks allowed after the first one (HSBC 6 -> 2).
 // Source: MileLion "Which credit cards have the smallest miles conversion blocks" (Feb 2026), secondary; HSBC step confirmed by the user. Re-check against each bank.
 export const DEFAULT_VAULT = {
-  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end', transfer: { pts: 5000, miles: 10000, noteShort: 'S$27 fee per transfer', note: 'UOB charges S$27 per redemption to KrisFlyer (flat, so convert in one go); waived for UOB Visa Infinite, Visa Infinite Metal, Privilege Banking and Reserve cards. Minimum 5,000 UNI$ = 10,000 miles. Source: UOB miles page, checked Oct 2026.' } },
-  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000, noteShort: 'S$27.25 fee per transfer', note: 'Citi charges S$27.25 (incl. GST) per points transfer to KrisFlyer; waived for Citi ULTIMA. Kris+ instant transfer has no fee but a 15% haircut. 25,000 TYP = 10,000 miles. Source: Citi points transfer page (FAQ as of Jul 2025), checked Oct 2026.' } },
+  uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end', transfer: { pts: 5000, miles: 10000 } },
+  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
   citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)', transfer: { pts: 10000, miles: 10000 } },
-  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires', transfer: { pts: 5000, miles: 10000, noteShort: 'S$27.25 fee per transfer', note: 'DBS charges S$27.25 (incl. GST) per conversion to KrisFlyer on the DBS Rewards site. The Kris+ instant route has no fee but a 15% haircut. 5,000 pts = 10,000 miles. Source: SingSaver and Mainly Miles (secondary), checked Oct 2026; check DBS before a big transfer.' } },
-  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 3.6, miles: 1, min: 200, noteShort: 'No transfer fee', note: 'DBS does not charge a fee for converting yuu points to KrisFlyer (confirmed by the user, Oct 2026).' } },
-  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 25000, miles: 10000, noteShort: 'S$25 fee per transfer', note: 'OCBC charges S$25 per conversion to KrisFlyer (it waives the fee for most other airlines, but not KrisFlyer, per MileLion 25 Oct 2026). Done in the OCBC app; takes up to 24 hours. 25,000 OCBC$ = 10,000 miles. Secondary source, checked Oct 2026.' } },
-  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned', transfer: { pts: 30000, miles: 10000, step: { pts: 6, miles: 2 }, noteShort: 'KrisFlyer rate is 3:1, no fee', note: 'KrisFlyer converts HSBC points at 3:1, lower than the 2.5:1 most other airlines give. The 4 mpd rate in this app assumes 2.5:1. HSBC charges no fee for transfers in the app (per Mainly Miles, Dec 2025).' } },
-  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000, noteShort: 'S$27.25 fee per transfer', note: 'Maybank charges S$27.25 (incl. GST) per conversion since 1 Apr 2025 (free before that on World Mastercard and Visa Infinite; Diamante cards are exempt). 25,000 TREATS = 10,000 miles. Source: MileLion Feb 2025 (secondary), checked Oct 2026.' } },
+  dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires', transfer: { pts: 5000, miles: 10000 } },
+  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 3.6, miles: 1, min: 200 } },
+  ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 25000, miles: 10000 } },
+  hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned', transfer: { pts: 30000, miles: 10000, step: { pts: 6, miles: 2 }, noteShort: 'KrisFlyer rate is 3:1', note: 'KrisFlyer converts HSBC points at 3:1, lower than the 2.5:1 most other airlines give. The 4 mpd rate in this app assumes 2.5:1.' } },
+  mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000 } },
   kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' },
   trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)', transfer: { pts: 1, miles: 1, min: 1, noteShort: 'S$27.25 fee per transfer', note: 'Trust charges S$27.25 (incl. GST) per transfer to KrisFlyer, so move the miles in one go. 1 Trust mile = 1 KrisFlyer mile, no block.' } }
 };

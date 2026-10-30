@@ -39,7 +39,8 @@ import {
   deleteTxFromFirestore, 
   updateVaultDoc, 
   updateSettingsDoc,
-  mergeSettingsDoc
+  mergeSettingsDoc,
+  savePointsRecord
 } from "./firebase.js";
 import { 
   calcEarnedMiles, 
@@ -1481,7 +1482,8 @@ export function exportJSONBackup() {
         citiVisa: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29
       }
     },
-    transactions: state.transactions
+    transactions: state.transactions,
+    points: state.pointsLog || []        // the points check: statement summaries, typed balances, transfers and redemptions (v1.59.4)
   };
   const stamp = new Date().toLocaleDateString('en-CA');
   downloadFile(`milestrack_backup_${state.myVaultKey}_${stamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
@@ -1513,6 +1515,19 @@ function parseBackup(data) {
     txns.push({ ...rest, id, owner: state.myVaultKey });
   }
 
+  // Points check records (v1.59.4): statement summaries, balances you typed, transfers/redemptions. Old backups have none.
+  const points = [];
+  let pointsSkipped = 0;
+  for (const r of Array.isArray(data.points) ? data.points : []) {
+    const id = String(r?.id ?? '');
+    if (!id || !/^[\w-]+$/.test(id) || !['statement', 'balance', 'out'].includes(r.kind) || !(r.vaultKey in DEFAULT_VAULT) || !Number.isFinite(Number(r.ts))) {
+      pointsSkipped++;
+      continue;
+    }
+    const { firestoreId, ...rest } = r;
+    points.push({ ...rest, id });
+  }
+
   const s = data.settings || {};
   const settings = {
     enabledCards: Array.isArray(s.enabledCards) ? s.enabledCards.filter(id => knownCards.has(id)) : null,
@@ -1521,7 +1536,7 @@ function parseBackup(data) {
     feeCards: s.feeCards && typeof s.feeCards === 'object' ? s.feeCards : null,
     cutoffDays: s.cutoffDays && typeof s.cutoffDays === 'object' ? s.cutoffDays : null
   };
-  return { balances, settings, txns, skipped };
+  return { balances, settings, txns, skipped, points, pointsSkipped };
 }
 
 export async function importJSONBackup(file) {
@@ -1535,7 +1550,7 @@ export async function importJSONBackup(file) {
   const parsed = parseBackup(data);
   if (parsed.error) return alert(parsed.error);
 
-  const { balances, settings, txns, skipped } = parsed;
+  const { balances, settings, txns, skipped, points, pointsSkipped } = parsed;
   const ownerNote = data.vault && data.vault !== state.myVaultKey
     ? `\n\n⚠️ This backup came from the "${data.vault}" vault. It will be restored into YOUR vault ("${state.myVaultKey}").`
     : '';
@@ -1544,6 +1559,8 @@ export async function importJSONBackup(file) {
     `• ${Object.keys(balances).length} point balances (replaces current balances)\n` +
     `• ${txns.length} transactions (added or overwritten by ID, nothing is deleted)\n` +
     `• Card wallet & settings` +
+    (points.length ? `\n• ${points.length} points check records (bank statement figures, balances and transfers you entered; added or overwritten by ID)` : '') +
+    (pointsSkipped ? `\n• ${pointsSkipped} invalid points records will be skipped` : '') +
     (skipped ? `\n• ${skipped} invalid transactions will be skipped` : '') +
     ownerNote
   );
@@ -1575,8 +1592,12 @@ export async function importJSONBackup(file) {
     for (let i = 0; i < txns.length; i += 25) {
       await Promise.all(txns.slice(i, i + 25).map(t => saveTxToFirestore(t.id, t)));
     }
+    // Only the records are written back: the Vault balances above already include any transfers, so nothing is applied twice.
+    for (let i = 0; i < points.length; i += 25) {
+      await Promise.all(points.slice(i, i + 25).map(r => savePointsRecord(r.id, r)));
+    }
     closeSettingsModal();
-    alert(`Restore complete: ${txns.length} transactions restored.`);
+    alert(`Restore complete: ${txns.length} transactions${points.length ? ` and ${points.length} points check records` : ''} restored.`);
   } catch (e) {
     console.error('Import failed:', e);
     alert('Restore failed part-way: ' + e.message + '\nYour backup file is unchanged; you can retry.');
