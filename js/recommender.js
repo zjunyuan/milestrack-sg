@@ -17,7 +17,7 @@ import { findKrisPlusMerchants, krisPlusMcc, KRISPLUS_META } from "./krisplus-me
 import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.js";
 import { slipLine, slipRisk, SLIP_ALERT_MIN } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
-import { planOverseas, billedAmount } from "./fcy.js";
+import { planOverseas, billedAmount, fcyEconomics } from "./fcy.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -231,6 +231,7 @@ function renderRecommendation() {
 
 let fcyAtMax = false;   // table view: false = as things stand now, true = every card at its top earn rate
 let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
+let fcyPick = null;   // card id chosen in the 'pick one' tile (the no-fee card or the fee card for the last slice of a split)
 
 function renderRecommendationCore() {
   lastFcy = null;
@@ -564,12 +565,29 @@ function renderRecommendationCore() {
       });
     }
 
+    // Overseas: the last slice goes to an uncapped card. Offer the no-fee card and the fee card side by side for that slice.
+    const lastStep = allocationSteps[allocationSteps.length - 1];
+    if (allocationSteps.length > 1 && lastStep && (lastStep.isBase || lastStep.card.monthlyCap >= 999999) && state.isOverseasMode && !state.isKrisPlusMode && lastFcy && lastFcy.plan) {
+      const pick = fcyPickOptions(lastFcy.plan, lastStep.amount);
+      if (pick) {
+        const sel = pick.options.find(o => o.card.id === pick.selectedId);
+        Object.assign(lastStep, { card: sel.card, rate: sel.rate, miles: sel.miles, pick });
+        lastFcy.picked = true;
+      }
+    }
+
     if (allocationSteps.length > 1) {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
       const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
       let stepsHtml = '';
 
+      const keyOf = steps => `${descName}|${amt}|${state.isKrisPlusMode}|${state.isOverseasMode}|` + steps.map(st => `${st.card.id}:${st.amount}`).join(',');
       allocationSteps.forEach((step, idx) => {
+        if (step.pick) {
+          const keyFor = id => keyOf(allocationSteps.map((st, j) => j === idx ? { card: { id }, amount: st.amount } : st));
+          stepsHtml += fcyPickTileHtml(step.pick, step.amount, idx, `${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})`, keyFor);
+          return;
+        }
         const nowRate = step.gate && step.gate.locked ? step.card.baseMpd : step.rate;
         stepsHtml += cardTileHtml({
           card: step.card,
@@ -597,11 +615,14 @@ function renderRecommendationCore() {
         ${moreHtml(mccData, effectiveChannel, '')}
       `;
 
-      const splitKey = `${descName}|${amt}|${state.isKrisPlusMode}|${state.isOverseasMode}|` + allocationSteps.map(st => `${st.card.id}:${st.amount}`).join(',');
+      const splitKey = keyOf(allocationSteps);
       resultArea.querySelectorAll('.btn-apply-rec').forEach(btn => {
         btn.addEventListener('click', () => {
-          applyRecommendation(btn.dataset.cardid, parseFloat(btn.dataset.amount), btn.dataset.desc, { kind: 'split', key: splitKey, part: btn.dataset.part, total: allocationSteps.length });
+          applyRecommendation(btn.dataset.cardid, parseFloat(btn.dataset.amount), btn.dataset.desc, { kind: 'split', key: btn.dataset.key || splitKey, part: btn.dataset.part, total: allocationSteps.length });
         });
+      });
+      resultArea.querySelectorAll('.fcy-pick-sel').forEach(btn => {
+        btn.addEventListener('click', () => { fcyPick = btn.dataset.cardid; runRecommendation(); });
       });
       syncSplit(resultArea, splitKey, allocationSteps.length);
       return;
@@ -787,6 +808,61 @@ function fcyRow(card, listedRate, amt) {
   return { card, rate, capped, room, note: notes.join(' · ') };
 }
 
+// The last slice of an Overseas split goes to an uncapped card. Both uncapped cards are priced on that slice alone
+// (the Maybank World tier counts the spend that lands on that card, not the whole purchase).
+// options: [no-fee card, fee card], each with rate, miles, economics and a caveat; selectedId defaults to the better net.
+function fcyPickOptions(plan, rem) {
+  if (!(rem > 0) || !plan.noFee || !plan.withFee || plan.noFee.card.id === plan.withFee.card.id) return null;
+  const options = [plan.noFee, plan.withFee].map(r => {
+    const row = fcyRow(r.card, r.rate, rem);
+    const miles = milesFor(r.card, rem, row.rate);
+    return { card: r.card, rate: row.rate, miles, eco: fcyEconomics(r.card, rem, miles, plan.valueCents), caveat: fcyTierCaveat(r.card, rem, row) };
+  });
+  if (options.some(o => !o.eco)) return null;
+  const better = options[1].eco.net > options[0].eco.net ? options[1] : options[0];
+  const selectedId = options.some(o => o.card.id === fcyPick) ? fcyPick : better.card.id;
+  return { options, selectedId, betterId: better.card.id, valueCents: plan.valueCents };
+}
+
+// Why a card is not earning its top rate on this slice (Maybank World needs S$4,000 on the card in the month).
+function fcyTierCaveat(card, rem, row) {
+  if (card.id === 'mb-world-mc') {
+    if (fcyAtMax) return '⚠️ 3.2 mpd needs S$4,000 spend on this card in the month';
+    const spend = Number(card.currentSpend) || 0, after = spend + rem;
+    if (after >= 4000) return `✅ S$4,000 reached with this charge (card at S$${fmtNum(after, 0)} this month): 3.2 mpd`;
+    return `⚠️ 3.2 mpd needs S$4,000 spend on this card in the month. This charge takes it to S$${fmtNum(after, 0)}, so ${row.rate} mpd now; S$${fmtNum(4000 - after, 0)} more reaches 3.2`;
+  }
+  return row.note || '';
+}
+
+function fcyPickTileHtml(pick, rem, idx, desc, keyFor) {
+  const v = pick.valueCents;
+  const money = x => `${x < 0 ? '-' : ''}S$${fmtNum(Math.abs(x), 2)}`;
+  const [a, b] = pick.options;
+  const extraMiles = b.miles - a.miles, extraFee = b.eco.fee - a.eco.fee;
+  const vs = extraMiles > 0 && extraFee > 0
+    ? `${escapeHtml(cardShort(b.card))} gives +${fmtNum(Math.round(extraMiles))} mi for ${money(extraFee)} more fee = <b>${((extraFee / extraMiles) * 100).toFixed(2)}¢</b> per extra mile, ${(extraFee / extraMiles) * 100 <= v ? 'below' : 'above'} your ${v}¢ value.`
+    : '';
+  const cell = o => {
+    const on = o.card.id === pick.selectedId;
+    return `<div class="fcy-pick-opt${on ? ' on' : ''}">
+      <button type="button" class="fcy-pick-sel" data-cardid="${o.card.id}" aria-pressed="${on}">
+        <span class="fp-name">${on ? '✅ ' : ''}${escapeHtml(cardShort(o.card))}</span>
+        <span class="fp-tag">${o.eco.feePct > 0 ? `${o.eco.feePct}% FX fee` : 'No FX fee'}</span>
+        <span class="fp-mi">+${fmtNum(Math.round(o.miles))} mi · ${o.rate} mpd</span>
+        <span class="fp-fee">Fee ${money(o.eco.fee)} · net ${money(o.eco.net)}</span>
+      </button>
+      <button type="button" class="btn-apply-rec ct-log" data-part="${idx}" data-cardid="${o.card.id}" data-amount="${rem}" data-desc="${desc}" data-key="${escapeHtml(keyFor(o.card.id))}">Log</button>
+      ${o.caveat ? `<div class="fp-caveat">${escapeHtml(o.caveat)}</div>` : ''}
+    </div>`;
+  };
+  return `<div class="card-tile fcy-pick">
+    <div class="fp-head"><span class="ct-rank ct-rank-inline">${idx + 1}</span><b>Pick one</b> for the remaining S$${fmtNum(rem, 2)}</div>
+    <div class="fcy-pick-grid">${cell(a)}${cell(b)}</div>
+    ${vs ? `<div class="fp-vs">${vs} ${pick.betterId === b.card.id ? '' : `${escapeHtml(cardShort(a.card))} comes out ahead.`}</div>` : ''}
+  </div>`;
+}
+
 // Panel under the Overseas result: the two uncapped options side by side (no fee vs more miles with a fee), then the bonus cards
 // that beat them after fees, then the ones that do not. Display only: the tiles above come from the same plan.
 function decorateFcyFees() {
@@ -812,7 +888,7 @@ function decorateFcyFees() {
       ${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}${vs ? `<div class="fcy-vs">${vs}</div>` : ''}</div>`;
   };
   const sameCard = plan.noFee && plan.withFee && plan.noFee.card.id === plan.withFee.card.id;
-  const opts = plan.withFee && plan.noFee && !sameCard
+  const opts = lastFcy.picked ? '' : plan.withFee && plan.noFee && !sameCard
     ? `<div class="fcy-opts">${optionHtml(plan.noFee, 'No FX fee')}${optionHtml(plan.withFee, 'More miles, pays a fee')}</div>`
     : `<div class="fcy-opts">${optionHtml(plan.best, 'Uncapped')}</div>`;
   const bonusRows = plan.bonus.map(r => `<tr><td>${escapeHtml(cardShort(r.card))}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</td><td>${mi(r.eco.miles)}</td><td>${money(r.eco.fee)}</td><td>${cents(r.inc.costPerExtraMileCents)}</td><td>+${money(r.inc.gain)}</td></tr>`).join('');
