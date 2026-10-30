@@ -146,7 +146,7 @@ export const DEFAULT_VAULT = {
   hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned', transfer: { pts: 30000, miles: 10000, step: { pts: 6, miles: 2 }, note: 'KrisFlyer converts HSBC points at 3:1, lower than the 2.5:1 most other airlines give. The 4 mpd rate in this app assumes 2.5:1.' } },
   mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000 } },
   kf_direct: { name: 'KrisFlyer Miles', points: 0, ratio: 1.0, unit: 'miles', rule: '3 yrs in KrisFlyer' },
-  trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)' }
+  trust_miles: { name: 'Trust Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'End of 3rd year after earned (per MileLion, not in Trust T&Cs)', transfer: { pts: 1, miles: 1, min: 1, note: 'Trust charges S$27.25 (incl. GST) per transfer to KrisFlyer, so move the miles in one go. 1 Trust mile = 1 KrisFlyer mile, no block.' } }
 };
 
 // Builds a complete vault from a stored Firestore doc. The app owns each currency's name, ratio, unit and rule;
