@@ -23,6 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
+import { transferPlan } from "./transfer.js";
 import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
@@ -402,7 +403,7 @@ export function renderVault() {
   const container = document.getElementById('vaultContainer');
   if (!container) return;
   container.innerHTML = '';
-  let myGrandTotalMiles = 0;
+  let myGrandTotalMiles = 0, xferMiles = 0, xferOrphan = 0;
 
   // Bonus miles of this month's entries on cards whose bank credits the bonus later: the vault already counts them, the bank does not yet.
   const nowD = new Date(), pendingByVault = {};
@@ -415,18 +416,24 @@ export function renderVault() {
   for (const [key, item] of Object.entries(state.myVault)) {
     const equivMiles = Math.floor((item.points || 0) * (item.ratio || 1));
     myGrandTotalMiles += equivMiles;
+    const tp = transferPlan(item);
+    if (tp) { xferMiles += tp.miles; xferOrphan += tp.orphanMiles; }
+    const xfer = (tp && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer">${tp.firstBlock ? `Below the first block: ${fmtNum(tp.nextIn, 0)} more ${escapeHtml(item.unit)} to transfer` : `Transferable now: ${fmtNum(tp.miles, 0)} mi`}${tp.orphanPts && !tp.firstBlock ? ` · ${fmtNum(tp.orphanPts, 0)} ${escapeHtml(item.unit)} orphaned (about ${fmtNum(tp.orphanMiles, 0)} mi), ${fmtNum(tp.nextIn, 0)} more to the next block` : ''}</span>` : '';
     const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. about ${fmtNum(pendingByVault[key], 0)} mi bonus the bank credits next month</span>` : '';
 
     container.innerHTML += `
       <div class="vault-item">
         <span class="vault-label">${item.name}</span>
         <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${pend}
+        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${pend}
       </div>
     `;
   }
 
   document.getElementById('myTotalVaultMiles').innerText = `${fmtNum(myGrandTotalMiles)} mi`;
+  let xn = document.getElementById('vaultTransferNote');
+  if (!xn) { xn = document.createElement('div'); xn.id = 'vaultTransferNote'; xn.className = 'vault-xfer-total'; document.getElementById('myTotalVaultMiles').after(xn); }
+  xn.textContent = `Transferable now ${fmtNum(xferMiles)} mi · orphaned ${fmtNum(xferOrphan)} mi (bank conversion blocks)`;
   renderExpiryRadar();
   checkUobFeeDefense();
   updateTravelGoal(myGrandTotalMiles);
