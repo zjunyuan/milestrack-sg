@@ -4,6 +4,7 @@ import { state } from "./state.js";
 import { ALL_MASTER_CARDS, cardShort } from "./config.js";
 import { saveTxToFirestore, updateVaultDoc, deleteTxFromFirestore, mergeSettingsDoc } from "./firebase.js";
 import { calcEarnedMiles } from "./recommender.js";
+import { yuuEntryMiles } from "./yuu.js";
 import { getMccEntry } from "./mcc.js";
 import { findRetailerForInput, buildRetailerList, normalizeText, escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
@@ -64,6 +65,11 @@ function cycleBucket(card, ts) {
 
 // Miles for an imported line are an estimate: bonus rate when the brand's MCC lists this card and the cycle's cap has room, else base.
 function estimateTx(card, line, spentInBucket) {
+  if (card.id === "dbs-yuu") { // fixed per-entry rate (partner / other); the 10 mpd bonus is added from the card sheet as one entry
+    const y = yuuEntryMiles(card, line.amt, line.merchant || line.desc);
+    const ratio = state.myVault[card.vaultKey]?.ratio || 1;
+    return { miles: y.miles, earnedRawPoints: Math.round(y.miles / ratio), bonusCategory: y.partner ? "bonus" : "base" };
+  }
   let rate = card.baseMpd, bonus = false;
   const retailer = lookupBrand(line.merchant || line.desc);
   const entry = retailer && getMccEntry(retailer.mcc);

@@ -229,6 +229,7 @@ export const RETAILERS = [
   // ---- Ride-hailing / taxis (4121) ----
   r("Grab", "4121", "medium", ["grab ride", "grabcar", "grab car", "grabtaxi"], { alt: ["5814"], note: "GrabFood orders are usually 5814; wallet top-ups may not earn bonus miles." }),
   r("Gojek", "4121", "high", ["go-jek"]),
+  r("SimplyGo", "4111", "high", ["bus/mrt", "bus mrt", "simply go"], { note: "Bank statements print bus and MRT taps as BUS/MRT." }),
   r("ComfortDelGro", "4121", "high", ["cdg", "comfort", "comfort taxi", "cab", "taxi"]),
   r("CityCab", "4121", "high", ["city cab"]),
   r("TADA", "4121", "medium"),
