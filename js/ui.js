@@ -166,6 +166,8 @@ export function quickLogPreset(presetId) {
   }
 
   document.getElementById('bonusCategory').value = 'bonus';
+  document.getElementById('bonusCategory').dataset.touched = '';
+  window.dispatchEvent(new Event('rate-suggest'));
   document.getElementById('amtInput').value = '';
   document.getElementById('modalFormTitle').innerText = `Log: ${preset.label}`;
   document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
@@ -851,6 +853,8 @@ export function openModal() {
   setLogContext(null);
   document.getElementById('editTxId').value = '';
   document.getElementById('descInput').value = '';
+  document.getElementById('bonusCategory').value = 'bonus'; document.getElementById('bonusCategory').dataset.touched = '';
+  const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
   document.getElementById('amtInput').value = '';
   document.getElementById('txDateInput').value = new Date().toLocaleDateString('en-CA');
   const pi = document.getElementById('txPostInput'); if (pi) pi.value = '';
@@ -888,6 +892,8 @@ export function openEditModal(txId) {
 
   document.getElementById('amtInput').value = tx.amt;
   document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
+  document.getElementById('bonusCategory').dataset.touched = '1';
+  const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
   document.getElementById('modalFormTitle').innerText = "Edit Transaction";
   document.getElementById('btnSaveLedger').innerText = "Update Transaction";
 

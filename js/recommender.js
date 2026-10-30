@@ -1261,7 +1261,8 @@ export function applyRecommendation(cardId, amt, desc, ctx = { kind: 'single' })
   if (cardSelect) cardSelect.value = cardId;
   if (amtInput) amtInput.value = Math.round(Number(amt) * 100) / 100;   // avoid float noise such as 83.96000000000004
   if (descInput) descInput.value = desc || '';
-  if (bonusCategory) bonusCategory.value = 'bonus';
+  if (bonusCategory) { bonusCategory.value = 'bonus'; bonusCategory.dataset.touched = ''; }
+  const rateHint = document.getElementById('rateHint'); if (rateHint) rateHint.textContent = '';
   if (txDateInput) txDateInput.value = new Date().toLocaleDateString('en-CA');
 
   onCardSelectChange();
