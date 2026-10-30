@@ -16,6 +16,9 @@
 //           "Points Expired 0", "Points Adjusted (+) 99", "Total Points Available 57,335". The "(+)" marks are often misread
 //           ("+)", "C+)", "#", even "0"), so each figure is the last number on its line. Several readings can be passed together:
 //           the figures are only trusted when one combination adds up. Revolution's bonus for the month before shows as "Points Adjusted".
+//   Citi    "YOUR CITI THANK YOU POINTS BALANCE SUMMARY: (S$1.00 SPENDING = 1 POINT)", then "226,683  66  0  0  0  0  226,749"
+//           (carried forward, earned, bonus, adjusted, redeemed, expired, total). Bonus is in the same statement. The page has no
+//           statement date, so it is the 28th of the month before the "Payment Due Date" (statement date 28; the card number is one 16-digit run).
 // Only the last four digits of a card number are kept.
 
 const MON = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, SEPT: 8, OCT: 9, NOV: 10, DEC: 11 };
@@ -83,6 +86,25 @@ function maybank(lines) {
       opening: r[0], earned: r[1], redeemed: r[2], adjusted: r[3], closing: r[4], expiring: r[5] || 0, byCard: [] }];
   }
   return null;
+}
+
+function citi(lines) {
+  const i = lines.findIndex(l => /THANK\s*YOU\s*POINTS\s*BALANCE\s*SUMMARY/i.test(l));
+  if (i < 0) return null;
+  let r = null;
+  for (let j = i + 1; j < Math.min(lines.length, i + 10) && !r; j++) r = numericRow(lines[j], 7);
+  if (!r) return null;
+  const [opening, earned, bonus, adjusted, redeemed, expired, closing] = r;
+  if (opening + earned + bonus + adjusted - redeemed - expired !== closing) return null;   // only trusted when it adds up
+  const due = lines.map(l => /Payment\s*Due\s*Date:?\s*([A-Za-z]{3})[A-Za-z]*\s*(\d{1,2}),?\s*(\d{4})/i.exec(l)).find(Boolean);
+  const sd = lines.map(l => /Statement\s*Date:?\s*(\d{1,2})\s*([A-Za-z]{3})[A-Za-z]*\s*(\d{4})/i.exec(l)).find(Boolean);
+  let asOf = null;
+  if (sd) asOf = ts(sd[1], sd[2], sd[3]);
+  else if (due) { const m = MON[due[1].toUpperCase()]; if (m !== undefined) asOf = new Date(+due[3], m - 1, 28, 12).getTime(); }
+  const card = lines.filter(l => /CITI.*(REWARDS|VISA|MASTERCARD)/i.test(l.replace(/\s/g, ""))).map(l => /(\d{12})(\d{4})(?!\d)/.exec(l.replace(/[\s-]/g, ""))).find(Boolean);
+  const last4 = card ? card[2] : "";
+  return [{ bank: "citi", vaultKey: "citi_typ", currency: "Citi TYP", asOf, from: null, opening, earned: earned + bonus, redeemed: redeemed + expired, adjusted, closing,
+    expiring: 0, bonus, expired, verified: true, byCard: last4 ? [{ last4, earned: earned + bonus }] : [] }];
 }
 
 function uob(lines) {
@@ -160,7 +182,7 @@ function hsbc(lines) {
 // Returns [{ bank, vaultKey, currency, asOf, from, opening, earned, redeemed, adjusted, closing, expiring, expiryDate?, byCard[], items? }].
 export function readPointsSummary(lines) {
   if (!Array.isArray(lines) || !lines.length) return [];
-  for (const f of [ocbc, dbs, uob, maybank, hsbc]) {
+  for (const f of [ocbc, dbs, uob, maybank, hsbc, citi]) {
     try { const r = f(lines); if (r && r.length) return r.filter(x => x.asOf); }
     catch (e) { console.warn("Points summary not read", e); }
   }
