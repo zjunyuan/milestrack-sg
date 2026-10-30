@@ -2,7 +2,7 @@ import { fmtNum, fmtAuto } from "./format.js";
 import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort, FCY_MILE_VALUE_CENTS } from "./config.js";
 import { state } from "./state.js";
 import { setLogContext, syncSplit } from "./log-feedback.js";
-import { openModal, onCardSelectChange, cardThumbHtml } from "./ui.js";
+import { openModal, onCardSelectChange, cardThumbHtml, yuuUnlockNote } from "./ui.js";
 import {
   buildRetailerList,
   findRetailerForInput,
@@ -597,7 +597,7 @@ function renderRecommendationCore() {
           rateNote: step.gate && step.gate.locked ? ' now' : (step.isBase ? ' general' : ''),
           rank: idx + 1,
           btn: `data-part="${idx}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
-          chips: stepChipsHtml(step)
+          chips: stepChipsHtml(step, descName)
         });
       });
 
@@ -655,6 +655,7 @@ function renderRecommendationCore() {
     ${contextLineHtml(mccData, effectiveChannel)}
     ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
     <div class="rec-winner-meta">${spaceLine}</div>
+    ${singleCard.card.id === 'dbs-yuu' ? yuuUnlockNote(singleCard.card, descName) : ''}
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${shellHtml}
@@ -697,8 +698,8 @@ function cardTileHtml({ card, amount, miles, rate, rank, label, btn, chips, rate
 }
 
 // Chips under a split tile: month-end timing, and whether the minimum spend is unlocked.
-function stepChipsHtml(step) {
-  let out = postNoteHtml(step.card, step.amount);
+function stepChipsHtml(step, descName = '') {
+  let out = postNoteHtml(step.card, step.amount) + (step.card.id === 'dbs-yuu' ? yuuUnlockNote(step.card, descName) : '');
   if (step.gate && step.gate.locked) {
     out += `<div class="ct-chip ct-chip-lock">🔒 Charge <b>S$${fmtNum(step.gate.needMore, 2)} more</b> by <b>${cycleEndLabel(step.daysLeft)}</b> (${step.daysLeft}d) to unlock ${step.gate.unlockMpd} mpd${step.pendingMiles ? ` · +${fmtNum(Math.round(step.pendingMiles))} mi` : ''}</div>`;
   } else if (step.gate) {

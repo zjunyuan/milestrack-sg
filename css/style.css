@@ -1129,3 +1129,12 @@ body:has(#demoBar) { padding-top: 28px; }
 .fp-vs { margin-top: 8px; font-size: 0.74rem; color: #94a3b8; }
 @media (max-width: 380px) { .fcy-pick-grid { grid-template-columns: 1fr; } }
 .fp-head b { white-space: nowrap; }
+
+/* yuu partner merchants */
+.yuu-chips { margin: 8px 0 6px; }
+.yuu-chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.yuu-chips-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; margin: 8px 0 4px; }
+.yuu-chip { font-size: 0.72rem; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--surface-variant); }
+.yuu-chip.on { border-color: rgba(74, 222, 128, 0.5); background: rgba(74, 222, 128, 0.1); color: #86efac; }
+.yuu-chip.off { color: #94a3b8; }
+.yuu-none { font-size: 0.72rem; color: #94a3b8; }

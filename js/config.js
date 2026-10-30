@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.51.3";
+export const APP_VERSION = "v1.51.4";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -104,9 +104,12 @@ export const KRISFLYER_4PAX_TIERS = [
 
 export const YUU_PARTNER_BRANDS = [
   "cold storage", "cs fresh", "jasons", "giant", 
-  "guardian", "7-eleven", "7-11", "foodpanda", 
+  "guardian", "7-eleven", "7-11", "foodpanda", "food panda", 
   "gojek", "simplygo", "chagee", "singtel", "charge+", "anywheel"
 ];
+
+// The names detectYuuMerchant() returns, in the order they are shown on the yuu card.
+export const YUU_MERCHANT_NAMES = ["Cold Storage", "Giant", "Guardian", "7-Eleven", "foodpanda", "Gojek", "SimplyGo", "CHAGEE", "Singtel", "Charge+", "Anywheel"];
 
 export function detectYuuMerchant(desc = "") {
   const clean = (desc || "").toLowerCase();
@@ -119,7 +122,7 @@ export function detectYuuMerchant(desc = "") {
       if (brand.includes("giant")) return "Giant";
       if (brand.includes("guardian")) return "Guardian";
       if (brand.includes("7-eleven") || brand.includes("7-11")) return "7-Eleven";
-      if (brand.includes("foodpanda")) return "foodpanda";
+      if (brand.includes("foodpanda") || brand.includes("food panda")) return "foodpanda";
       if (brand.includes("gojek")) return "Gojek";
       if (brand.includes("simplygo")) return "SimplyGo";
       if (brand.includes("chagee")) return "CHAGEE";

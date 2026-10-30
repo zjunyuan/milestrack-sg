@@ -6,6 +6,7 @@ import {
   CATEGORY_POOLS, 
   KRISFLYER_4PAX_TIERS, 
   detectYuuMerchant,
+  YUU_MERCHANT_NAMES,
   ALL_VAULT_KEYS,
   VAULT_LABELS,
   APP_VERSION,
@@ -80,6 +81,28 @@ export function getYuuMerchantProgress(card) {
     merchants: Array.from(uniqueMerchants),
     isEligible: uniqueMerchants.size >= 4
   };
+}
+
+// Which yuu partners already count this cycle (with their spend) and which are still needed. The bonus needs 4 different partners.
+export function yuuChipsHtml(card, { spend = false } = {}) {
+  const per = new Map();
+  state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card)).forEach(tx => {
+    const b = detectYuuMerchant(tx.desc);
+    if (b) per.set(b, (per.get(b) || 0) + (Number(tx.amt) || 0));
+  });
+  const done = [...per.keys()], todo = YUU_MERCHANT_NAMES.filter(n => !per.has(n));
+  const chip = (n, on) => `<span class="yuu-chip ${on ? 'on' : 'off'}">${on ? '✅ ' : ''}${escapeHtml(n)}${on && spend ? ` · $${fmtNum(per.get(n), 2)}` : ''}</span>`;
+  return `<div class="yuu-chips"><div class="yuu-chips-row">${done.length ? done.map(n => chip(n, true)).join('') : '<span class="yuu-none">No partner merchants yet this cycle</span>'}</div>`
+    + (done.length >= 4 ? '' : `<div class="yuu-chips-lbl">Still to use (${4 - done.length} more needed)</div><div class="yuu-chips-row">${todo.map(n => chip(n, false)).join('')}</div>`) + `</div>`;
+}
+
+// One line for the recommender: does this purchase add a new yuu partner?
+export function yuuUnlockNote(card, merchantText) {
+  const brand = detectYuuMerchant(merchantText || '');
+  if (!brand) return '';
+  const per = new Set(state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card)).map(tx => detectYuuMerchant(tx.desc)).filter(Boolean));
+  if (per.has(brand)) return `<div class="ct-chip ct-chip-ok">🐼 ${escapeHtml(brand)} already counts as one of your ${per.size} yuu merchants</div>`;
+  return `<div class="ct-chip ct-chip-ok">🐼 New yuu merchant: ${escapeHtml(brand)} would be #${per.size + 1} of 4</div>`;
 }
 
 export function renderPresets() {
@@ -244,6 +267,7 @@ export function renderCards() {
         ${markerHtml}
         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
       </div>
+      ${card.id === 'dbs-yuu' ? yuuChipsHtml(card) : ''}
       <div class="card-stats">
         <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent'}</span>
         <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${fmtAuto(card.monthlyCap)} (${pct}%)`)}</span>
@@ -289,7 +313,7 @@ export function openCardDetailModal(cardId) {
   const tierAlert = document.getElementById('modalCardAlertArea');
   if (tierAlert) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
-    tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : '';
+    tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : (card.id === 'dbs-yuu' ? `<div class="fee-alert"><div class="fee-alert-desc"><b>yuu partner merchants this cycle</b>${yuuChipsHtml(card, { spend: true })}</div></div>` : '');
   }
   document.getElementById('modalCardName').innerText = cardShort(card);
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
