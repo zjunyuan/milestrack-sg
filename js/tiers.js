@@ -4,7 +4,7 @@
 // Pure functions: pass in the transactions and the date so they can be tested.
 
 import { cardShort } from "./config.js";
-export const SIA_GROUP_RE = /singapore ?air|\bsia\b|scoot|krisshop|kris\+|krisflyer|silk ?air|pelago/i;
+export const SIA_GROUP_RE = /singapore ?air|\bsia\b|scoot|krisshop|krisflyer|silk ?air/i; // Kris+ and Pelago do not count toward the S$1,000 (MileLion, 2025)
 
 export function isSiaGroupTx(tx) {
   return SIA_GROUP_RE.test(String(tx && tx.desc || ""));
@@ -42,7 +42,7 @@ export function tierStatus(card, { spend = 0, txns = [], renewalYm = "", now = n
       headline: met
         ? `✅ ${money(rule.at)} SIA Group spend met`
         : `⚠️ ${money(rule.at - spent)} more SIA Group spend to unlock ${rule.mpd} mpd`,
-      detail: `${money(spent)} of ${money(rule.at)} SIA Group spend (SIA, Scoot, KrisShop, Kris+, Pelago) this membership year`
+      detail: `${money(spent)} of ${money(rule.at)} SIA Group spend (SIA, Scoot, KrisShop) this membership year`
         + (yr.anchored ? ` (to ${endTxt})` : " (calendar year; set your KrisFlyer UOB renewal month in Settings)")
         + `. The ${rule.mpd} mpd tier is credited by UOB after the year ends, not at the time of the swipe.`
     };
@@ -67,7 +67,7 @@ export function tierStatus(card, { spend = 0, txns = [], renewalYm = "", now = n
 // One-line warning for the recommender when a card is shown at a rate that is not yet unlocked.
 export function lockedWarning(card, status) {
   if (!status || status.met) return "";
-  if (status.kind === "annual-sia") return `${cardShort(card)}: the ${status.steps[0].mpd} mpd rate needs ${money(status.steps[0].at)} of SIA Group spend this membership year (${money(status.spent)} so far), credited after the year ends.`;
+  if (status.kind === "annual-sia") return `${cardShort(card)}: the ${status.steps[0].mpd} mpd rate needs ${money(status.steps[0].at)} of SIA Group spend this membership year (${money(status.spent)} so far), credited about 2 months after the year ends.`;
   return `${cardShort(card)}: ${status.next.mpd} mpd applies only once ${money(status.next.at)} is spent this month (${money(status.spent)} so far).`;
 }
 

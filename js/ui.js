@@ -193,7 +193,7 @@ export function earningProfileHtml(card) {
   } else if (rule && rule.kind === 'annual-sia') {
     pills.push(pill(`${card.baseMpd} mpd base`));
     pills.push(pill(`3 mpd on SIA Group, Kris+ and Pelago`));
-    pills.push(pill(`${money0(rule.at)} SIA Group spend per membership year → ${rule.mpd} mpd (credited after the year)`, true));
+    pills.push(pill(`${money0(rule.at)} SIA Group spend per membership year → ${rule.mpd} mpd (credited about 2 months after the year)`, true));
   } else {
     pills.push(pill(`<b>${card.bonusMpd} mpd</b> bonus`));
     pills.push(pill(`${card.baseMpd} mpd base`));

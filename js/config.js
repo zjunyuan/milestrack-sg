@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.55.0";
+export const APP_VERSION = "v1.55.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -435,7 +435,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'uncapped', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: '3 mpd on SIA, Scoot, KrisShop, Kris+ and Pelago. 2.4 mpd on dining/transport/travel needs S$1,000 SIA Group spend in the membership year and is paid after the year ends.', 
+    hint: '3 mpd on SIA, Scoot, KrisShop, Kris+ and Pelago. 2.4 mpd on dining/transport/travel needs S$1,000 SIA Group spend (SIA, Scoot, KrisShop) in the membership year and is paid about 2 months after the year ends.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-uob'
