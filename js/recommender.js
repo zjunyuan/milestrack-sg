@@ -270,7 +270,7 @@ function renderRecommendationCore() {
   const namedMerchant = (resolvedMcc && resolvedMcc.retailer && resolvedMcc.retailer.name) || (resolvedMcc && resolvedMcc.krisMerchant) || '';
   if (namedMerchant && candidateList.some(c => c.id === 'dbs-yuu') && !detectYuuMerchant(namedMerchant)) {
     candidateList = candidateList.filter(c => c.id !== 'dbs-yuu');
-    mccData.notes = `${String(mccData.notes || '').replace(/yuu Outlets earn.*?merchants\)\.\s*/i, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} is not a yuu partner brand (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+, Anywheel). Type just the MCC to see yuu in the general category list.`;
+    mccData.notes = `${String(mccData.notes || '').replace(/yuu Outlets earn.*?merchants\)\.\s*/i, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} is not a yuu partner brand (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+). Type just the MCC to see yuu in the general category list.`;
   }
   else if (namedMerchant && !state.isOverseasMode && detectYuuMerchant(namedMerchant) && !candidateList.some(c => c.id === 'dbs-yuu')) {
     // A yuu partner whose MCC rules don't list yuu (7-Eleven codes as 5499, Singtel as 4814, CHAGEE as 5814): add it at the partner rate.
