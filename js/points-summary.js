@@ -118,12 +118,25 @@ function hsbc(lines) {
     const vals = [];
     for (const l of lines) {
       const i = l.search(re); if (i < 0) continue;
-      const m = /([\d,]*\d)\s*$/.exec(l.slice(i).replace(re, "")); if (m && /^\d{1,3}(,\d{3})*$|^\d+$/.test(m[1])) vals.push(num(m[1]));
+      const m = /(-?)\s?([\d,]*\d)\s*$/.exec(l.slice(i).replace(re, "")); if (m && /^\d{1,3}(,\d{3})*$|^\d+$/.test(m[2])) vals.push((m[1] ? -1 : 1) * num(m[2]));
     }
     cand[k] = [...new Set(vals)];
   }
   const per = lines.map(l => /From\s+(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})\s+to\s+(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})/i.exec(l)).find(Boolean);
   const pick = (k) => cand[k].length ? cand[k] : [null];
+  // Each figure carries a (+) or (-) that text recognition loses, and refunds make Points Earned negative ("(-) 4"): try flipping the
+  // sign of the non-zero figures, fewest flips first, until opening + moves = closing.
+  const DEF = { earned: 1, bonus: 1, redeemed: -1, expired: -1, adjusted: 1 };
+  const fitSigns = (f) => {
+    const keys = Object.keys(DEF).filter(k => f[k]);
+    const masks = [...Array(1 << keys.length).keys()].sort((a, b) => pop(a) - pop(b));
+    for (const m of masks) {
+      const g = { ...f }; keys.forEach((k, j) => { if (m & (1 << j)) g[k] = -f[k]; });
+      if (f.opening + Object.keys(DEF).reduce((s2, k) => s2 + g[k] * DEF[k], 0) === f.closing) return g;
+    }
+    return null;
+  };
+  const pop = (x) => { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; };
   let best = null;
   for (const o of pick("opening")) for (const e of pick("earned")) for (const b of pick("bonus")) for (const r of pick("redeemed"))
     for (const x of pick("expired")) for (const a of pick("adjusted")) for (const c of pick("closing")) {
@@ -132,7 +145,9 @@ function hsbc(lines) {
       if (o === null && c !== null) f.opening = c - moves;
       if (c === null && o !== null) f.closing = o + moves;
       const ok = o !== null && e !== null && c !== null && o + e + f.bonus - f.redeemed - f.expired + f.adjusted === c;
-      if (ok) { best = { ...f, verified: true }; break; }
+      if (ok && !(best && best.verified)) { best = { ...f, verified: true }; break; }
+      const fx = o !== null && e !== null && c !== null ? fitSigns(f) : null;
+      if (fx && !(best && best.verified)) { best = { ...fx, verified: true }; break; }
       if (!best) best = { ...f, verified: false };
     }
   if (!best || best.closing === null || best.opening === null) return null;
