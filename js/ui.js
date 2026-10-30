@@ -23,6 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
+import { trustExpiry } from "./expiry.js";
 import { transferPlan } from "./transfer.js";
 import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
@@ -418,9 +419,15 @@ export function renderVault() {
     myGrandTotalMiles += equivMiles;
     const tp = transferPlan(item);
     if (tp) { xferMiles += tp.miles; xferOrphan += tp.orphanMiles; }
-    const xfer = (tp && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer">${tp.firstBlock ? `Below the first block: ${fmtNum(tp.nextIn, 0)} more ${escapeHtml(item.unit)} to transfer` : `Transferable now: ${fmtNum(tp.miles, 0)} mi`}${tp.orphanPts && !tp.firstBlock ? ` · ${fmtNum(tp.orphanPts, 0)} ${escapeHtml(item.unit)} orphaned (about ${fmtNum(tp.orphanMiles, 0)} mi), ${fmtNum(tp.nextIn, 0)} more to the next block` : ''}</span>` : '';
-    const xnote = (tp && item.transfer.note && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer vault-xfer-note">ℹ️ ${escapeHtml(item.transfer.note)}</span>` : '';
-    const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. about ${fmtNum(pendingByVault[key], 0)} mi bonus the bank credits next month</span>` : '';
+    const hasPts = tp && (Number(item.points) || 0) > 0;
+    const showBar = hasPts && (tp.firstBlock || !tp.continuous);
+    const xfer = hasPts ? `<div class="vault-xfer">`
+      + (tp.firstBlock ? `<div class="vx-ready vx-not">Not transferable yet</div>` : `<div class="vx-ready">✈ ${fmtNum(tp.miles, 0)} mi ready</div>`)
+      + (showBar ? `<div class="vx-bar"><i style="width:${tp.pct}%"></i></div><div class="vx-left">${tp.firstBlock ? '' : `${fmtNum(tp.orphanPts, 0)} left · `}${fmtNum(tp.nextIn, 0)} to ${tp.firstBlock ? 'first transfer' : 'next block'}</div>` : '')
+      + (item.transfer.noteShort ? `<details class="vx-note"><summary>ⓘ ${escapeHtml(item.transfer.noteShort)}</summary>${escapeHtml(item.transfer.note || '')}</details>` : '')
+      + `</div>` : '';
+    const xnote = '';
+    const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. ~${fmtNum(pendingByVault[key], 0)} mi bonus due next month</span>` : '';
 
     container.innerHTML += `
       <div class="vault-item">
@@ -434,7 +441,7 @@ export function renderVault() {
   document.getElementById('myTotalVaultMiles').innerText = `${fmtNum(myGrandTotalMiles)} mi`;
   let xn = document.getElementById('vaultTransferNote');
   if (!xn) { xn = document.createElement('div'); xn.id = 'vaultTransferNote'; xn.className = 'vault-xfer-total'; document.getElementById('myTotalVaultMiles').after(xn); }
-  xn.textContent = `Transferable now ${fmtNum(xferMiles)} mi · orphaned ${fmtNum(xferOrphan)} mi (bank conversion blocks)`;
+  xn.textContent = `Ready to transfer ${fmtNum(xferMiles)} mi · left over ${fmtNum(xferOrphan)} mi`;
   renderExpiryRadar();
   checkUobFeeDefense();
   updateTravelGoal(myGrandTotalMiles);
@@ -805,6 +812,16 @@ export function renderExpiryRadar() {
       </div>
     `;
   });
+  // Trust Miles expire per earn year (from the logged entries, not the vault total).
+  const te = trustExpiry(state.transactions, ALL_MASTER_CARDS, now);
+  if (te) {
+    const d = Math.max(0, Math.ceil((te.next.expiry - now) / (1000 * 60 * 60 * 24)));
+    container.innerHTML += `
+      <div class="radar-item">
+        <div><div style="font-size:0.85rem; font-weight:600;">Trust Miles</div><div style="font-size:0.75rem; color:#94a3b8;">${fmtNum(te.next.miles)} mi earned in ${te.next.year}, end of ${te.next.expiry.getFullYear()}</div></div>
+        <span class="radar-badge ${d <= 90 ? 'badge-crit' : 'badge-safe'}">${d}d left</span>
+      </div>`;
+  }
 }
 
 export function onCardSelectChange() {
