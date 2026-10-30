@@ -89,22 +89,31 @@ function maybank(lines) {
 }
 
 function citi(lines) {
-  const i = lines.findIndex(l => /THANK\s*YOU\s*POINTS\s*BALANCE\s*SUMMARY/i.test(l));
-  if (i < 0) return null;
-  let r = null;
-  for (let j = i + 1; j < Math.min(lines.length, i + 10) && !r; j++) r = numericRow(lines[j], 7);
-  if (!r) return null;
-  const [opening, earned, bonus, adjusted, redeemed, expired, closing] = r;
-  if (opening + earned + bonus + adjusted - redeemed - expired !== closing) return null;   // only trusted when it adds up
+  // One result per card section: Rewards cards print "THANK YOU POINTS BALANCE SUMMARY" (7 figures), Premier Miles cards "YOUR CITI MILES SUMMARY" (6).
+  // Citi keeps a separate balance for each card, so every result carries `ledger` (the card's last 4).
+  const md = lines.map(l => /Statement\s*Date:?\s*([A-Za-z]{3})[A-Za-z]*\s*(\d{1,2}),?\s*(\d{4})/i.exec(l)).find(Boolean);
   const due = lines.map(l => /Payment\s*Due\s*Date:?\s*([A-Za-z]{3})[A-Za-z]*\s*(\d{1,2}),?\s*(\d{4})/i.exec(l)).find(Boolean);
-  const sd = lines.map(l => /Statement\s*Date:?\s*(\d{1,2})\s*([A-Za-z]{3})[A-Za-z]*\s*(\d{4})/i.exec(l)).find(Boolean);
   let asOf = null;
-  if (sd) asOf = ts(sd[1], sd[2], sd[3]);
+  if (md) asOf = ts(md[2], md[1], md[3]);
   else if (due) { const m = MON[due[1].toUpperCase()]; if (m !== undefined) asOf = new Date(+due[3], m - 1, 28, 12).getTime(); }
-  const card = lines.filter(l => /CITI.*(REWARDS|VISA|MASTERCARD)/i.test(l.replace(/\s/g, ""))).map(l => /(\d{12})(\d{4})(?!\d)/.exec(l.replace(/[\s-]/g, ""))).find(Boolean);
-  const last4 = card ? card[2] : "";
-  return [{ bank: "citi", vaultKey: "citi_typ", currency: "Citi TYP", asOf, from: null, opening, earned: earned + bonus, redeemed: redeemed + expired, adjusted, closing,
-    expiring: 0, bonus, expired, verified: true, byCard: last4 ? [{ last4, earned: earned + bonus }] : [] }];
+  const out = [];
+  lines.forEach((l, i) => {
+    const typ = /THANK\s*YOU\s*POINTS\s*BALANCE\s*SUMMARY/i.test(l), mil = /YOUR\s*CITI\s*MILES\s*SUMMARY/i.test(l);
+    if (!typ && !mil) return;
+    let r = null;
+    for (let j = i + 1; j < Math.min(lines.length, i + 10) && !r; j++) r = numericRow(lines[j], mil ? 6 : 7);
+    if (!r) return;
+    const [opening, earned, bonus] = r, adjusted = r[3], redeemed = mil ? r[4] : r[4], expired = mil ? 0 : r[5], closing = r[r.length - 1];
+    if (opening + earned + bonus + adjusted - redeemed - expired !== closing) return;     // only trusted when it adds up
+    let last4 = "";
+    for (let j = i; j >= Math.max(0, i - 30) && !last4; j--) {
+      const c = lines[j].replace(/[\s-]/g, "");
+      const m = /CITI(?:REWARDS|PREMIER)[A-Z]*(\d{12})(\d{4})(?!\d)/i.exec(c); if (m) last4 = m[2];      // the digits right after the card's name (a reference number can sit before it)
+    }
+    out.push({ bank: "citi", vaultKey: mil ? "citi_miles" : "citi_typ", currency: mil ? "Citi Miles" : "Citi TYP", ledger: last4, asOf, from: null, opening, earned: earned + bonus,
+      redeemed: redeemed + expired, adjusted, closing, expiring: 0, bonus, expired, verified: true, byCard: last4 ? [{ last4, earned: earned + bonus }] : [] });
+  });
+  return out.length ? out : null;
 }
 
 function uob(lines) {
