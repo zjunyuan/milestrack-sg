@@ -124,7 +124,7 @@ function splitBlockHtml(card, txns) {
 function yuuMilesHtml(card, txns) {
   const e = yuuMonthStatus(card, txns);
   const need = [];
-  if (e.spend < e.need) need.push(`S$${fmtNum(e.need - e.spend, 0)} more spend`);
+  if (e.spend < e.need) need.push(`S$${fmtNum(e.need - e.spend, 2)} more spend`);
   if (e.partners.size < 4) need.push(`${4 - e.partners.size} more partner merchant${4 - e.partners.size === 1 ? '' : 's'}`);
   const line = e.met
     ? `✅ Bonus conditions met: +${fmtNum(e.earnable, 0)} mi on top of the entries (partner spend up to S$${fmtNum(card.monthlyCap, 0)} at ${card.bonusMpd} mpd)`
@@ -267,7 +267,7 @@ export function renderCards() {
     } else if (card.id === 'dbs-yuu') {
       const yuuProgress = getYuuMerchantProgress(card);
       barColor = (currentSpend >= 800 && yuuProgress.isEligible) ? 'var(--accent)' : 'var(--warning)';
-      statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 0)} min left`;
+      statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 2)} min left`;      // cents: S$0.26 short must not read as $0
     }
 
     // Plain uncapped cards have no bar worth showing; tiers and min-spend cards stay.
