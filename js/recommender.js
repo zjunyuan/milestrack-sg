@@ -56,13 +56,15 @@ export function checkOcbc6MpdPromo(input) {
     candidatesLocal: [
       { id: "ocbc-rewards", baseRate: 6.0 },
       { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 },
       { id: "dbs-wwmc", baseRate: 4.0 },
       { id: "uob-ppv-online", baseRate: 4.0 }
     ],
     candidatesOverseas: [
       { id: "ocbc-rewards", baseRate: 6.0 },
       { id: "uob-vs-fcy", baseRate: 4.0 },
-      { id: "citi-rewards", baseRate: 4.0 }
+      { id: "citi-rewards", baseRate: 4.0 },
+      { id: "citi-rewards-visa", baseRate: 4.0 }
     ]
   };
 }
@@ -292,7 +294,7 @@ function renderRecommendationCore() {
     if (!cardObj) return false;
 
     if (state.isKrisPlusMode) {
-      if (cardObj.id === 'citi-rewards') return false;
+      if (cardObj.id === 'citi-rewards' || cardObj.id === 'citi-rewards-visa') return false;
       if (cardObj.id === 'uob-vs-contactless') return false;
       if (cardObj.id === 'uob-ppv-contactless') return false;
     }
@@ -301,7 +303,7 @@ function renderRecommendationCore() {
     if (effectiveChannel === 'inperson' && cardObj.channelMode === 'online') return false;
     if (effectiveChannel === 'inperson' && !allowContactless && (cardObj.isContactlessOnly || cardObj.inPersonNeedsContactless)) return false;
 
-    if (effectiveChannel === 'inperson' && cardObj.id === 'citi-rewards') {
+    if (effectiveChannel === 'inperson' && (cardObj.id === 'citi-rewards' || cardObj.id === 'citi-rewards-visa')) {
       if (!CITI_INSTORE_MCCS.has(mccData.code) && mccData.code !== "OCBC-6MPD") return false;
     }
 

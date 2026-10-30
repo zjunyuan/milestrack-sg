@@ -1387,6 +1387,7 @@ export function openSettingsModal() {
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
   setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
   setVal('citiCutoff', citi?.cutoffDay ?? 15);
+  setVal('citiVisaCutoff', ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29);
   for (const f of feeCardFamilies()) {
     setVal(feeRenewalId(f.key), state.feeCards?.[f.key]?.renewal);
     setVal(feeDayId(f.key), state.feeCards?.[f.key]?.day);
@@ -1438,7 +1439,8 @@ export async function saveSettings() {
     },
     cutoffDays: {
       uobVs: clampDay(val('uobVsCutoff'), 18),
-      citi: clampDay(val('citiCutoff'), 15)
+      citi: clampDay(val('citiCutoff'), 15),
+      citiVisa: clampDay(val('citiVisaCutoff'), 29)
     }
   };
 
@@ -1471,7 +1473,8 @@ export function exportJSONBackup() {
       feeCards: state.feeCards || {},
       cutoffDays: {
         uobVs: ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'))?.cutoffDay ?? 18,
-        citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15
+        citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15,
+        citiVisa: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29
       }
     },
     transactions: state.transactions
@@ -1559,7 +1562,8 @@ export async function importJSONBackup(file) {
       stmtCoverage: state.stmtCoverage || {},
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
-        citi: Number(settings.cutoffDays?.citi) || 15
+        citi: Number(settings.cutoffDays?.citi) || 15,
+        citiVisa: Number(settings.cutoffDays?.citiVisa) || 29
       }
     };
     await updateSettingsDoc(state.myVaultKey, payload);

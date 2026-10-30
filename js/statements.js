@@ -394,7 +394,7 @@ export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";
   if (/hsbc|revolution/.test(n)) return pick("hsbc-rev");
   if (/maybank/.test(n)) return /horizon/.test(n) ? pick("mb-horizon-vs") : (/world/.test(n) ? pick("mb-world-mc") : "");
-  if (/citi/.test(n)) return pick("citi-rewards");
+  if (/citi/.test(n)) return /visa/.test(n) ? pick("citi-rewards-visa", "citi-rewards") : pick("citi-rewards", "citi-rewards-visa");
   if (/ocbc/.test(n)) return pick("ocbc-rewards");
   if (/vantage|visa platinum/.test(n)) return pick("dbs-vantage");
   if (/altitude/.test(n)) return pick("dbs-altitude");
