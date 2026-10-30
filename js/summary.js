@@ -2,10 +2,12 @@
 // miles by category, and small leaks (S$5 rounding, minimum-spend checks).
 // Calculated from logged transactions and card settings only; nothing is stored.
 import { state } from "./state.js";
-import { cardShort } from "./config.js";
+import { cardShort, detectYuuMerchant } from "./config.js";
 import { findRetailerForInput, escapeHtml } from "./retailers.js";
 import { getMccEntry, shortCategory } from "./mcc.js";
 import { fmtNum } from "./format.js";
+
+const NO_CATEGORY = '__none';   // same value as history-table.js: entries whose merchant the app cannot place
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const inMonth = (tx, y, m) => {
@@ -100,7 +102,7 @@ function leaks(txns, stmtSpent, y, m) {
     const ys = txns.filter(t => t.cardId === 'dbs-yuu');
     const spent = ys.reduce((s, t) => s + (Number(t.amt) || 0), 0);
     if (spent > 0) {
-      const merchants = new Set(ys.map(t => String(t.desc || '').toLowerCase())).size;
+      const merchants = new Set(ys.map(t => detectYuuMerchant(t.desc)).filter(Boolean)).size;   // partner merchants, same rule as the yuu card chips
       const ok = spent >= 800 && merchants >= 4;
       checks.push({ label: 'DBS yuu: S$800 + 4 merchants', ok, text: ok ? 'Met ✓' : `S$${fmtNum(spent, 0)} · ${merchants}/4 merchants` });
     }
@@ -118,18 +120,23 @@ export function monthlySummaryHtml(y, m, stmtSpent, now = new Date()) {
   const upToTotal = fams.reduce((s, f) => s + f.upTo, 0);
   const unusedCards = fams.filter(f => f.unused > 0).length;
 
+  // Spend, share of spend and miles per category (merchants the app cannot place go under "Everything else").
   const cats = new Map();
-  let totalMiles = 0;
+  let totalSpend = 0, totalMiles = 0;
   for (const t of txns) {
-    const mi = Number(t.miles) || 0;
-    totalMiles += mi;
-    const k = categoryOf(t.desc) || 'Everything else';
-    cats.set(k, (cats.get(k) || 0) + mi);
+    const amt = Number(t.amt) || 0, mi = Number(t.miles) || 0;
+    totalSpend += amt; totalMiles += mi;
+    const k = categoryOf(t.desc) || NO_CATEGORY;
+    const c = cats.get(k) || { spend: 0, miles: 0 };
+    c.spend += amt; c.miles += mi;
+    cats.set(k, c);
   }
-  const catRows = [...cats.entries()].filter(([k]) => k !== 'Everything else').sort((a, b) => b[1] - a[1]).slice(0, 3);
-  const shown = catRows.reduce((s, [, v]) => s + v, 0);
-  if (totalMiles - shown > 0) catRows.push(['Everything else', totalMiles - shown]);
-  const catMax = Math.max(1, ...catRows.map(r => r[1]));
+  const sorted = [...cats.entries()].filter(([k]) => k !== NO_CATEGORY).sort((a, b) => b[1].spend - a[1].spend);
+  const catRows = sorted.slice(0, 7);
+  const rest = sorted.slice(7).reduce((r, [, v]) => ({ spend: r.spend + v.spend, miles: r.miles + v.miles }), { spend: 0, miles: 0 });
+  const unk = cats.get(NO_CATEGORY) || { spend: 0, miles: 0 };
+  const other = { spend: rest.spend + unk.spend, miles: rest.miles + unk.miles };
+  const catMax = Math.max(1, ...catRows.map(r => r[1].spend), other.spend);
 
   const lk = leaks(txns, stmtSpent, y, m);
 
@@ -144,8 +151,13 @@ export function monthlySummaryHtml(y, m, stmtSpent, now = new Date()) {
       <div class="ms-bar${full ? ' full' : ''}"><i style="width:${Math.min(100, (f.spent / f.cap) * 100).toFixed(0)}%"></i></div><div class="ms-sub">${sub}</div></div>`;
   }).join('');
 
-  const catHtml = catRows.map(([k, v]) => `<div class="ms-row"><div class="ms-line"><span>${escapeHtml(k)}</span><span><b>${fmtNum(v, 0)} mi</b></span></div>
-      <div class="ms-bar mile"><i style="width:${((v / catMax) * 100).toFixed(0)}%"></i></div></div>`).join('');
+  const catLine = (name, v, tapKey) => {
+    const pct = totalSpend > 0 ? Math.round((v.spend / totalSpend) * 100) : 0;
+    const mpd = v.spend > 0 ? (v.miles / v.spend).toFixed(2) : '0.00';
+    return `<div class="ms-row ms-cat" data-ms-cat="${escapeHtml(tapKey)}" role="button" tabindex="0"><div class="ms-line"><span>${escapeHtml(name)}</span><span><b>S$${fmtNum(v.spend, 0)}</b> <span class="ms-dim">${pct}%</span></span></div>
+      <div class="ms-bar"><i style="width:${((v.spend / catMax) * 100).toFixed(0)}%"></i></div><div class="ms-sub">${fmtNum(v.miles, 0)} mi · ${mpd} mpd</div></div>`;
+  };
+  const catHtml = catRows.map(([k, v]) => catLine(k, v, k)).join('') + (other.spend > 0 || other.miles > 0 ? catLine(rest.spend > 0 && unk.spend === 0 ? 'Other categories' : 'Everything else', other, rest.spend > 0 && unk.spend === 0 ? '' : NO_CATEGORY) : '');
 
   const leakRows = [];
   if (lk.count > 0) leakRows.push(`<div class="ms-row"><div class="ms-line"><span>S$5 rounding</span><span class="ms-bad">−${fmtNum(lk.lost, 0)} mi</span></div><div class="ms-sub">${lk.count} transaction${lk.count > 1 ? 's' : ''} had a remainder under S$5 that earned nothing</div></div>`);
@@ -154,7 +166,7 @@ export function monthlySummaryHtml(y, m, stmtSpent, now = new Date()) {
   return `<details class="ms-wrap" open><summary>${MON[m - 1]} ${y} summary${soFar ? ' · so far' : ''}</summary><div class="ms">
     ${room}
     ${capRows ? `<div class="ms-card"><h3>Cap use by card</h3>${capRows}</div>` : ''}
-    ${catHtml ? `<div class="ms-card"><h3>Where the miles came from</h3>${catHtml}</div>` : ''}
+    ${catHtml ? `<div class="ms-card"><h3>Where the S$${fmtNum(totalSpend, 0)} went <span class="ms-dim">· tap a row to see its entries</span></h3>${catHtml}</div>` : ''}
     ${leakRows.length ? `<div class="ms-card"><h3>Small leaks &amp; checks</h3>${leakRows.join('')}</div>` : ''}
   </div></details>`;
 }

@@ -18,7 +18,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/mcc.js`: the one place that knows about every MCC. It combines `MCC_DATABASE` (hand-written rules), `MCC_NAMES` (labels only), and generated fallbacks.
 - `js/mcc-names.js`: ~230 ISO 18245 codes with names and no card rules, plus `COMMONLY_EXCLUDED_MCCS`.
 - `js/posting.js` / `js/posting-ui.js`: per-card transaction-date vs posting-date rules (source and date in the header), cycle-end maths, `countsTs(tx, card)` (the date a spend counts to; use it for cycle/cap membership instead of `tx.timestamp`), the month-end banner and the log-form hint. A transaction's optional `postTs` is the bank's posting date.
-- `js/summary.js`: monthly summary block at the top of History (cap use per card entry, where miles came from, deltas vs last month).
+- `js/summary.js`: monthly summary block at the top of History (cap use per card entry, spend / share / miles / mpd per category with tap-to-filter, deltas vs last month; the yuu check counts partner merchants via `detectYuuMerchant`).
 - `js/history-table.js`: desktop History table, filters (category, amount, trans/post dates), sort and totals; `state.txView` holds the view.
 - `js/history-chips.js`: phone filter chips (Card, Category, Amount, Dates, Sort) and their bottom sheet; desktop hides them and uses the table filters.
 - `js/col-filter.js`: History column filters. Merchant (text), Card (several cards, grouped by bank via `bankOf`, yuu counts as DBS) and Category (several) live in `state.txView` (`merchant`, `cards[]`, `cats[]`). Desktop opens a popover from the funnel icon in the table header; phone uses the same checkbox lists in the chip sheet.
