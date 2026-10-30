@@ -23,7 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
-import { yuuExpected, yuuMilesForNew, applyYuuRecalc } from "./yuu.js";
+import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
@@ -108,12 +108,17 @@ export function yuuUnlockNote(card, merchantText) {
   return `<div class="ct-chip ct-chip-ok">🐼 New yuu merchant: ${escapeHtml(brand)} would be #${per.size + 1} of 4</div>`;
 }
 
-// yuu: the rate this month follows the conditions met. Shows logged vs expected miles and offers to correct the entries.
+// yuu: every entry earns a fixed rate; the 10 mpd bonus is a month-level extra shown here, added as one "yuu bonus" entry once met.
 function yuuMilesHtml(card, txns) {
-  const e = yuuExpected(card, txns);
-  const state1 = e.met ? '✅ Conditions met: partner spend earns 10 mpd' : `⚠️ Conditions not met (S$${fmtNum(e.spend, 0)} of S$${card.minSpend}, ${e.partners.size} of 4 merchants): partner spend earns ${card.lockedMpd} mpd, other spend ${card.baseMpd} mpd`;
-  const fix = e.changes ? `<div class="yuu-fix">Logged ${fmtNum(e.logged, 0)} mi, expected ${fmtNum(e.expected, 0)} mi (${e.diff >= 0 ? '+' : ''}${fmtNum(e.diff, 0)}). <button type="button" class="btn-backup" id="btnYuuRecalc">Recalculate ${e.changes} entr${e.changes === 1 ? 'y' : 'ies'}</button></div>` : `<div class="yuu-fix ok">Logged miles match: ${fmtNum(e.logged, 0)} mi</div>`;
-  return `<div class="yuu-state">${state1}</div>${fix}`;
+  const e = yuuMonthStatus(card, txns);
+  const need = [];
+  if (e.spend < e.need) need.push(`S$${fmtNum(e.need - e.spend, 0)} more spend`);
+  if (e.partners.size < 4) need.push(`${4 - e.partners.size} more partner merchant${4 - e.partners.size === 1 ? '' : 's'}`);
+  const line = e.met
+    ? `✅ Bonus conditions met: +${fmtNum(e.earnable, 0)} mi on top of the entries (partner spend up to S$${fmtNum(card.monthlyCap, 0)} at ${card.bonusMpd} mpd)`
+    : `⚠️ Bonus not yet met: ${need.join(' and ')} needed. Meeting it adds about +${fmtNum(e.earnable, 0)} mi this month`;
+  const btn = e.met && e.topUp > 0 ? `<div class="yuu-fix"><button type="button" class="btn-backup" id="btnYuuBonus">Add yuu bonus entry (+${fmtNum(e.topUp, 0)} mi)</button></div>` : (e.met ? `<div class="yuu-fix ok">Bonus entry added: ${fmtNum(e.bonusLogged, 0)} mi</div>` : '');
+  return `<div class="yuu-state">${line}</div><div class="yuu-fix ok">Each entry earns ${card.lockedMpd} mpd at partners and ${card.baseMpd} mpd elsewhere. The bonus is added as one entry once met.</div>${btn}`;
 }
 
 export function renderPresets() {
@@ -326,17 +331,15 @@ export function openCardDetailModal(cardId) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
     tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : (card.id === 'dbs-yuu' ? `<div class="fee-alert"><div class="fee-alert-desc"><b>yuu partner merchants this cycle</b>${yuuChipsHtml(card, { spend: true })}${yuuMilesHtml(card, activeTxns)}</div></div>` : '');
   }
-  const yuuBtn = document.getElementById('btnYuuRecalc');
+  const yuuBtn = document.getElementById('btnYuuBonus');
   if (yuuBtn) yuuBtn.onclick = async () => {
-    const e = yuuExpected(card, activeTxns);
-    if (!confirm(`Recalculate ${e.changes} yuu entr${e.changes === 1 ? 'y' : 'ies'} for this month?\nLogged ${fmtNum(e.logged, 0)} mi, expected ${fmtNum(e.expected, 0)} mi (${e.diff >= 0 ? '+' : ''}${fmtNum(e.diff, 0)}). Entries from a statement that were not added to your vault leave the vault unchanged.`)) return;
     yuuBtn.disabled = true;
     try {
-      const r = await applyYuuRecalc(card, activeTxns);
-      showToast(`Updated ${r.changed} yuu entr${r.changed === 1 ? 'y' : 'ies'}${r.dPts ? ` · vault ${r.dPts > 0 ? '+' : ''}${fmtNum(r.dPts, 0)} pts` : ''}`);
+      const r = await addYuuBonus(card, activeTxns);
+      showToast(`Added yuu bonus: +${fmtNum(r.miles, 0)} mi`);
       renderTransactions(); renderVault(); openCardDetailModal(card.id);
     } catch (err) {
-      showToast(`Not updated. ${err && err.message ? err.message : 'Check your connection and try again.'}`, { kind: 'error' });
+      showToast(`Not added. ${err && err.message ? err.message : 'Check your connection and try again.'}`, { kind: 'error' });
       yuuBtn.disabled = false;
     }
   };
@@ -920,10 +923,8 @@ export async function saveTransaction() {
     let earnedMiles = calcEarnedMiles(card, amt, isEligible ? card.bonusMpd : card.baseMpd);
     let yuuPartner = null;
     if (card.id === 'dbs-yuu') {
-      // yuu miles follow the conditions met this month (10 mpd, about 2.78 mpd, or 0.14 mpd), counted with the month's other entries.
-      const d = new Date(txTimestamp);
-      const monthTxns = state.transactions.filter(t => t.cardId === card.id && t.id !== editId && (() => { const c = new Date(countsTs(t, card)); return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth(); })());
-      const y = yuuMilesForNew(card, monthTxns, { amt, desc, timestamp: txTimestamp });
+      // yuu: fixed rate from the entry alone (partner 2.78 mpd, other 0.14). The 10 mpd bonus is a separate month-level entry.
+      const y = yuuEntryMiles(card, amt, desc);
       earnedMiles = y.miles; yuuPartner = y.partner;
     }
     let earnedRawPoints = Math.round(earnedMiles / (state.myVault[card.vaultKey]?.ratio || 1));
