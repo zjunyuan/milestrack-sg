@@ -21,6 +21,8 @@ import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
+import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
+import { familyOf } from "./statements.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
@@ -546,7 +548,7 @@ export function renderTransactions() {
       ${sel.on ? `<input type="checkbox" class="tx-sel tx-sel-phone" ${sel.ids.has(String(tx.id)) ? 'checked' : ''} aria-label="Select">` : ''}
       <div style="flex:1; min-width:0; padding-right:8px;">
         <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}</div>
-        <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}</div>
+        <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}${isStatementEntry(tx) ? ' • <span class="tx-stmt" title="Confirmed by a bank statement">✓ statement</span>' : ''}</div>
       </div>
       <div>
         <div class="tx-miles">+${fmtNum(tx.miles)} mi</div>
@@ -1112,6 +1114,25 @@ export function renderArchiveData() {
   document.getElementById('archiveTxnCount').innerText = `${scopedTxns.length} transactions (${isFullYear ? `Year ${targetYear}` : '1 Month'})`;
   document.getElementById('archiveTotalMiles').innerText = `+${fmtNum(Math.round(totalMiles))} mi`;
   document.getElementById('archiveBlendedMpd').innerText = `${blendedMpd} blended mpd`;
+
+  // Which cards and months have a statement imported (tap a ✓ to see that card's entries for that month).
+  const covEl = document.getElementById('historyCoverage');
+  if (covEl) {
+    const wasOpen = covEl.open;
+    const data = coverageData(targetYear);
+    covEl.innerHTML = `<summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div>`;
+    covEl.open = wasOpen;
+    covEl.querySelectorAll('[data-cv-ym]').forEach(td => {
+      const go = () => {
+        const sel = document.getElementById('archiveMonthSelect');
+        if (sel && [...sel.options].some(o => o.value === td.dataset.cvYm)) sel.value = td.dataset.cvYm;
+        state.txView.cards = familyOf(td.dataset.cvCard);
+        renderArchiveData(); renderTransactions();
+      };
+      td.addEventListener('click', go);
+      td.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
+  }
 
   // Month view: deltas vs last month and the monthly summary. Full-year view has neither.
   const summaryEl = document.getElementById('monthlySummary');

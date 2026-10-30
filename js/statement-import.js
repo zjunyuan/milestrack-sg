@@ -11,6 +11,7 @@ import { parseCsv, detectLayout, guessLayoutByContent, buildLines, matchLines, m
 import { readXls } from "./xls.js";
 import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
+import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -651,26 +652,9 @@ function renderBatchCounts() {
 // the ledger already has a statement-confirmed entry in it (imports from before coverage was recorded).
 function renderCoverage() {
   const box = $("stCoverage"); if (!box) return;
-  const year = new Date().getFullYear(), nowM = new Date().getMonth();
-  const cov = {};
-  for (const [k, ms] of Object.entries(state.stmtCoverage || {})) for (const m of Object.keys(ms || {})) (cov[k] = cov[k] || new Set()).add(m);
-  for (const t of state.transactions) if (t.stmtKey || t.stmtConfirmed || t.source === "statement") { const k = familyOf(t.cardId)[0]; (cov[k] = cov[k] || new Set()).add(dayKey(t.timestamp || 0).slice(0, 7)); }
-  const keys = [...new Set(ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id)).map(c => familyOf(c.id)[0]))];
-  const label = k => { const first = ALL_MASTER_CARDS.find(c => c.id === k); const multi = familyOf(k).length > 1; return first ? (multi ? cardShort(first).replace(/\.[^.]*$/, "") : cardShort(first)) : k; };
-  let due = 0, got = 0;
-  const mo = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-  const rows = keys.map(k => {
-    const cells = mo.map((_, m) => {
-      const ym = `${year}-${String(m + 1).padStart(2, "0")}`;
-      if (m > nowM) return `<td class="cv-future"></td>`;
-      const has = cov[k] && cov[k].has(ym);
-      if (m < nowM) { due++; if (has) got++; }
-      return `<td class="${has ? "cv-yes" : (m === nowM ? "cv-now" : "cv-no")}" title="${ym}">${has ? "✓" : (m === nowM ? "" : "·")}</td>`;
-    }).join("");
-    return `<tr><th>${escapeHtml(label(k))}</th>${cells}</tr>`;
-  }).join("");
-  box.innerHTML = `<summary>📅 Statements imported in ${year}: ${got} of ${due} card-months</summary>
-    <div class="cv-wrap"><table class="cv-table"><thead><tr><th></th>${mo.map(m => `<th>${m}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
+  const data = coverageData(new Date().getFullYear());
+  box.innerHTML = `<summary>${coverageSummaryText(data)}</summary>
+    ${coverageTableHtml(data)}
     <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends.</div>`;
 }
 

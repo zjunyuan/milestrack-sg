@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.51.5';
+const CACHE_NAME = 'milestrack-cache-v1.52.0';
 
 const CORE_ASSETS = [
   './',
@@ -19,6 +19,7 @@ const CORE_ASSETS = [
   './js/search-mode.js',
   './js/layout-report.js',
   './js/summary.js',
+  './js/coverage.js',
   './js/demo.js',
   './js/history-table.js',
   './js/history-chips.js',
