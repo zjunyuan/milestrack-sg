@@ -418,9 +418,15 @@ export function renderVault() {
     myGrandTotalMiles += equivMiles;
     const tp = transferPlan(item);
     if (tp) { xferMiles += tp.miles; xferOrphan += tp.orphanMiles; }
-    const xfer = (tp && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer">${tp.firstBlock ? `${tp.continuous ? 'Below the minimum' : 'Below the first block'}: ${fmtNum(tp.nextIn, 0)} more ${escapeHtml(item.unit)} to transfer` : `Transferable now: ${fmtNum(tp.miles, 0)} mi`}${tp.orphanPts && !tp.firstBlock && !tp.continuous ? ` · ${fmtNum(tp.orphanPts, 0)} ${escapeHtml(item.unit)} orphaned (about ${fmtNum(tp.orphanMiles, 0)} mi), ${fmtNum(tp.nextIn, 0)} more to the next block` : ''}</span>` : '';
-    const xnote = (tp && item.transfer.note && (Number(item.points) || 0) > 0) ? `<span class="vault-xfer vault-xfer-note">ℹ️ ${escapeHtml(item.transfer.note)}</span>` : '';
-    const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. about ${fmtNum(pendingByVault[key], 0)} mi bonus the bank credits next month</span>` : '';
+    const hasPts = tp && (Number(item.points) || 0) > 0;
+    const showBar = hasPts && (tp.firstBlock || !tp.continuous);
+    const xfer = hasPts ? `<div class="vault-xfer">`
+      + (tp.firstBlock ? `<div class="vx-ready vx-not">Not transferable yet</div>` : `<div class="vx-ready">✈ ${fmtNum(tp.miles, 0)} mi ready</div>`)
+      + (showBar ? `<div class="vx-bar"><i style="width:${tp.pct}%"></i></div><div class="vx-left">${tp.firstBlock ? '' : `${fmtNum(tp.orphanPts, 0)} left · `}${fmtNum(tp.nextIn, 0)} to ${tp.firstBlock ? 'first transfer' : 'next block'}</div>` : '')
+      + (item.transfer.noteShort ? `<details class="vx-note"><summary>ⓘ ${escapeHtml(item.transfer.noteShort)}</summary>${escapeHtml(item.transfer.note || '')}</details>` : '')
+      + `</div>` : '';
+    const xnote = '';
+    const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. ~${fmtNum(pendingByVault[key], 0)} mi bonus due next month</span>` : '';
 
     container.innerHTML += `
       <div class="vault-item">
@@ -434,7 +440,7 @@ export function renderVault() {
   document.getElementById('myTotalVaultMiles').innerText = `${fmtNum(myGrandTotalMiles)} mi`;
   let xn = document.getElementById('vaultTransferNote');
   if (!xn) { xn = document.createElement('div'); xn.id = 'vaultTransferNote'; xn.className = 'vault-xfer-total'; document.getElementById('myTotalVaultMiles').after(xn); }
-  xn.textContent = `Transferable now ${fmtNum(xferMiles)} mi · orphaned ${fmtNum(xferOrphan)} mi (bank conversion blocks)`;
+  xn.textContent = `Ready to transfer ${fmtNum(xferMiles)} mi · left over ${fmtNum(xferOrphan)} mi`;
   renderExpiryRadar();
   checkUobFeeDefense();
   updateTravelGoal(myGrandTotalMiles);
