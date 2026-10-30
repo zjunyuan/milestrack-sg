@@ -32,14 +32,15 @@ import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows } from "./col-filter.js";
-import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY } from "./history-table.js";
+import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
   deleteTxFromFirestore, 
   updateVaultDoc, 
   updateSettingsDoc,
-  mergeSettingsDoc
+  mergeSettingsDoc,
+  savePointsRecord, saveMerchantOverride, saveMccRule
 } from "./firebase.js";
 import { 
   calcEarnedMiles, 
@@ -612,7 +613,7 @@ export function renderTransactions() {
     row.innerHTML = `
       ${sel.on ? `<input type="checkbox" class="tx-sel tx-sel-phone" ${sel.ids.has(String(tx.id)) ? 'checked' : ''} aria-label="Select">` : ''}
       <div style="flex:1; min-width:0; padding-right:8px;">
-        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}</div>
+        <div class="tx-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(tx.desc || '')}${mccChip(tx)}</div>
         <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}${isStatementEntry(tx) ? ' • <span class="tx-stmt" title="Confirmed by a bank statement">✓ statement</span>' : ''}</div>
       </div>
       <div>
@@ -1463,6 +1464,15 @@ export async function saveSettings() {
   }
 }
 
+// Merges statement-coverage maps (card-month records): the backup's entries are added to what is there.
+function mergeCoverage(cur, add) {
+  const out = { ...(cur || {}) };
+  for (const [k, v] of Object.entries(add || {})) {
+    out[k] = v && typeof v === 'object' && out[k] && typeof out[k] === 'object' ? { ...out[k], ...v } : v;
+  }
+  return out;
+}
+
 export function exportJSONBackup() {
   const backup = {
     app: 'MilesTrack SG',
@@ -1475,13 +1485,21 @@ export function exportJSONBackup() {
       citiApprovalDate: state.citiApprovalDate,
       uobRenewals: state.uobRenewals,
       feeCards: state.feeCards || {},
+      uobStatementDay: state.uobStatementDay || 23,
+      feeAlerts: state.feeAlerts || {},
+      stmtCoverage: state.stmtCoverage || {},      // card-months imported from statements (v1.59.5)
+      bigCheck: Number(state.bigCheck) || 250,
       cutoffDays: {
         uobVs: ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'))?.cutoffDay ?? 18,
         citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15,
         citiVisa: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29
       }
     },
-    transactions: state.transactions
+    transactions: state.transactions,
+    points: state.pointsLog || [],       // the points check: statement summaries, typed balances, transfers and redemptions (v1.59.4)
+    // Household-shared data (v1.59.5): the same for every member, so a restore writes it back for everyone.
+    mccRules: state.mccRules || {},
+    merchantOverrides: state.merchantOverrides || {}
   };
   const stamp = new Date().toLocaleDateString('en-CA');
   downloadFile(`milestrack_backup_${state.myVaultKey}_${stamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
@@ -1513,15 +1531,58 @@ function parseBackup(data) {
     txns.push({ ...rest, id, owner: state.myVaultKey });
   }
 
+  // Points check records (v1.59.4): statement summaries, balances you typed, transfers/redemptions. Old backups have none.
+  const points = [];
+  let pointsSkipped = 0;
+  for (const r of Array.isArray(data.points) ? data.points : []) {
+    const id = String(r?.id ?? '');
+    if (!id || !/^[\w-]+$/.test(id) || !['statement', 'balance', 'out'].includes(r.kind) || !(r.vaultKey in DEFAULT_VAULT) || !Number.isFinite(Number(r.ts))) {
+      pointsSkipped++;
+      continue;
+    }
+    const { firestoreId, ...rest } = r;
+    points.push({ ...rest, id });
+  }
+
+  // Household MCC rules and merchant corrections (v1.59.5): checked against the same shapes docs/firestore.rules enforces.
+  const mccRules = {};
+  let sharedSkipped = 0;
+  const rawRules = data.mccRules && typeof data.mccRules === 'object' ? data.mccRules : {};
+  for (const [code, r] of Object.entries(rawRules)) {
+    const ok = /^[0-9]{4}$/.test(code) && r && typeof r === 'object' && Array.isArray(r.local) && Array.isArray(r.overseas)
+      && r.local.length <= 20 && r.overseas.length <= 20;
+    if (!ok) { sharedSkipped++; continue; }
+    const expires = typeof r.expires === 'string' && /^(\d{4}-\d{2}-\d{2})?$/.test(r.expires) ? r.expires : '';
+    mccRules[code] = {
+      mcc: code, local: r.local, overseas: r.overseas,
+      note: String(r.note || '').slice(0, 200), expires,
+      updatedBy: String(r.updatedBy || ''), updatedAt: r.updatedAt ?? Date.now()
+    };
+  }
+  const merchants = {};
+  const rawMerch = data.merchantOverrides && typeof data.merchantOverrides === 'object' ? data.merchantOverrides : {};
+  for (const [slug, m] of Object.entries(rawMerch)) {
+    const ok = /^[a-z0-9-]{1,60}$/.test(slug) && m && typeof m === 'object' && typeof m.name === 'string'
+      && m.name.length > 0 && m.name.length <= 60 && typeof m.mcc === 'string' && m.mcc.length === 4;
+    if (!ok) { sharedSkipped++; continue; }
+    const rec = { name: m.name, mcc: m.mcc, updatedBy: String(m.updatedBy || ''), updatedAt: m.updatedAt ?? Date.now() };
+    if (Array.isArray(m.aliases)) rec.aliases = m.aliases.slice(0, 10);
+    merchants[slug] = rec;
+  }
+
   const s = data.settings || {};
   const settings = {
+    uobStatementDay: Number(s.uobStatementDay) >= 1 && Number(s.uobStatementDay) <= 31 ? Number(s.uobStatementDay) : null,
+    feeAlerts: s.feeAlerts && typeof s.feeAlerts === 'object' ? s.feeAlerts : null,
+    stmtCoverage: s.stmtCoverage && typeof s.stmtCoverage === 'object' ? s.stmtCoverage : null,
+    bigCheck: Number(s.bigCheck) > 0 ? Number(s.bigCheck) : null,
     enabledCards: Array.isArray(s.enabledCards) ? s.enabledCards.filter(id => knownCards.has(id)) : null,
     citiApprovalDate: /^\d{4}-\d{2}$/.test(s.citiApprovalDate || '') ? s.citiApprovalDate : null,
     uobRenewals: s.uobRenewals && typeof s.uobRenewals === 'object' ? s.uobRenewals : null,
     feeCards: s.feeCards && typeof s.feeCards === 'object' ? s.feeCards : null,
     cutoffDays: s.cutoffDays && typeof s.cutoffDays === 'object' ? s.cutoffDays : null
   };
-  return { balances, settings, txns, skipped };
+  return { balances, settings, txns, skipped, points, pointsSkipped, mccRules, merchants, sharedSkipped };
 }
 
 export async function importJSONBackup(file) {
@@ -1535,7 +1596,9 @@ export async function importJSONBackup(file) {
   const parsed = parseBackup(data);
   if (parsed.error) return alert(parsed.error);
 
-  const { balances, settings, txns, skipped } = parsed;
+  const { balances, settings, txns, skipped, points, pointsSkipped, mccRules, merchants, sharedSkipped } = parsed;
+  const isAdmin = state.userRole === 'PRIMARY';
+  const nRules = Object.keys(mccRules).length, nMerch = Object.keys(merchants).length;
   const ownerNote = data.vault && data.vault !== state.myVaultKey
     ? `\n\n⚠️ This backup came from the "${data.vault}" vault. It will be restored into YOUR vault ("${state.myVaultKey}").`
     : '';
@@ -1544,6 +1607,11 @@ export async function importJSONBackup(file) {
     `• ${Object.keys(balances).length} point balances (replaces current balances)\n` +
     `• ${txns.length} transactions (added or overwritten by ID, nothing is deleted)\n` +
     `• Card wallet & settings` +
+    (points.length ? `\n• ${points.length} points check records (bank statement figures, balances and transfers you entered; added or overwritten by ID)` : '') +
+    (pointsSkipped ? `\n• ${pointsSkipped} invalid points records will be skipped` : '') +
+    (nMerch ? `\n• ${nMerch} shared merchant corrections (visible to the whole household; added or overwritten)` : '') +
+    (nRules ? (isAdmin ? `\n• ${nRules} household MCC rules (visible to the whole household; added or overwritten)` : `\n• ${nRules} household MCC rules will NOT be restored (only the household admin can write them)`) : '') +
+    (sharedSkipped ? `\n• ${sharedSkipped} invalid shared entries will be skipped` : '') +
     (skipped ? `\n• ${skipped} invalid transactions will be skipped` : '') +
     ownerNote
   );
@@ -1560,10 +1628,11 @@ export async function importJSONBackup(file) {
       enabledCards: settings.enabledCards?.length ? settings.enabledCards : state.enabledCardIds,
       citiApprovalDate: settings.citiApprovalDate || state.citiApprovalDate,
       uobRenewals: { ...state.uobRenewals, ...(settings.uobRenewals || {}) },
-      uobStatementDay: state.uobStatementDay || 23,
-      feeAlerts: state.feeAlerts || {},
+      uobStatementDay: settings.uobStatementDay || state.uobStatementDay || 23,
+      feeAlerts: settings.feeAlerts || state.feeAlerts || {},
       feeCards: settings.feeCards || state.feeCards || {},
-      stmtCoverage: state.stmtCoverage || {},
+      stmtCoverage: mergeCoverage(state.stmtCoverage, settings.stmtCoverage),
+      bigCheck: settings.bigCheck || Number(state.bigCheck) || 250,
       cutoffDays: {
         uobVs: Number(settings.cutoffDays?.uobVs) || 18,
         citi: Number(settings.cutoffDays?.citi) || 15,
@@ -1575,8 +1644,24 @@ export async function importJSONBackup(file) {
     for (let i = 0; i < txns.length; i += 25) {
       await Promise.all(txns.slice(i, i + 25).map(t => saveTxToFirestore(t.id, t)));
     }
+    // Only the records are written back: the Vault balances above already include any transfers, so nothing is applied twice.
+    for (let i = 0; i < points.length; i += 25) {
+      await Promise.all(points.slice(i, i + 25).map(r => savePointsRecord(r.id, r)));
+    }
+    if (settings.bigCheck) state.bigCheck = settings.bigCheck;
+    if (settings.stmtCoverage) state.stmtCoverage = payload.stmtCoverage;
+    // Shared data: written one by one so a refusal on one entry does not stop the rest.
+    let sharedFailed = 0;
+    for (const [slug, m] of Object.entries(merchants)) {
+      try { await saveMerchantOverride(slug, m); state.merchantOverrides[slug] = m; } catch (e) { console.error(e); sharedFailed++; }
+    }
+    if (isAdmin) for (const [code, r] of Object.entries(mccRules)) {
+      try { await saveMccRule(code, r); state.mccRules[code] = r; } catch (e) { console.error(e); sharedFailed++; }
+    }
     closeSettingsModal();
-    alert(`Restore complete: ${txns.length} transactions restored.`);
+    alert(`Restore complete: ${txns.length} transactions${points.length ? ` and ${points.length} points check records` : ''} restored.` +
+      (nMerch || (isAdmin && nRules) ? ` Shared: ${nMerch} merchant corrections${isAdmin ? `, ${nRules} MCC rules` : ''}.` : '') +
+      (sharedFailed ? ` ${sharedFailed} shared entries could not be written.` : ''));
   } catch (e) {
     console.error('Import failed:', e);
     alert('Restore failed part-way: ' + e.message + '\nYour backup file is unchanged; you can retry.');

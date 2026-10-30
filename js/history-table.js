@@ -3,7 +3,7 @@ import { state } from "./state.js";
 import { cardShort } from "./config.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { categoryOf } from "./summary.js";
+import { categoryOf, mccOf } from "./summary.js";
 
 export const NO_CATEGORY = '__none';
 export const TX_COLUMNS = [
@@ -29,6 +29,10 @@ const dayStart = (s) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
 const dayEnd = (s) => (s ? new Date(`${s}T23:59:59.999`).getTime() : null);
 const num = (s) => (s === '' || s === null || s === undefined || isNaN(Number(s)) ? null : Number(s));
 
+export function mccChip(tx) {
+  const m = mccOf(tx.desc);
+  return m ? ` <span class="tx-mcc" title="MCC the merchant name resolves to">${m}</span>` : '';
+}
 export function txCategory(tx) { return categoryOf(tx.desc); }
 export function txMpd(tx) { const a = Number(tx.amt) || 0; return a > 0 ? (Number(tx.miles) || 0) / a : 0; }
 
@@ -117,7 +121,7 @@ export function tableHtml(rows, view, cardOf, select = null) {
       ${select ? `<td class="sel"><input type="checkbox" class="tx-sel" ${select.ids.has(String(t.id)) ? 'checked' : ''} aria-label="Select"></td>` : ''}
       <td>${fmtDay(t.timestamp)}</td>
       <td class="${t.postTs ? '' : 'dim'}">${fmtDay(t.postTs)}</td>
-      <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}${(t.stmtKey || t.stmtConfirmed || t.source === 'statement') ? ' <span class="tx-stmt" title="Confirmed by a bank statement">✓</span>' : ''}</td>
+      <td class="merch" title="${escapeHtml(t.desc || '')}">${escapeHtml(t.desc || '')}${mccChip(t)}${(t.stmtKey || t.stmtConfirmed || t.source === 'statement') ? ' <span class="tx-stmt" title="Confirmed by a bank statement">✓</span>' : ''}</td>
       <td>${escapeHtml(cardShort(cardOf(t)))}</td>
       <td class="cat ${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>

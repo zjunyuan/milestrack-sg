@@ -1152,6 +1152,7 @@ body:has(#demoBar) { padding-top: 28px; }
 /* statement coverage in History */
 .cv-table td.cv-click { cursor: pointer; }
 .cv-table td.cv-click:hover, .cv-table td.cv-click:focus-visible { outline: 1px solid var(--primary); }
+.tx-mcc { color: #94a3b8; font-size: 0.68rem; font-weight: 600; border: 1px solid rgba(148,163,184,.35); border-radius: 4px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
 .tx-stmt { color: #4ade80; font-size: 0.68rem; font-weight: 600; }
 
 .ms-cat { cursor: pointer; }
