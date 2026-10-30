@@ -23,6 +23,7 @@ import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, 
 import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
+import { yuuExpected, yuuMilesForNew, applyYuuRecalc } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
@@ -105,6 +106,14 @@ export function yuuUnlockNote(card, merchantText) {
   const per = new Set(state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card)).map(tx => detectYuuMerchant(tx.desc)).filter(Boolean));
   if (per.has(brand)) return `<div class="ct-chip ct-chip-ok">🐼 ${escapeHtml(brand)} already counts as one of your ${per.size} yuu merchants</div>`;
   return `<div class="ct-chip ct-chip-ok">🐼 New yuu merchant: ${escapeHtml(brand)} would be #${per.size + 1} of 4</div>`;
+}
+
+// yuu: the rate this month follows the conditions met. Shows logged vs expected miles and offers to correct the entries.
+function yuuMilesHtml(card, txns) {
+  const e = yuuExpected(card, txns);
+  const state1 = e.met ? '✅ Conditions met: partner spend earns 10 mpd' : `⚠️ Conditions not met (S$${fmtNum(e.spend, 0)} of S$${card.minSpend}, ${e.partners.size} of 4 merchants): partner spend earns ${card.lockedMpd} mpd, other spend ${card.baseMpd} mpd`;
+  const fix = e.changes ? `<div class="yuu-fix">Logged ${fmtNum(e.logged, 0)} mi, expected ${fmtNum(e.expected, 0)} mi (${e.diff >= 0 ? '+' : ''}${fmtNum(e.diff, 0)}). <button type="button" class="btn-backup" id="btnYuuRecalc">Recalculate ${e.changes} entr${e.changes === 1 ? 'y' : 'ies'}</button></div>` : `<div class="yuu-fix ok">Logged miles match: ${fmtNum(e.logged, 0)} mi</div>`;
+  return `<div class="yuu-state">${state1}</div>${fix}`;
 }
 
 export function renderPresets() {
@@ -315,8 +324,22 @@ export function openCardDetailModal(cardId) {
   const tierAlert = document.getElementById('modalCardAlertArea');
   if (tierAlert) {
     const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
-    tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : (card.id === 'dbs-yuu' ? `<div class="fee-alert"><div class="fee-alert-desc"><b>yuu partner merchants this cycle</b>${yuuChipsHtml(card, { spend: true })}</div></div>` : '');
+    tierAlert.innerHTML = ts ? `<div class="fee-alert"><div class="fee-alert-desc"><b>${ts.headline}</b><br>${ts.detail}</div></div>` : (card.id === 'dbs-yuu' ? `<div class="fee-alert"><div class="fee-alert-desc"><b>yuu partner merchants this cycle</b>${yuuChipsHtml(card, { spend: true })}${yuuMilesHtml(card, activeTxns)}</div></div>` : '');
   }
+  const yuuBtn = document.getElementById('btnYuuRecalc');
+  if (yuuBtn) yuuBtn.onclick = async () => {
+    const e = yuuExpected(card, activeTxns);
+    if (!confirm(`Recalculate ${e.changes} yuu entr${e.changes === 1 ? 'y' : 'ies'} for this month?\nLogged ${fmtNum(e.logged, 0)} mi, expected ${fmtNum(e.expected, 0)} mi (${e.diff >= 0 ? '+' : ''}${fmtNum(e.diff, 0)}). Entries from a statement that were not added to your vault leave the vault unchanged.`)) return;
+    yuuBtn.disabled = true;
+    try {
+      const r = await applyYuuRecalc(card, activeTxns);
+      showToast(`Updated ${r.changed} yuu entr${r.changed === 1 ? 'y' : 'ies'}${r.dPts ? ` · vault ${r.dPts > 0 ? '+' : ''}${fmtNum(r.dPts, 0)} pts` : ''}`);
+      renderTransactions(); renderVault(); openCardDetailModal(card.id);
+    } catch (err) {
+      showToast(`Not updated. ${err && err.message ? err.message : 'Check your connection and try again.'}`, { kind: 'error' });
+      yuuBtn.disabled = false;
+    }
+  };
   document.getElementById('modalCardName').innerText = cardShort(card);
   document.getElementById('modalCardCycle').innerText = `${getCycleLabel(card)} • ${card.bonusMpd} mpd tier`;
   const cycleEl = document.getElementById('modalCardCycle');
@@ -895,6 +918,14 @@ export async function saveTransaction() {
 
     const isEligible = isBonus && ((Number(card.currentSpend) || 0) < card.monthlyCap);
     let earnedMiles = calcEarnedMiles(card, amt, isEligible ? card.bonusMpd : card.baseMpd);
+    let yuuPartner = null;
+    if (card.id === 'dbs-yuu') {
+      // yuu miles follow the conditions met this month (10 mpd, about 2.78 mpd, or 0.14 mpd), counted with the month's other entries.
+      const d = new Date(txTimestamp);
+      const monthTxns = state.transactions.filter(t => t.cardId === card.id && t.id !== editId && (() => { const c = new Date(countsTs(t, card)); return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth(); })());
+      const y = yuuMilesForNew(card, monthTxns, { amt, desc, timestamp: txTimestamp });
+      earnedMiles = y.miles; yuuPartner = y.partner;
+    }
     let earnedRawPoints = Math.round(earnedMiles / (state.myVault[card.vaultKey]?.ratio || 1));
 
     if (state.myVault[card.vaultKey]) {
@@ -911,7 +942,7 @@ export async function saveTransaction() {
       desc,
       amt,
       cardId,
-      bonusCategory: isBonus ? 'bonus' : 'base',
+      bonusCategory: yuuPartner !== null ? (yuuPartner ? 'bonus' : 'base') : (isBonus ? 'bonus' : 'base'),
       miles: earnedMiles,
       earnedRawPoints,
       date: displayDateStr,

@@ -1147,3 +1147,8 @@ body:has(#demoBar) { padding-top: 28px; }
 .ms-cat { cursor: pointer; }
 .ms-cat:hover .ms-line span:first-child { color: var(--primary); }
 .ms-card h3 .ms-dim { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.yuu-state { font-size: 0.74rem; margin-top: 8px; line-height: 1.4; }
+.yuu-fix { margin-top: 8px; font-size: 0.74rem; color: var(--warning); }
+.yuu-fix.ok { color: var(--accent); }
+.yuu-fix .btn-backup { margin-top: 6px; }
