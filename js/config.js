@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.56.0";
+export const APP_VERSION = "v1.56.1";
 
 export const PRIMARY_EMAILS = [
   "zjunyuan@gmail.com",
@@ -141,7 +141,7 @@ export const DEFAULT_VAULT = {
   citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
   citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)', transfer: { pts: 10000, miles: 10000 } },
   dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires', transfer: { pts: 5000, miles: 10000 } },
-  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned' },
+  yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 3.6, miles: 1, min: 200 } },
   ocbc_pts: { name: 'OCBC$', points: 0, ratio: 0.4, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 25000, miles: 10000 } },
   hsbc_pts: { name: 'HSBC Points', points: 0, ratio: 0.4, unit: 'pts', rule: '37 months from month earned', transfer: { pts: 30000, miles: 10000, step: { pts: 6, miles: 2 }, note: 'KrisFlyer converts HSBC points at 3:1, lower than the 2.5:1 most other airlines give. The 4 mpd rate in this app assumes 2.5:1.' } },
   mb_treats: { name: 'Maybank TREATS', points: 0, ratio: 0.4, unit: 'pts', rule: '1-3 yrs validity', transfer: { pts: 25000, miles: 10000 } },
