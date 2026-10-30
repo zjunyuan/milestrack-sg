@@ -1,4 +1,4 @@
-// MilesTrack SG - Firestore security rules (v1.12.0)
+// MilesTrack SG - Firestore security rules (v1.59.0)
 // Paste into: Firebase console > Firestore Database > Rules > Publish.
 // Keep the email lists in sync with js/config.js.
 rules_version = '2';
@@ -42,6 +42,15 @@ service cloud.firestore {
     // Settings docs are keyed by vault ID (the app uses myVaultKey)
     match /milestrack_settings/{docId} {
       allow read, write: if canAccess(docId);
+    }
+
+    // What the banks say about points (v1.59.0): statement points summaries, typed balances, transfers and redemptions.
+    // Same ownership as transactions: one record per vault owner.
+    match /milestrack_points/{recId} {
+      allow read:   if isPrimary() || canAccess(resource.data.owner);
+      allow create: if canAccess(request.resource.data.owner);
+      allow update: if canAccess(resource.data.owner) && canAccess(request.resource.data.owner);
+      allow delete: if canAccess(resource.data.owner);
     }
 
     // Household-shared retailer -> MCC corrections (v1.10.0).

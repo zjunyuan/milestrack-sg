@@ -153,6 +153,7 @@ export function demoSettings(key, partial) {
     state.cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
   }
   if (partial.citiApprovalDate) state.citiApprovalDate = partial.citiApprovalDate;
+  if (Number(partial.bigCheck) > 0) state.bigCheck = Number(partial.bigCheck);
   fire("settings-updated");
 }
 export function demoMerchant(slug, data) {
@@ -160,6 +161,11 @@ export function demoMerchant(slug, data) {
   if (data) next[slug] = data; else delete next[slug];
   state.merchantOverrides = next;
   fire("merchants-updated");
+}
+export function demoPoints(id, rec) {
+  const rest = (state.pointsLog || []).filter(r => r.id !== id);
+  state.pointsLog = rec ? [...rest, { ...rec, owner: state.myVaultKey, id }].sort((a, b) => (a.ts || 0) - (b.ts || 0)) : rest;
+  fire("points-updated");
 }
 export function demoRule(code, data) {
   const next = { ...state.mccRules };

@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css?v=1.58.0">
+  <link rel="stylesheet" href="css/style.css?v=1.59.0">
 </head>
 <body>
 
@@ -206,7 +206,7 @@
         <div>
           <div class="section-title">
             <span id="vaultSectionTitle">Bank Points Vault</span>
-            <span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenVaultBalances">Update Balances ✏️</span>
+            <span style="display:flex; gap:12px;"><span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenPointsCheck">Check with banks 🔍</span><span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenVaultBalances">Update Balances ✏️</span></span>
           </div>
           <div class="vault-grid" id="vaultContainer"></div>
         </div>
@@ -486,6 +486,18 @@
     </div>
   </div>
 
+  <!-- MODAL: POINTS CHECK (v1.59.0, js/reconcile-ui.js) -->
+  <div class="modal-overlay" id="ptsOverlay">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-size:1.15rem;">Check points with the banks</h2>
+        <span class="material-symbols-outlined" id="btnClosePts" style="cursor:pointer;">close</span>
+      </div>
+      <p style="font-size:0.78rem; color:#94a3b8;">Banks rarely list points per transaction and credit bonuses weeks later in one lump, so each statement's points total is checked against what your entries should have earned by then, with bonuses still within their window counted as due.</p>
+      <div id="ptsBody"></div>
+    </div>
+  </div>
+
   <!-- MODAL: HEYMAX TOP-UP -->
   <div class="modal-overlay" id="kpOverlay">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -725,6 +737,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.58.0"></script>
+  <script type="module" src="js/app.js?v=1.59.0"></script>
 </body>
 </html>
