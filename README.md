@@ -63,7 +63,7 @@ milestrack-sg/
 
 ---
 
-## 👥 Vaults & Roles (v1.9.0)
+## 👥 Vaults & Roles
 
 Roles resolve on Google Sign-In from the email lists in the Firestore document `milestrack_config/roles` (not in the repo). Each role is scoped to one vault document in `milestrack_vaults`.
 
