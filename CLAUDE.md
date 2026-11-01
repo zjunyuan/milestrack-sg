@@ -11,7 +11,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 ## Layout
 
 - `index.html`: app shell, views, datalists, modal sheets. Loads `js/app.js`.
-- `js/config.js`: `APP_VERSION`, role email lists, vault keys/labels, Firebase config, `ALL_MASTER_CARDS`, `MCC_DATABASE`, `CATEGORY_POOLS`, `DEFAULT_VAULT` (points→miles ratios), KrisFlyer tiers, yuu partner brands.
+- `js/config.js`: `APP_VERSION`, vault keys/labels, Firebase config, `ALL_MASTER_CARDS`, `MCC_DATABASE`, `CATEGORY_POOLS`, `DEFAULT_VAULT` (points→miles ratios), KrisFlyer tiers, yuu partner brands.
 - `js/state.js`: single mutable `state` object shared by every module.
 - `js/firebase.js`: auth, role resolution (email → vault key), Firestore listeners and CRUD.
 - `js/recommender.js`: miles calculation per engine, single-swipe scorer, waterfall split solver, household MCC rules (`state.mccRules`).
@@ -66,11 +66,11 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 
 ## Firestore
 
-Collections: `milestrack_vaults` (doc per vault key), `milestrack_txns` (`owner` = vault key), `milestrack_points` (`owner` = vault key; v1.59.0 points check: statement summaries, typed balances, transfers/redemptions), `milestrack_settings` (doc per vault key), `milestrack_merchants` (shared brand corrections), `milestrack_mccRules` (shared per-MCC household rules).
+Collections: `milestrack_vaults` (doc per vault key), `milestrack_txns` (`owner` = vault key), `milestrack_points` (`owner` = vault key; v1.59.0 points check: statement summaries, typed balances, transfers/redemptions), `milestrack_settings` (doc per vault key), `milestrack_merchants` (shared brand corrections), `milestrack_mccRules` (shared per-MCC household rules), `milestrack_config` (document `roles`: who is which role; read by members only, no app writes).
 
 - Vault key `primary` is shown as "Household". Keep the ID; existing data depends on it.
 - Client-side role checks are UX only. Any new collection or field needs a matching change in `docs/firestore.rules`. Rules aren't deployed from the repo: the user pastes them into the Firebase console, so call that out when rules change.
-- **Role email lists exist in two places**: `js/config.js` (`*_EMAILS`) and `docs/firestore.rules`. Keep them in sync. Adding a role also touches `ALL_VAULT_KEYS`, `VAULT_LABELS`, role resolution in `firebase.js`, `state.userRole` comments, and `canAccess()` in the rules.
+- **Role email lists live only in Firestore** (v1.62.0, the repo is public): document `milestrack_config/roles` = `{primary, sister, member1, member2, test}` (each an array of lowercase emails) plus `labels` (`{primary: "...", sister: "...", ...}` display names), edited by hand in the Firebase console (rules deny writes). The repo only has neutral placeholders in `VAULT_LABELS`; `applyLabels` (firebase.js) fills the real ones after sign-in and caches them in localStorage `milestrack_labels_cache`. Vault IDs `member1` / `member2` are neutral on purpose (the repo is public); they were renamed in v1.62.1 when no data existed under the old IDs. `docs/firestore.rules` reads it with `get()`; `resolveVaultKey` (async, firebase.js) reads it after sign-in, treats a permission refusal as guest, and falls back to the last role seen on the device (localStorage `milestrack_role_cache`) when offline. **Order matters when rules change: create/keep the document first, then publish the rules, then deploy the app.** Adding a role also touches `ALL_VAULT_KEYS`, `VAULT_LABELS`, role resolution in `firebase.js`, `state.userRole` comments, and `canAccess()` in the rules.
 
 ## Releasing a version
 

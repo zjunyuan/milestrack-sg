@@ -2,7 +2,7 @@ import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
 
 export const state = {
   currentUser: null,
-  userRole: "GUEST",      // PRIMARY | SISTER | ELLICE | EUGENE | TEST | GUEST
+  userRole: "GUEST",      // PRIMARY | SISTER | MEMBER1 | MEMBER2 | TEST | GUEST
   allVaultsData: {},      // PRIMARY only: live copy of every vault doc
   myVaultKey: "primary",
   currentChannel: "inperson",

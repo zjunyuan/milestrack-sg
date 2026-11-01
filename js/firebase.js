@@ -23,12 +23,8 @@ import {
 
 import { 
   firebaseConfig, 
-  PRIMARY_EMAILS, 
-  SISTER_EMAILS, 
-  ELLICE_EMAILS,
-  EUGENE_EMAILS,
-  TEST_EMAILS,
   ALL_VAULT_KEYS,
+  VAULT_LABELS,
   DEFAULT_VAULT, 
   ALL_MASTER_CARDS,
   normalizeVault
@@ -39,14 +35,49 @@ import { isDemo, startDemo, demoSaveTx, demoDeleteTx, demoUpdateVault, demoSetti
 
 export let auth, db, googleProvider;
 
-export function resolveVaultKey(email = "") {
+const ROLE_CACHE_KEY = "milestrack_role_cache";
+const roleCache = () => { try { return JSON.parse(localStorage.getItem(ROLE_CACHE_KEY) || "{}"); } catch (_) { return {}; } };
+const setRoleCache = (email, key) => { try { const c = roleCache(); if (key) c[email] = key; else delete c[email]; localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(c)); } catch (_) { /* optional */ } };
+const guestKey = (email) => email.replace(/[^a-zA-Z0-9]/g, "_");
+
+// Pure: which vault key does this email have in a roles document ({primary: [...], ...})? null when it is on no list.
+export function roleFromDoc(email = "", data = {}) {
   const clean = email.toLowerCase().trim();
-  if (PRIMARY_EMAILS.includes(clean)) return "primary";
-  if (SISTER_EMAILS.includes(clean)) return "sister";
-  if (ELLICE_EMAILS.includes(clean)) return "ellice";
-  if (EUGENE_EMAILS.includes(clean)) return "eugene";
-  if (TEST_EMAILS.includes(clean)) return "test";
-  return clean.replace(/[^a-zA-Z0-9]/g, "_");
+  for (const key of ALL_VAULT_KEYS) {
+    const list = Array.isArray(data[key]) ? data[key] : [];
+    if (list.some(e => String(e).toLowerCase().trim() === clean)) return key;
+  }
+  return null;
+}
+
+// Display names (Household, Sister, ...) come from the same document's `labels` map; the repo only has neutral placeholders.
+const LABELS_CACHE_KEY = "milestrack_labels_cache";
+function applyLabels(labels, remember) {
+  if (!labels || typeof labels !== "object") return;
+  const clean = {};
+  for (const key of ALL_VAULT_KEYS) if (typeof labels[key] === "string" && labels[key].trim()) clean[key] = labels[key].trim().slice(0, 40);
+  Object.assign(VAULT_LABELS, clean);
+  if (remember) { try { localStorage.setItem(LABELS_CACHE_KEY, JSON.stringify(clean)); } catch (_) { /* optional */ } }
+}
+const cachedLabels = () => { try { return JSON.parse(localStorage.getItem(LABELS_CACHE_KEY) || "null"); } catch (_) { return null; } };
+
+// The email lists live in Firestore (milestrack_config/roles), not in this public repo. The rules only let a listed member read that document,
+// so a refusal means "not on any list" (guest). When the network is down the last role this device saw is used.
+export async function resolveVaultKey(email = "") {
+  const clean = email.toLowerCase().trim();
+  try {
+    const snap = await getDoc(doc(db, "milestrack_config", "roles"));
+    if (!snap.exists()) { console.warn("milestrack_config/roles is missing: create it in the Firebase console."); return guestKey(clean); }
+    const key = roleFromDoc(clean, snap.data());
+    if (key) applyLabels(snap.data().labels, true);
+    setRoleCache(clean, key);
+    return key || guestKey(clean);
+  } catch (e) {
+    if (e && e.code === "permission-denied") { setRoleCache(clean, null); return guestKey(clean); }
+    const cached = roleCache()[clean];
+    if (cached) applyLabels(cachedLabels(), false);
+    return cached || guestKey(clean);
+  }
 }
 
 export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
@@ -62,7 +93,7 @@ export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
     if (user) {
       state.currentUser = user;
       sessionStorage.removeItem('auth_in_progress');
-      const resolvedKey = resolveVaultKey(user.email);
+      const resolvedKey = await resolveVaultKey(user.email);
       state.myVaultKey = resolvedKey;
       state.userRole = ALL_VAULT_KEYS.includes(resolvedKey) ? resolvedKey.toUpperCase() : "GUEST";
       if (onAuthSuccess) onAuthSuccess(user);
