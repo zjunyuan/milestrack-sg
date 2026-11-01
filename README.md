@@ -71,8 +71,8 @@ Roles resolve on Google Sign-In from the email lists in the Firestore document `
 | :--- | :--- | :--- |
 | PRIMARY | `primary` (shown as "Household") | Own vault + live **All Vault Balances** tally of every vault |
 | SISTER | `sister` | Own vault; read-only view of the household vault |
-| ELLICE | `ellice` | Own vault only |
-| EUGENE | `eugene` | Own vault only |
+| MEMBER1 | `member1` | Own vault only |
+| MEMBER2 | `member2` | Own vault only |
 | TEST | `test` | Own vault only (sandbox) |
 
 > ⚠️ The role check in the client is for UX only. Actual access control must be enforced by your Firestore security rules (each member may read/write only their own `milestrack_vaults`, `milestrack_settings` and `milestrack_txns` documents; PRIMARY may read all vaults).
@@ -198,7 +198,7 @@ UOB Preferred Platinum Visa (Online) is now generated from UOB's own T&C list (v
 
 - **Card artwork is larger** (real cards are 1.586:1): 96x61 in the card list (80x51 on small phones), 128x81 on the recommendation itself, 64x40 per step in a split, and 140x88 in the card detail sheet. The recommended card is now shown with its picture.
 - **Earning profile & rules** in the card detail sheet is filled in: bonus and base mpd, any spend tiers or minimums, cap, channel (online, in-person, contactless only), whether the card is blacklist or whitelist, upcoming rate changes, the card's hint, and its bonus categories.
-- **Renames:** the main total reads **Zhangs Total Miles**; the Household vault is labelled **Zhangs** and Sister is **Minsi**. Vault IDs are unchanged, so no data moves.
+- **Renames:** vault display names come from the Firestore document `milestrack_config/roles` (field `labels`), not from the repo.
 
 
 ## 🔢 Thousands Separators (v1.17.0)

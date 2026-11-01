@@ -569,8 +569,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .vault-row-dot.household { background: var(--primary); }
 .vault-row-dot.sister { background: var(--purple); }
-.vault-row-dot.ellice { background: var(--fcy-cyan); }
-.vault-row-dot.eugene { background: var(--gold); }
+.vault-row-dot.member1 { background: var(--fcy-cyan); }
+.vault-row-dot.member2 { background: var(--gold); }
 .vault-row-dot.test { background: var(--accent); }
 
 .vault-row-name {

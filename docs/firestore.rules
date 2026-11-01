@@ -1,4 +1,4 @@
-// MilesTrack SG - Firestore security rules (v1.62.0)
+// MilesTrack SG - Firestore security rules (v1.62.1)
 // Paste into: Firebase console > Firestore Database > Rules > Publish.
 // Role email lists are in Firestore (milestrack_config/roles), not in this file or in js/config.js.
 rules_version = '2';
@@ -10,22 +10,22 @@ service cloud.firestore {
     }
     function email() { return request.auth.token.email; }
 
-    // Who is on which list lives in the document milestrack_config/roles (arrays of lowercase emails: primary, sister, ellice, eugene, test),
+    // Who is on which list lives in the document milestrack_config/roles (arrays of lowercase emails: primary, sister, member1, member2, test; plus a `labels` map of display names the rules ignore),
     // so no email address is in this public repo. Create that document BEFORE publishing these rules or everyone is locked out.
     function roles() { return get(/databases/$(database)/documents/milestrack_config/roles).data; }
     function isPrimary() { return signedIn() && email() in roles().primary; }
     function isSister()  { return signedIn() && email() in roles().sister; }
-    function isEllice()  { return signedIn() && email() in roles().ellice; }
-    function isEugene()  { return signedIn() && email() in roles().eugene; }
+    function isMember1() { return signedIn() && email() in roles().member1; }
+    function isMember2() { return signedIn() && email() in roles().member2; }
     function isTest()    { return signedIn() && email() in roles().test; }
-    function isMember()  { return isPrimary() || isSister() || isEllice() || isEugene() || isTest(); }
+    function isMember()  { return isPrimary() || isSister() || isMember1() || isMember2() || isTest(); }
 
     // Can this user read/write data belonging to vault `key`?
     function canAccess(key) {
       return (isPrimary() && key in ['household', 'primary'])
           || (isSister() && key == 'sister')
-          || (isEllice() && key == 'ellice')
-          || (isEugene() && key == 'eugene')
+          || (isMember1() && key == 'member1')
+          || (isMember2() && key == 'member2')
           || (isTest()   && key == 'test');
     }
 

@@ -1,7 +1,8 @@
-export const APP_VERSION = "v1.62.0";
+export const APP_VERSION = "v1.62.1";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
-// {primary: [...], sister: [...], ellice: [...], eugene: [...], test: [...]}, lowercase email arrays. docs/firestore.rules reads the same document.
+// {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
+// docs/firestore.rules reads the same document. The names below are neutral placeholders; the real ones are loaded from `labels` after sign-in.
 
 // Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
 // What one mile is worth, in cents. Used only for the overseas "after fees" comparison (js/fcy.js).
@@ -9,12 +10,12 @@ export const FCY_MILE_VALUE_CENTS = 1.3;
 // Banks award miles on the billed amount, which includes the FX fee (S$100 abroad bills S$103.25 at 3.25%). A card can override with fcyEarnsOnFee: false.
 export const FCY_EARN_ON_FEE = true;
 
-export const ALL_VAULT_KEYS = ["primary", "sister", "ellice", "eugene", "test"];
+export const ALL_VAULT_KEYS = ["primary", "sister", "member1", "member2", "test"];
 export const VAULT_LABELS = {
-  primary: "Zhangs",
-  sister: "Minsi",
-  ellice: "Ellice",
-  eugene: "Eugene",
+  primary: "Household",
+  sister: "Sister",
+  member1: "Member 1",
+  member2: "Member 2",
   test: "Test"
 };
 
