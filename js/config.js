@@ -1,17 +1,7 @@
-export const APP_VERSION = "v1.61.0";
+export const APP_VERSION = "v1.62.0";
 
-export const PRIMARY_EMAILS = [
-  "zjunyuan@gmail.com",
-  "eunice.er.yc@gmail.com"
-];
-
-export const SISTER_EMAILS = [
-  "minsyyy@gmail.com"
-];
-
-export const ELLICE_EMAILS = ["ellicee@gmail.com"];
-export const EUGENE_EMAILS = ["geneer@gmail.com"];
-export const TEST_EMAILS = ["junyuanxeunice@gmail.com"];
+// Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
+// {primary: [...], sister: [...], ellice: [...], eugene: [...], test: [...]}, lowercase email arrays. docs/firestore.rules reads the same document.
 
 // Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
 // What one mile is worth, in cents. Used only for the overseas "after fees" comparison (js/fcy.js).
