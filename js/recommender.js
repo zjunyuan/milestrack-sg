@@ -1,5 +1,5 @@
 import { fmtNum, fmtAuto } from "./format.js";
-import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort, FCY_MILE_VALUE_CENTS } from "./config.js";
+import { MCC_DATABASE, ALL_MASTER_CARDS, applyRateSchedule, detectYuuMerchant, cardShort, FCY_MILE_VALUE_CENTS, UNCAPPED_CAP, isUncappedCard } from "./config.js";
 import { state } from "./state.js";
 import { setLogContext, syncSplit } from "./log-feedback.js";
 import { openModal, onCardSelectChange, cardThumbHtml, yuuUnlockNote } from "./ui.js";
@@ -235,6 +235,18 @@ let fcyAtMax = false;   // table view: false = as things stand now, true = every
 let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
 let fcyPick = null;   // card id chosen in the 'pick one' tile (the no-fee card or the fee card for the last slice of a split)
 
+// Enabled cards with no monthly cap (the everyday-spend fallbacks).
+const enabledUncapped = () => state.cards.filter(c => state.enabledCardIds.includes(c.id) && isUncappedCard(c));
+
+// Can this card be used for the chosen channel (in person / online) and contactless switch?
+const channelOk = (c, channel, allowContactless) => !(
+  (channel === 'online' && c.channelMode === 'inperson') ||
+  (channel === 'inperson' && c.channelMode === 'online') ||
+  (channel === 'inperson' && !allowContactless && (c.isContactlessOnly || c.inPersonNeedsContactless)));
+
+// Rate a tiered card earns once `total` has been spent in the month, from its tierRule steps in config.js.
+const tierRate = (card, total) => card.tierRule.steps.findLast(s => total >= s.at)?.mpd ?? card.baseMpd;
+
 function renderRecommendationCore() {
   lastFcy = null;
   const inputVal = document.getElementById('mccInput')?.value;
@@ -247,10 +259,11 @@ function renderRecommendationCore() {
   const effectiveChannel = state.isKrisPlusMode ? 'online' : state.currentChannel;
   const resolvedMcc = resolveMccEntry(inputVal);
   // For a known brand, label the result "Brand · Category" but log just the brand name.
-  const mccData = resolvedMcc && resolvedMcc.retailer
-    ? { ...resolvedMcc, name: `${escapeHtml(resolvedMcc.retailer.name)} · ${shortCategory(resolvedMcc.name)}` }
-    : (resolvedMcc && resolvedMcc.krisMerchant ? { ...resolvedMcc, name: `${escapeHtml(resolvedMcc.krisMerchant)} · ${shortCategory(resolvedMcc.name)}` } : resolvedMcc);
-  const descName = resolvedMcc && resolvedMcc.retailer ? resolvedMcc.retailer.name : ((resolvedMcc && resolvedMcc.krisMerchant) || (mccData && mccData.name));
+  const namedMerchant = resolvedMcc?.retailer?.name || resolvedMcc?.krisMerchant || '';
+  const mccData = namedMerchant
+    ? { ...resolvedMcc, name: `${escapeHtml(namedMerchant)} · ${shortCategory(resolvedMcc.name)}` }
+    : resolvedMcc;
+  const descName = namedMerchant || mccData?.name;
 
   if (!mccData) {
     const hint = `${state.isKrisPlusMode
@@ -267,7 +280,6 @@ function renderRecommendationCore() {
 
   // DBS yuu's 10 mpd is for yuu partner brands only, but the category rules list it for the whole MCC (supermarkets, pharmacies, transit, taxis).
   // When a specific merchant is picked and it is not a yuu partner, leave yuu out so it is not recommended at 10 mpd.
-  const namedMerchant = (resolvedMcc && resolvedMcc.retailer && resolvedMcc.retailer.name) || (resolvedMcc && resolvedMcc.krisMerchant) || '';
   if (namedMerchant && candidateList.some(c => c.id === 'dbs-yuu') && !detectYuuMerchant(namedMerchant)) {
     candidateList = candidateList.filter(c => c.id !== 'dbs-yuu');
     mccData.notes = `${String(mccData.notes || '').replace(/yuu Outlets earn.*?merchants\)\.\s*/i, '')}<br>ℹ️ <b>DBS yuu not suggested:</b> ${escapeHtml(namedMerchant)} is not a yuu partner brand (Cold Storage, Giant, Guardian, 7-Eleven, foodpanda, Gojek, SimplyGo, CHAGEE, Singtel, Charge+). Type just the MCC to see yuu in the general category list.`;
@@ -299,9 +311,7 @@ function renderRecommendationCore() {
       if (cardObj.id === 'uob-ppv-contactless') return false;
     }
 
-    if (effectiveChannel === 'online' && cardObj.channelMode === 'inperson') return false;
-    if (effectiveChannel === 'inperson' && cardObj.channelMode === 'online') return false;
-    if (effectiveChannel === 'inperson' && !allowContactless && (cardObj.isContactlessOnly || cardObj.inPersonNeedsContactless)) return false;
+    if (!channelOk(cardObj, effectiveChannel, allowContactless)) return false;
 
     if (effectiveChannel === 'inperson' && (cardObj.id === 'citi-rewards' || cardObj.id === 'citi-rewards-visa')) {
       if (!CITI_INSTORE_MCCS.has(mccData.code) && mccData.code !== "OCBC-6MPD") return false;
@@ -328,7 +338,7 @@ function renderRecommendationCore() {
       if (card) allEligibleCardsMap.set(card.id, { card, rate: cand.baseRate });
     });
 
-    state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(card => {
+    enabledUncapped().forEach(card => {
       if (!allEligibleCardsMap.has(card.id)) {
         const genRate = generalRate(card);
         allEligibleCardsMap.set(card.id, { card, rate: genRate });
@@ -337,7 +347,7 @@ function renderRecommendationCore() {
 
     const singleCardScores = Array.from(allEligibleCardsMap.values()).map(({ card, rate }) => {
       const currentSpend = Number(card.currentSpend) || 0;
-      const isUncapped = card.monthlyCap >= 999999;
+      const isUncapped = isUncappedCard(card);
       const availableCap = isUncapped ? amt : Math.max(0, card.monthlyCap - currentSpend);
 
       let effectiveBonusRate = rate;
@@ -407,9 +417,9 @@ function renderRecommendationCore() {
     const card = state.cards.find(c => c.id === cand.id);
     if (!card) return null;
     const currentSpend = Number(card.currentSpend) || 0;
-    const isUncapped = card.monthlyCap >= 999999;
+    const isUncapped = isUncappedCard(card);
     
-    let remainingCap = isUncapped ? 999999 : Math.max(0, card.monthlyCap - currentSpend);
+    let remainingCap = isUncapped ? UNCAPPED_CAP : Math.max(0, card.monthlyCap - currentSpend);
     if (cand.id === 'ocbc-rewards' && cand.baseRate === 6.0) {
       remainingCap = Math.max(0, 1000 - currentSpend);
     }
@@ -418,10 +428,7 @@ function renderRecommendationCore() {
     if (state.isKrisPlusMode && cand.id === 'kf-uob') evaluatedRate = 3.0;
 
     if (cand.id === 'mb-world-mc' && state.isOverseasMode) {
-      const totalProjectedSpend = currentSpend + amt;
-      if (totalProjectedSpend >= 4000) evaluatedRate = 3.2;
-      else if (totalProjectedSpend >= 800) evaluatedRate = 2.8;
-      else evaluatedRate = 0.4;
+      evaluatedRate = tierRate(card, currentSpend + amt);
     }
 
     const daysLeft = getDaysUntilCycleEnd(card);
@@ -458,17 +465,14 @@ function renderRecommendationCore() {
       // fall back to the uncapped card that earns the most real miles.
       if (bestMiles === 0) {
         let fb = null, fbMiles = 0;
-        for (const c of state.cards) {
-          if (c.monthlyCap < 999999 || !state.enabledCardIds.includes(c.id)) continue;
-          if (effectiveChannel === 'online' && c.channelMode === 'inperson') continue;
-          if (effectiveChannel === 'inperson' && c.channelMode === 'online') continue;
-          if (effectiveChannel === 'inperson' && !allowContactless && (c.isContactlessOnly || c.inPersonNeedsContactless)) continue;
+        for (const c of enabledUncapped()) {
+          if (!channelOk(c, effectiveChannel, allowContactless)) continue;
           const m = calcEarnedMiles(c, amt, c.baseMpd);
           if (m > fbMiles) { fb = c; fbMiles = m; }
         }
         if (fb) {
           smallAmountNote = `S$${fmtNum(amt, 2)} is under the S$5 minimum block, so bonus cards earn 0 mi. This card earns the most at this amount.`;
-          scoredCandidates.unshift({ card: fb, rate: fb.baseMpd, remainingCap: 999999, isUncapped: true, daysLeft: getDaysUntilCycleEnd(fb) });
+          scoredCandidates.unshift({ card: fb, rate: fb.baseMpd, remainingCap: UNCAPPED_CAP, isUncapped: true, daysLeft: getDaysUntilCycleEnd(fb) });
         }
       }
     }
@@ -479,14 +483,14 @@ function renderRecommendationCore() {
   // by net value) becomes the fallback, and both are offered in the panel under the result.
   let fcyPlan = null;
   if (state.isOverseasMode && !state.isKrisPlusMode) {
-    const chanOk = c => !((effectiveChannel === 'online' && c.channelMode === 'inperson') || (effectiveChannel === 'inperson' && c.channelMode === 'online') || (effectiveChannel === 'inperson' && !allowContactless && (c.isContactlessOnly || c.inPersonNeedsContactless)));
+    const chanOk = c => channelOk(c, effectiveChannel, allowContactless);
     const rows = new Map();
     const addRow = (card, listed) => { if (card && !rows.has(card.id) && chanOk(card)) rows.set(card.id, fcyRow(card, listed, amt)); };
     scoredCandidates.forEach(sc => addRow(sc.card, sc.rate));
-    state.cards.filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999).forEach(c => addRow(c, generalRate(c)));
+    enabledUncapped().forEach(c => addRow(c, generalRate(c)));
     const rowMiles = (r, a = amt) => r.room >= a ? milesFor(r.card, a, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, a - r.room, r.card.baseMpd);
     fcyPlan = planOverseas([...rows.values()], amt, { milesOf: rowMiles });
-    const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : 999999, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
+    const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : UNCAPPED_CAP, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
     const next = fcyPlan.bonus.map(toCand);
     if (fcyPlan.best) next.push(toCand(fcyPlan.best));
     if (next.length) scoredCandidates = next;
@@ -508,10 +512,7 @@ function renderRecommendationCore() {
       let finalStepRate = candidate.rate;
       if (candidate.card.id === 'mb-world-mc' && state.isOverseasMode && !fcyAtMax) {
         const cardCurrent = Number(candidate.card.currentSpend) || 0;
-        const stepTotal = cardCurrent + takeAmt;
-        if (stepTotal >= 4000) finalStepRate = 3.2;
-        else if (stepTotal >= 800) finalStepRate = 2.8;
-        else finalStepRate = 0.4;
+        finalStepRate = tierRate(candidate.card, cardCurrent + takeAmt);
       }
 
       const gate = minSpendGate(candidate.card, { cardSpend: Number(candidate.card.currentSpend) || 0, amount: takeAmt, rate: finalStepRate, overseas: state.isOverseasMode });
@@ -539,8 +540,7 @@ function renderRecommendationCore() {
         const isGloballyExcluded = mccData.candidatesLocal && mccData.candidatesLocal.length === 0;
 
         if (!isGloballyExcluded) {
-          const eligibleGeneralCards = state.cards
-            .filter(c => state.enabledCardIds.includes(c.id) && c.monthlyCap >= 999999)
+          const eligibleGeneralCards = enabledUncapped()
             .map(c => {
               const rate = generalRate(c);
               return { card: c, rate, isUncapped: true };
@@ -569,7 +569,7 @@ function renderRecommendationCore() {
 
     // Overseas: the last slice goes to an uncapped card. Offer the no-fee card and the fee card side by side for that slice.
     const lastStep = allocationSteps[allocationSteps.length - 1];
-    if (allocationSteps.length > 1 && lastStep && (lastStep.isBase || lastStep.card.monthlyCap >= 999999) && state.isOverseasMode && !state.isKrisPlusMode && lastFcy && lastFcy.plan) {
+    if (allocationSteps.length > 1 && lastStep && (lastStep.isBase || isUncappedCard(lastStep.card)) && state.isOverseasMode && !state.isKrisPlusMode && lastFcy && lastFcy.plan) {
       const pick = fcyPickOptions(lastFcy.plan, lastStep.amount);
       if (pick) {
         const sel = pick.options.find(o => o.card.id === pick.selectedId);
@@ -794,11 +794,11 @@ function decorateTierCallouts() {
 // One planning row per card for the Overseas plan: the rate that applies, and how much of S$amt still earns it.
 // "Now" uses your spend so far; "At max rate" assumes the top tier is unlocked and no cap has been used.
 function fcyRow(card, listedRate, amt) {
-  const capped = card.monthlyCap < 999999;
+  const capped = !isUncappedCard(card);
   const spend = fcyAtMax ? 0 : (Number(card.currentSpend) || 0);
   let rate = listedRate;
   const notes = [];
-  if (card.id === 'mb-world-mc') rate = fcyAtMax ? (card.fcyMpd ?? rate) : ((spend + amt >= 4000) ? 3.2 : (spend + amt >= 800 ? 2.8 : card.baseMpd));
+  if (card.id === 'mb-world-mc') rate = fcyAtMax ? (card.fcyMpd ?? rate) : tierRate(card, spend + amt);
   if (!fcyAtMax) {
     const gate = minSpendGate(card, { cardSpend: spend, amount: amt, rate, overseas: true });
     if (gate && gate.locked) { rate = card.baseMpd; notes.push(`${gate.unlockMpd} mpd needs S$${fmtNum(gate.needMore, 2)} more spend`); }

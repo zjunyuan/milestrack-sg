@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.0";
+export const APP_VERSION = "v1.63.1";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -7,6 +7,10 @@ export const APP_VERSION = "v1.63.0";
 // Firestore vault doc IDs. "primary" is the household vault (kept as-is so existing data keeps working).
 // What one mile is worth, in cents. Used only for the overseas "after fees" comparison (js/fcy.js).
 export const FCY_MILE_VALUE_CENTS = 1.3;
+
+// A card with monthlyCap at or above this is treated as uncapped.
+export const UNCAPPED_CAP = 999999;
+export const isUncappedCard = c => c.monthlyCap >= UNCAPPED_CAP;
 // Banks award miles on the billed amount, which includes the FX fee (S$100 abroad bills S$103.25 at 3.25%). A card can override with fcyEarnsOnFee: false.
 export const FCY_EARN_ON_FEE = true;
 
