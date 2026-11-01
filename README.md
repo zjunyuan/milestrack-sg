@@ -9,7 +9,7 @@ MilesTrack SG is a responsive, installable Progressive Web App (PWA) built with 
 ## 🚀 Key Features
 
 ### 1. Smart MCC & Retailer Recommender
-- **Brand Name Directory (150+ SG Merchants):** Type everyday retailer names directly (*Decathlon, The Hour Glass, Courts, FairPrice, Sushiro, Haidilao, Uniqlo*) to resolve the exact MCC without knowing numeric codes.
+- **Brand Name Directory (400+ SG Merchants plus 600+ Kris+ merchants):** Type everyday retailer names directly (*Decathlon, The Hour Glass, Courts, FairPrice, Sushiro, Haidilao, Uniqlo*) to resolve the exact MCC without knowing numeric codes.
 - **Single Swipe vs. Waterfall Split Engine:**
   - **Single Card Mode:** Compares single-swipe net yields, factoring in base-rate overflow on capped cards vs. uncapped general spend cards.
   - **Waterfall Split Mode:** Calculates split payment steps across multiple cards to harvest 4.0 / 6.0 mpd bonus tiers without spilling into base rates.
@@ -52,7 +52,7 @@ milestrack-sg/
 ├── css/
 │   └── style.css           # Custom dark UI styling, responsive typography, variables
 ├── js/
-│   ├── config.js           # Card definitions, MCC database, 150+ merchant directory, tiers
+│   ├── config.js           # Card definitions, MCC database, tiers
 │   ├── state.js            # Central reactive state singleton
 │   ├── firebase.js         # Firebase Auth, Firestore snapshot listeners, and CRUD operations
 │   ├── recommender.js      # Waterfall solver, single-swipe scorer, MCC resolver
