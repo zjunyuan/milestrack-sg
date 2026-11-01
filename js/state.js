@@ -19,6 +19,8 @@ export const state = {
   enabledCardIds: ALL_MASTER_CARDS.map(c => c.id),
   cards: ALL_MASTER_CARDS,
   transactions: [],
+  txLoaded: false,       // the first entries snapshot has arrived (onboarding waits for it)
+  setup: { saved: false },   // Settings has been saved at least once (cards + dates); drives the first-run checklist
   myVault: { ...DEFAULT_VAULT },
   citiApprovalDate: "2023-01",
   uobRenewals: {

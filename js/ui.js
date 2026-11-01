@@ -236,6 +236,9 @@ export function renderCards() {
 
   container.innerHTML = '';
   select.innerHTML = '';
+  if (state.txLoaded && state.transactions.length === 0) {
+    container.insertAdjacentHTML('beforeend', `<div class="empty-guide"><div class="eg-title">Bars fill as you log spend</div><div class="eg-text">Each bar is one card's bonus cap for its current billing cycle, so you can see how much room is left before a card drops to its base rate.</div></div>`);
+  }
 
   state.cards.forEach(card => {
     const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
@@ -450,6 +453,9 @@ export function renderVault() {
   xn.textContent = `Ready to transfer ${fmtNum(xferMiles)} mi · left over ${fmtNum(xferOrphan)} mi`;
   renderExpiryRadar();
   checkUobFeeDefense();
+  if (myGrandTotalMiles === 0) {
+    container.insertAdjacentHTML('afterbegin', `<div class="empty-guide eg-wide"><div class="eg-title">Your vault is empty</div><div class="eg-text">This is where your bank points add up, in each bank's own currency, with the miles you can transfer now. Tap <b>Update Balances</b> to type in what your bank apps show, or log spend and the tiles fill as you go.</div></div>`);
+  }
   updateTravelGoal(myGrandTotalMiles);
 }
 
@@ -595,7 +601,9 @@ export function renderTransactions() {
   }
 
   if (rows.length === 0) {
-    list.innerHTML = `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
+    list.innerHTML = state.transactions.length === 0
+      ? `<div class="empty-guide"><div class="eg-title">Nothing logged yet</div><div class="eg-text">Every spend you log shows up here, with the card, the category and the miles it earned. Use the recommender or a quick preset at the top, then tap <b>Log</b>. You can also import a bank statement from Settings.</div></div>`
+      : `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
     return;
   }
 

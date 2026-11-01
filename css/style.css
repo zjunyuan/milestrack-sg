@@ -1205,3 +1205,25 @@ body:has(#demoBar) { padding-top: 28px; }
 .ih-why { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; }
 .ih-close { position: absolute; top: 6px; right: 10px; background: none; border: 0; color: #94a3b8; font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .ih-done { margin-top: 8px; background: none; border: 0; color: #60a5fa; font-size: 0.78rem; padding: 4px 0; cursor: pointer; }
+
+/* First-run checklist and empty states (v1.63.0, js/onboarding.js) */
+.onb-card { position: relative; background: linear-gradient(135deg, rgba(30,64,175,.28), rgba(15,23,42,.6)); border: 1px solid rgba(96,165,250,.4); border-radius: 14px; padding: 14px 16px 10px; margin-bottom: 14px; color: #e5e7eb; }
+.onb-title { font-weight: 700; font-size: 0.98rem; padding-right: 28px; }
+.onb-count { font-weight: 500; font-size: 0.74rem; color: #93c5fd; margin-left: 6px; }
+.onb-x { position: absolute; top: 6px; right: 10px; background: none; border: 0; color: #94a3b8; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.onb-steps { list-style: none; margin: 10px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.onb-step { display: flex; gap: 10px; align-items: flex-start; }
+.onb-tick { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 2px solid #64748b; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: #052e16; margin-top: 1px; }
+.onb-step.is-next .onb-tick { border-color: #60a5fa; }
+.onb-step.is-done .onb-tick { background: #4ade80; border-color: #4ade80; }
+.onb-step.is-done .onb-st { color: #94a3b8; text-decoration: line-through; }
+.onb-body { min-width: 0; }
+.onb-st { font-size: 0.88rem; font-weight: 600; }
+.onb-note { font-size: 0.78rem; color: #cbd5e1; margin-top: 2px; line-height: 1.45; }
+.onb-cta { margin-top: 8px; background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.onb-link { background: none; border: 0; color: #94a3b8; font-size: 0.74rem; padding: 6px 0 2px; cursor: pointer; }
+.onb-done .onb-link { color: #60a5fa; font-size: 0.82rem; }
+.empty-guide { border: 1px dashed rgba(148,163,184,.4); border-radius: 12px; padding: 14px 16px; margin: 6px 0; text-align: left; }
+.empty-guide.eg-wide { grid-column: 1 / -1; }
+.eg-title { font-weight: 700; font-size: 0.88rem; color: #e5e7eb; }
+.eg-text { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; line-height: 1.5; }
