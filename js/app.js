@@ -22,6 +22,7 @@ import { initSearchMode } from "./search-mode.js";
 import { initLayoutReport } from "./layout-report.js";
 import { initHistoryChips } from "./history-chips.js";
 import { openPartners, closePartners } from "./partners.js";
+import { initInstallHint } from "./install-hint.js";
 import { initColFilters } from "./col-filter.js";
 import { 
   renderPresets, 
@@ -265,6 +266,7 @@ initLayoutReport();
 initHeymax();
 initStatementImport();
 initPointsCheck();
+setTimeout(initInstallHint, 1500);   // iOS only; after the app has drawn
 document.getElementById("btnOpenPointsCheck")?.addEventListener("click", () => openPointsCheck());
 document.getElementById("btnOpenPartners")?.addEventListener("click", () => openPartners("asiamiles", state.myVault));
 document.getElementById("btnClosePartners")?.addEventListener("click", closePartners);

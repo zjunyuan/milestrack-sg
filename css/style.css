@@ -1195,3 +1195,13 @@ body:has(#demoBar) { padding-top: 28px; }
 .pc-thr input { width: 90px; flex: 0 0 auto; }
 .pc-cardrow { display: flex; flex-direction: column; gap: 4px; }
 .pc-outs { display: flex; flex-direction: column; gap: 4px; }
+
+/* iPhone install hint (v1.61.0, js/install-hint.js) */
+.install-hint { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 95; background: #1f2937; color: #e5e7eb; border: 1px solid rgba(148,163,184,.35); border-radius: 14px; padding: 14px 16px 12px; box-shadow: 0 8px 28px rgba(0,0,0,.45); max-width: 420px; margin: 0 auto; }
+.ih-title { font-weight: 700; font-size: 0.95rem; padding-right: 28px; margin-bottom: 6px; }
+.ih-steps { margin: 0; padding-left: 20px; font-size: 0.82rem; line-height: 1.5; }
+.ih-steps li { margin: 3px 0; }
+.ih-icon { vertical-align: -3px; color: #60a5fa; }
+.ih-why { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; }
+.ih-close { position: absolute; top: 6px; right: 10px; background: none; border: 0; color: #94a3b8; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.ih-done { margin-top: 8px; background: none; border: 0; color: #60a5fa; font-size: 0.78rem; padding: 4px 0; cursor: pointer; }
