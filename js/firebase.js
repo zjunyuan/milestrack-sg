@@ -204,6 +204,7 @@ export function subscribeToCloudData() {
       state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
       if (data.enabledCards && Array.isArray(data.enabledCards)) {
         state.enabledCardIds = data.enabledCards;
+        state.setup.saved = true;
       }
       if (data.cutoffDays) {
         ALL_MASTER_CARDS.forEach(c => {
@@ -261,6 +262,7 @@ export function subscribeToCloudData() {
       state.transactions.push({ ...d.data(), firestoreId: d.id });
     });
     state.transactions.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    state.txLoaded = true;
     window.dispatchEvent(new CustomEvent('txns-updated'));
   }, (err) => {
     console.error("Transactions snapshot listener error:", err);
