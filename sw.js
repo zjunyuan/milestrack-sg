@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.62.1';
+const CACHE_NAME = 'milestrack-cache-v1.62.2';
 
 const CORE_ASSETS = [
   './',
@@ -60,6 +60,7 @@ const CARD_ASSETS = [
   './assets/cards/uob-ppv.png',
   './assets/cards/uob-vs.png',
   './assets/cards/citi-rewards.png',
+  './assets/cards/citi-rewards-visa.png',
   './assets/cards/ocbc-rewards.png',
   './assets/cards/dbs-wwmc.png',
   './assets/cards/uobladysolitaire.png',
