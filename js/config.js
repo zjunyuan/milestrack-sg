@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.62.1";
+export const APP_VERSION = "v1.62.2";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -320,6 +320,7 @@ export const ALL_MASTER_CARDS = [
     shortName: 'Citi Rewards Visa',
     name: 'Citi Rewards Visa', 
     bank: 'Citi', 
+    image: 'assets/cards/citi-rewards-visa.png',
     vaultKey: 'citi_typ', 
     monthlyCap: 1000, 
     minSpend: 0, 
