@@ -287,13 +287,15 @@ function planText(p) {
   return any === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}${p.remove ? `, remove ${p.remove}` : ""}`;
 }
 const sumPlans = ps => ps.reduce((a, p) => ({ add: a.add + p.add, update: a.update + p.update, confirm: a.confirm + p.confirm, remove: a.remove + p.remove }), { add: 0, update: 0, confirm: 0, remove: 0 });
-const batchFiles = () => B.files.filter(F => F.card && F.results.length);
+const batchFiles = () => B.files.filter(F => F.card && (F.results.length || F.emptyYm));
+const emptyMonths = () => B.files.filter(F => F.card && F.emptyYm && !F.results.length).length;   // statements with no lines, to be ticked in the grid
 function updateApplyLabel() {
   const btn = $("btnStmtApply");
   const p = isBatch() ? sumPlans(batchFiles().map(F => withFile(F, plan))) : plan();
   const any = p.add + p.update + p.confirm + p.remove;
-  btn.disabled = any === 0;
-  btn.textContent = planText(p);
+  const ticks = isBatch() ? emptyMonths() : 0;
+  btn.disabled = any === 0 && ticks === 0;
+  btn.textContent = any === 0 && ticks ? `Record ${ticks} month${ticks === 1 ? "" : "s"} with no transactions` : planText(p) + (ticks ? ` · tick ${ticks} empty month${ticks === 1 ? "" : "s"}` : "");
   if (isBatch()) renderBatchCounts();
 }
 
@@ -435,6 +437,7 @@ async function applyLines(ctx) {
 // Statement coverage: which months of which cards a statement has been imported for. Kept in the settings document.
 function coverageFor(F) {
   const months = {};
+  if (F.card && F.emptyYm && !F.results.length) return { [F.emptyYm]: { n: 0 } };   // an unused card: its statement month counts with no entries
   if (!F.card || !F.results.length) return months;
   const lo = new Date(F.lo), hi = new Date(F.hi);
   for (let d = new Date(lo.getFullYear(), lo.getMonth(), 1); d <= hi; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) months[dayKey(d.getTime()).slice(0, 7)] = { n: 0 };
@@ -549,14 +552,14 @@ async function readParts(file) {
     if (bad) return [{ label: file.name, error: bad.missing
       ? "This PDF has no text, so I read it as a picture, but couldn't find the statement's own balances to check the lines against, so nothing can be imported safely. Please tell me and I'll look at it."
       : `This PDF has no text, so I read it as a picture, and the lines don't add up to the statement (the lines total S$${bad.sum.toFixed(2)}, previous balance S$${bad.prev.toFixed(2)}, statement total S$${bad.total.toFixed(2)}: S$${Math.abs(bad.diff).toFixed(2)} out). A misread amount could overwrite a correct entry, so nothing was imported. Try again, or add these by hand.` }];
-    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows, points: parts[0].points }]
+    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows, points: parts[0].points, empty: parts[0].empty, ym: parts[0].ym }]
       : parts.map(p => {
         const label = `${file.name} · ${p.name || "card"}${p.last4 ? " ····" + p.last4 : ""}`;
         const v = p.verify;
         if (v && v.text && !v.ok) return { label, error: v.missing
           ? "I couldn't find this card's previous balance in the PDF, so I can't check its lines against the statement. Nothing was imported for this card. Please tell me and I'll look at it."
           : `This card's lines don't add up to the statement (previous balance S$${v.prev.toFixed(2)} + lines S$${v.sum.toFixed(2)} should be S$${v.total.toFixed(2)}: S$${Math.abs(v.diff).toFixed(2)} out). A line may be missing, so nothing was imported for this card. Please tell me and I'll look at it.` };
-        return { label, rows: p.rows, points: p.points };
+        return { label, rows: p.rows, points: p.points, empty: p.empty, ym: p.ym };
       });
   }
   return [{ label: file.name, rows: await readRows(file) }];
@@ -597,7 +600,9 @@ function loadParts(parts) {
     if (part.error) F.error = part.error;
     else {
       try {
-        S = F; prepareCore(part.rows, part.label); if (F.card) computeCore();
+        S = F; prepareCore(part.rows, part.label);
+        if (part.empty && part.ym) { F.emptyYm = part.ym; if (!F.card) continue; }   // an unused card the app does not know (DBS Esso, say) is left out
+        else if (F.card) computeCore();
         // The points summary: read from the PDF, or from the rows above a CSV's header (the HSBC script writes it there).
         F.points = part.points || readPointsSummary(rowsToLines(part.rows.slice(0, F.headerRow > 0 ? F.headerRow : 20)));
       }
@@ -659,7 +664,7 @@ function renderBatchCounts() {
     tot = sumPlans([tot, p]); ready++;
     const check = n.differs + n.moved;
     el.className = "st-file-counts";
-    el.textContent = (F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found")
+    el.textContent = (!F.results.length && F.emptyYm ? `No transactions this month · ${F.emptyYm} will be ticked` : F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found")
       + (F.points && F.points.length ? ` · ${F.points.map(pointsLine).join(" · ")}` : "");
   });
   const head = $("stBatchHead");
