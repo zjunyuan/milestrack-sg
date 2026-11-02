@@ -53,6 +53,10 @@ export function stmtBannerHtml(s, rows) {
   const maybeEarlier = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && !postedHere(c)));
   const maybeThese = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && postedHere(c)));
   const maybeOther = add(credits.filter(c => overlaps(c) && c.kind !== "bonus"));
+  // For the line-by-line match: the bonus for the entries that posted in the PREVIOUS statement only. The window rule would also pull in
+  // older entries whose window still overlaps (November's bonus, already paid on the December statement), overstating what is due (v1.63.26).
+  const postedPrev = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return s.prevTo && d > (s.prevFrom || 0) && d <= s.prevTo; };
+  const prevBonus = add(credits.filter(c => c.kind === "bonus" && postedPrev(c)));
   const sure = sureBase + sureBonus, maybe = maybeEarlier + maybeThese + maybeOther, bank = Number(s.bank) || 0;
   const spent = rows.reduce((a, t) => a + (Number(t.amt) || 0), 0), miles = rows.reduce((a, t) => a + (Number(t.miles) || 0), 0);
   const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(s.prevTo)}` : "the previous statement's entries";
@@ -66,9 +70,8 @@ export function stmtBannerHtml(s, rows) {
   if (s.status === "baseline") body = line("<b>Bank credited</b> on this statement", null, bank, "strong");
   else if (split) body = [
     line(`Base points on the entries below <span class="dim">(bank: “earned”)</span>`, sureBase, s.earned),
-    line(`Bonus for ${escapeHtml(prevLbl)} <span class="dim">(bank: “adjusted”)</span>`, maybeEarlier + sureBonus, s.adjusted),
-    maybeOther ? line(`Entries posting near the cut-off`, maybeOther, null, "dim") : "",
-    line(`<b>Total on this statement</b>`, sureBase + sureBonus + maybeEarlier, bank, "strong"),
+    line(`Bonus for ${escapeHtml(prevLbl)} <span class="dim">(bank: “adjusted”)</span>`, prevBonus, s.adjusted),
+    line(`<b>Total on this statement</b>`, sureBase + prevBonus, bank, "strong"),
     maybeThese ? line(`Still to come: bonus for the entries below <span class="dim">(on the next statement)</span>`, maybeThese, null, "dim") : ""
   ].join("");
   else body = [
@@ -81,7 +84,7 @@ export function stmtBannerHtml(s, rows) {
   ].join("");
   let verdict;
   if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
-  else if (split) { const d = bank - (sureBase + sureBonus + maybeEarlier); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
+  else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
   else if (bank > sure + maybe + 5) verdict = `<div class="stmt-verdict over">➕ ${n(bank - sure - maybe)} ${escapeHtml(unit)} (≈ ${mi(bank - sure - maybe)} mi) more than the app can explain: usually entries on Base that the bank paid a bonus on, or spend not logged.</div>`;
   else verdict = `<div class="stmt-verdict ok">✓ In range: the bank's ${n(bank)} is between ${n(sure)} (sure) and ${n(sure + maybe)} (if every bonus that could land here did).</div>`;
