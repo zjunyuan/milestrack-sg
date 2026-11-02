@@ -14,7 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate, wwmcMerchantRate } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
@@ -99,7 +99,7 @@ function estimateTx(card, line, spentInBucket) {
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
     if (r > rate) rate = r;
   }
-  if (card.id === "dbs-wwmc") { const r = wwmcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`); if (r > rate) rate = r; }   // v1.63.46
+  if (card.id === "dbs-wwmc") rate = wwmcOnlineRate(`${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc) || card.baseMpd;   // online only (v1.63.47)
   const ratio = state.myVault[card.vaultKey]?.ratio || 1;
   const amt = line.amt, base = card.baseMpd;
   if (!(rate > base)) { const miles = calcEarnedMiles(card, amt, base); return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: "base" }; }
@@ -651,7 +651,10 @@ function prepareCore(rows, fileName = "") {
   const spendish = probe.filter(l => !l.fee && !/visa direct|payment|giro|fund transfer|moneysend|refund|rebate|cashback/i.test(l.desc));
   // A payment to the card is the surest sign of the file's convention: it is a credit, so if payments come out positive the file shows spend as negative.
   // (A month of nine small refunds and one purchase fooled the count below: HSBC March 2026.)
-  const pays = probe.filter(l => /visa direct|payment|giro|fund transfer|moneysend/i.test(l.desc) && Math.abs(l.amt) >= 1);
+  // Only wording that means a payment TO the card (v1.63.47): "STARHUB EPAYMENT" and "REDMART SG PAYMENT" are purchases, and two of them
+  // once outvoted the real "BILL PAYMENT" and flipped a whole DBS Woman's World section (48 purchases read as credits).
+  const CARD_PAYMENT = /visa direct|money ?send|\bgiro\b|fund transfer|fast payment|bill payment|payment\s*[-–]|payment\s+(received|thank)|^\s*payment\b|paymt thru/i;
+  const pays = probe.filter(l => CARD_PAYMENT.test(l.desc) && Math.abs(l.amt) >= 1);
   S.flip = pays.length ? pays.filter(l => l.amt > 0).length > pays.length / 2
     : spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
   return guess;
