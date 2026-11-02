@@ -64,6 +64,21 @@ export const CITI_INSTORE_MCCS = set("5311", "5611", "5621", "5631", "5641", "56
 // OCBC Rewards: 4 mpd MCCs. 5912 is kept because Watsons / Guardian / NTUC Unity are whitelisted by merchant name.
 const OCBC_MCCS = set("5309", "5311", "5611", "5621", "5631", "5641", "5651", "5655", "5661", "5691", "5699", "5941", "5948", "5912");
 
+// OCBC Rewards: merchants that earn Bonus OCBC$ whatever their MCC (T&C 5 Oct 2026, section c), plus the 6 mpd promo on five of them
+// (1 Jul 2025 - 31 Mar 2027: first edition to 30 Jun 2026, extended; MileLion 1 Apr 2026). Not "Shopee Pay" (MCC 5262 top-ups earn nothing) and not MCC 5411 (RedMart, Shopee supermarket). v1.63.42.
+const OCBC_WHITELIST = [["alibaba"], ["aliexpress"], ["amazon", "amzn"], ["ezbuy"], ["guardian"], ["lazada"], ["mustafa"], ["ntuc unity", "unity pharmacy"],
+  ["shopee"], ["taobao"], ["tiktok"], ["watsons"]];
+const OCBC_PROMO = new Set(["shopee", "lazada", "taobao", "tiktok", "watsons"]);
+const OCBC_PROMO_FROM = new Date(2025, 6, 1).getTime(), OCBC_PROMO_TO = new Date(2027, 2, 31, 23, 59, 59).getTime();
+// The OCBC Rewards rate for a merchant on the whitelist (4, or 6 during the promo), or 0. `mcc` is the code the app resolved, if any.
+export function ocbcMerchantRate(text, ts = Date.now(), mcc = "") {
+  const t = String(text || "").toLowerCase();
+  if (!t || /shopee\s*pay/.test(t) || mcc === "5411" || /redmart|supermarket/.test(t)) return 0;
+  const hit = OCBC_WHITELIST.find(keys => keys.some(k => t.includes(k)));
+  if (!hit) return 0;
+  return OCBC_PROMO.has(hit[0]) && ts >= OCBC_PROMO_FROM && ts <= OCBC_PROMO_TO ? 6.0 : 4.0;
+}
+
 // HSBC Revolution: 4 mpd MCCs (online or contactless only)
 const hsbcEligible = mccMatcher([
   "3000-3350", "4511", "3351-3500", "3501-3999", "7011", "4411",

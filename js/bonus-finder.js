@@ -9,6 +9,7 @@ import { ALL_MASTER_CARDS } from "./config.js";
 import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { mccOf } from "./summary.js";
+import { ocbcMerchantRate } from "./cardrules.js";
 
 const cardById = (id) => ALL_MASTER_CARDS.find(c => c.id === id);
 const ratioOf = (vk) => Number((state.myVault && state.myVault[vk] && state.myVault[vk].ratio) || 1);
@@ -17,6 +18,7 @@ const ptsAt = (card, amt, rate) => Math.round(calcEarnedMiles(card, amt, rate) /
 // The bonus rate this card would earn on this entry, or null when its MCC is known and not a bonus category for the card.
 function bonusRateFor(tx, card) {
   const code = mccOf(tx.desc, tx.mcc);
+  if (card.id === "ocbc-rewards") { const r = ocbcMerchantRate(`${tx.desc || ""} ${tx.stmtDesc || ""}`, Number(tx.timestamp), code || ""); if (r) return r; }
   if (!code) return Number(card.bonusMpd) || null;                   // unknown MCC: could be either
   const e = getMccEntry(code);
   const c = e && [...(e.candidatesLocal || []), ...(e.candidatesOverseas || [])].find(x => x.id === card.id);
