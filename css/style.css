@@ -1,3 +1,10 @@
+/* Icons (v1.63.25): the app's own copy of the Material Symbols subset it uses (assets/fonts), so icons do not depend on Google's
+   servers; Google's stylesheet stays as a second source. Adding an icon name means downloading a new subset (see CLAUDE.md). */
+@font-face { font-family: 'MilesTrack Icons'; font-style: normal; font-weight: 400; font-display: block; src: url('../assets/fonts/material-symbols-outlined.woff2') format('woff2'); }
+.material-symbols-outlined { font-family: 'MilesTrack Icons', 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1;
+  letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr;
+  -webkit-font-feature-settings: 'liga'; font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; }
+html.no-icon-font .material-symbols-outlined { font-family: inherit; font-size: 1em; line-height: 1; }   /* emoji stand-ins (icon-fallback.js) */
 :root {
   --bg: #121316;
   --surface: #1e1f24;
