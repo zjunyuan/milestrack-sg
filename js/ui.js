@@ -538,8 +538,15 @@ export function renderStmtSelect(v = state.txView) {
   if (!wrap || !sel) return;
   const vk = vaultOfCardFilter(v.cards);
   const periods = vk ? statementPeriods(vk) : [];
-  wrap.hidden = !periods.length;
-  if (!periods.length) { sel.innerHTML = ''; return; }
+  // Always shown (v1.63.30): it used to hide until one bank was picked, but the filter row's labels are inline-flex, which beat
+  // the hidden attribute, so an empty box showed. Now it says what it needs.
+  wrap.hidden = false;
+  if (!periods.length) {
+    sel.innerHTML = `<option value="">${vk ? 'No statements imported for this card yet' : 'Filter to one card first'}</option>`;
+    sel.disabled = true; sel.title = vk ? 'Upload a statement for this card to compare it here' : 'Pick one card (or cards of one bank) with the Card filter to list its statements';
+    return;
+  }
+  sel.disabled = false; sel.title = '';
   const key = (p) => `${p.cardId || ''}|${p.to}`;
   const cur = v.stmt ? key(v.stmt) : '';
   sel.innerHTML = `<option value="">All dates</option>` + periods.map(p => `<option value="${escapeHtml(key(p))}" ${key(p) === cur ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
