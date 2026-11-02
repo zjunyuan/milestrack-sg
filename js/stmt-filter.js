@@ -24,6 +24,7 @@ export function statementPeriods(vk, cardId = null) {
     // A statement missing between this one and the last imported (v1.63.33): its own printed start is well after the last one's date,
     // or, with no printed start, the span is over 45 days. The bank figures are this statement's only, so the check is not fair.
     gap: !!(all[i + 1] && (r.rec.from ? Number(r.rec.from) - Number(all[i + 1].rec.ts) > 7 * 86400000 : r.to - r.from > 45 * 86400000)),
+    recId: r.rec.id, recDate: Number(r.rec.ts),
     gapFrom: all[i + 1] ? Number(all[i + 1].rec.ts) : null, gapTo: r.rec.from ? Number(r.rec.from) : null,
     label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.rec.ts)}${cid ? ` · ${cardName(cid)}` : ""}`
   }));
@@ -133,6 +134,7 @@ export function stmtBannerHtml(s, rows) {
   }
   return `<div class="stmt-banner">
     <div><b>📄 ${escapeHtml(s.label)}</b> <button type="button" class="stmt-x" data-stmt-clear title="Show all entries again">✕</button></div>
+    <div class="hm-note"><button type="button" class="pc-link" data-stmt-del="${escapeHtml(s.recId || "")}">Delete this statement's points record</button> <span class="dim">(only the points figures; entries and balances stay)</span></div>
     <div class="stmt-scroll"><table class="stmt-tbl"><thead><tr><th></th><th class="num">App expects</th><th class="num">Bank</th><th class="num">Difference</th></tr></thead><tbody>${body}</tbody></table></div>
     ${verdict}${gapNote}${fixBlock}
     <div class="hm-note">All figures in ${escapeHtml(unit)} (1 ${escapeHtml(unit)} ≈ ${ratio} mi). The ${rows.length} entr${rows.length === 1 ? "y" : "ies"} below: S$${fmtNum(spent, 2)} · ${fmtNum(Math.round(miles))} mi in the app, base and bonus together.</div>

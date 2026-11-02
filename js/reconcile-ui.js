@@ -97,7 +97,8 @@ function balanceHtml(vk, unit) {
 function rowHtml(r, unit, withSuspects = true, ctx = null) {
   const rec = r.rec, [label, cls] = STATUS[r.status];
   const src = rec.kind === "statement" ? `${BANK_LABEL[rec.bank] || ""} statement` : "Balance you added";
-  const link = ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : "";
+  const link = (ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : "")
+    + (rec.kind === "statement" ? ` <button type="button" class="pc-link dim" data-pts-del="${escapeHtml(rec.id)}">Delete</button>` : "");
   if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.rec.ts)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">${rec.kind === "statement"
     ? `Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries. Balance ${n(rec.closing)} ${escapeHtml(unit)}; later statements are checked from here.`
     : `Balance ${n(rec.closing)} ${escapeHtml(unit)}. The next balance you add is checked against this one.`}</div>${link}</div>`;
@@ -206,6 +207,8 @@ export function initPointsCheck() {
   // "Show these entries" on a statement check: History filtered to that card and statement (v1.63.20).
   // Capture phase: the sheet stops click bubbling (onclick="event.stopPropagation()"), so a bubbling listener never hears it.
   document.addEventListener("click", async (e) => {
+    const del = e.target.closest && e.target.closest("#ptsOverlay [data-pts-del]");
+    if (del) { const { deleteStatementRecord } = await import("./ui.js"); await deleteStatementRecord(del.dataset.ptsDel); render(); return; }
     const b = e.target.closest && e.target.closest("#ptsOverlay [data-stmt-to]"); if (!b) return;
     const { statementPeriods, openStatementView } = await import("./stmt-filter.js");
     const p = statementPeriods(b.dataset.stmtVk, b.dataset.stmtCard || null).find(x => String(x.to) === b.dataset.stmtTo);

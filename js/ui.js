@@ -560,6 +560,24 @@ export function renderStmtSelect(v = state.txView) {
   }
 }
 
+// Deletes one statement's points record (milestrack_points), e.g. a statement imported twice or by mistake (v1.63.36). Statement records
+// never moved the Vault, so nothing else changes; re-importing the statement brings it back.
+export async function deleteStatementRecord(id) {
+  const rec = (state.pointsLog || []).find(r => r.id === id && r.kind === 'statement');
+  if (!rec) return;
+  const d = new Date(Number(rec.ts)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (!confirm(`Delete the points figures of the statement dated ${d}?\n\nYour entries and Vault balances are not changed. Upload the statement again to bring them back.`)) return;
+  try {
+    const { deletePointsRecord } = await import('./firebase.js');
+    await deletePointsRecord(id);
+    state.pointsLog = (state.pointsLog || []).filter(r => r.id !== id);
+    window.dispatchEvent(new CustomEvent('points-updated'));
+    if (state.txView.stmt && state.txView.stmt.recId === id) state.txView.stmt = null;
+    showToast(`Deleted the statement of ${d}`);
+  } catch (err) { showToast(`Couldn't delete: ${err.message || err}`, { kind: 'error' }); }
+  renderTransactions();
+}
+
 function activeFiltersHtml(v, query) {
   const parts = [];
   if (query) parts.push(`Search "${escapeHtml(query)}"`);
@@ -594,6 +612,8 @@ export function renderTransactions() {
       if (e.target.closest('.th-filter')) return;
       if (e.target.closest('[data-clear-filters]')) { clearAllTxFilters(); return; }
       if (e.target.closest('[data-stmt-clear]')) { state.txView.stmt = null; renderTransactions(); return; }
+      const delBtn = e.target.closest('[data-stmt-del]');
+      if (delBtn) { deleteStatementRecord(delBtn.dataset.stmtDel); return; }
       const fixBtn = e.target.closest('[data-bonus-fix]');
       if (fixBtn) {
         import('./stmt-filter.js').then(async ({ fixAt }) => {
