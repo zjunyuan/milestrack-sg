@@ -14,6 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
+import { ocbcMerchantRate } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
@@ -95,6 +96,10 @@ function estimateTx(card, line, spentInBucket) {
   const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
   const room = card.monthlyCap >= 999999 || spentInBucket + line.amt <= card.monthlyCap;
   if (cand && room) { rate = cand.baseRate; bonus = true; }
+  if (card.id === "ocbc-rewards" && room) {                          // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
+    const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
+    if (r > rate) { rate = r; bonus = true; }
+  }
   const miles = calcEarnedMiles(card, line.amt, rate);
   const ratio = state.myVault[card.vaultKey]?.ratio || 1;
   return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: bonus ? "bonus" : "base" };
