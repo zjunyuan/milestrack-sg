@@ -103,6 +103,7 @@ window.addEventListener('merchants-updated', runRecommendation);
 window.addEventListener('rules-updated', runRecommendation);
 
 window.addEventListener('settings-updated', () => {
+  renderPresets();   // presets follow the enabled cards
   renderCards();
   renderCategoryTracker();
   renderExpiryRadar();
