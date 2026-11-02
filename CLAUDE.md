@@ -14,7 +14,7 @@ MilesTrack SG: a PWA that recommends which Singapore credit card to use per merc
 - `js/config.js`: `APP_VERSION`, vault keys/labels, Firebase config, `ALL_MASTER_CARDS`, `MCC_DATABASE`, `CATEGORY_POOLS`, `DEFAULT_VAULT` (points→miles ratios), KrisFlyer tiers, yuu partner brands.
 - `js/state.js`: single mutable `state` object shared by every module.
 - `js/firebase.js`: auth, role resolution (email → vault key), Firestore listeners and CRUD.
-- `js/recommender.js`: miles calculation per engine, single-swipe scorer, waterfall split solver, household MCC rules (`state.mccRules`).
+- `js/recommender.js`: miles calculation per engine, single-swipe scorer, waterfall split solver, household MCC rules (`state.mccRules`). Shell pumps (MCC 5541, v1.63.7): UOB VS and UOB PPV (contactless) carry a 4% instant discount (`SHELL_PERK`; it does not need the S$1,000 spend, confirmed by the user). The ranking counts it as a tie-break at equal rate and as a mile-equivalent at `FCY_MILE_VALUE_CENTS` when comparing real miles, and orders VS ahead of PPV (the user's preference); local spend only.
 - `js/mcc.js`: the one place that knows about every MCC. It combines `MCC_DATABASE` (hand-written rules), `MCC_NAMES` (labels only), and generated fallbacks.
 - `js/mcc-names.js`: ~230 ISO 18245 codes with names and no card rules, plus `COMMONLY_EXCLUDED_MCCS`.
 - `js/posting.js` / `js/posting-ui.js`: per-card transaction-date vs posting-date rules (source and date in the header), cycle-end maths, `countsTs(tx, card)` (the date a spend counts to; use it for cycle/cap membership instead of `tx.timestamp`), the month-end banner and the log-form hint. A transaction's optional `postTs` is the bank's posting date.

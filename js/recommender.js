@@ -379,7 +379,11 @@ function renderRecommendationCore() {
         breakdownDesc,
         isUncapped
       };
-    }).sort((a, b) => b.totalMiles - a.totalMiles);
+    }).sort((a, b) => {
+      const va = a.totalMiles + perkMiles(a.card, amt, mccData.code), vb = b.totalMiles + perkMiles(b.card, amt, mccData.code);
+      if (vb !== va) return vb - va;
+      return ((perkOf(b.card, mccData.code) || {}).pref || 0) - ((perkOf(a.card, mccData.code) || {}).pref || 0);
+    });
 
     const winner = singleCardScores[0];
     const runnerUp = singleCardScores[1];
@@ -438,6 +442,9 @@ function renderRecommendationCore() {
     const aFull = !a.isUncapped && a.remainingCap <= 0, bFull = !b.isUncapped && b.remainingCap <= 0;
     if (aFull !== bFull) return aFull ? 1 : -1;
     if (b.rate !== a.rate) return b.rate - a.rate;
+    const pa = perkOf(a.card, mccData.code), pb = perkOf(b.card, mccData.code);   // same rate: the card with a discount perk first, VS before PPV
+    if (!!pa !== !!pb) return pa ? -1 : 1;
+    if (pa && pb && pa.pref !== pb.pref) return pb.pref - pa.pref;
     if (a.card.strategyType === 'whitelist' && b.card.strategyType === 'blacklist') return -1;
     if (a.card.strategyType === 'blacklist' && b.card.strategyType === 'whitelist') return 1;
     return a.card.monthlyCap - b.card.monthlyCap;
@@ -448,7 +455,7 @@ function renderRecommendationCore() {
   // If the top card covers the whole amount, prefer whichever covering card really earns the most.
   {
     const covers = (c) => c.isUncapped || c.remainingCap >= amt;
-    const real = (c) => calcEarnedMiles(c.card, amt, c.rate);
+    const real = (c) => calcEarnedMiles(c.card, amt, c.rate) + perkMiles(c.card, amt, mccData.code);   // the Shell discount counts, so a card with it is not displaced by a few extra miles
     const top = scoredCandidates[0];
     if (top && covers(top)) {
       let best = top, bestMiles = real(top);
@@ -908,6 +915,13 @@ function decorateFcyFees() {
   div.querySelectorAll('[data-fcy-view]').forEach(b => b.addEventListener('click', () => { fcyAtMax = b.dataset.fcyView === 'max'; runRecommendation(); }));
   box.appendChild(div);
 }
+
+// Shell pumps (MCC 5541): UOB PPV (mobile tap) and UOB VS add a 4% instant discount on top of Shell GO+ (see the 5541 note in MCC_DATABASE).
+// The ranking counts it: as a tie-break between cards at the same rate, and as a mile-equivalent at FCY_MILE_VALUE_CENTS when comparing real miles.
+// `pref` orders the two UOB cards: VS ahead of PPV (the owner's preference). Local spend only; the discount does not apply overseas.
+const SHELL_PERK = { 'uob-vs-contactless': { pct: 4, pref: 2 }, 'uob-ppv-contactless': { pct: 4, pref: 1 } };
+const perkOf = (card, mccCode) => (mccCode === '5541' && !state.isOverseasMode && card && SHELL_PERK[card.id]) || null;
+const perkMiles = (card, amt, mccCode) => { const p = perkOf(card, mccCode); return p ? (amt * p.pct / 100) / (FCY_MILE_VALUE_CENTS / 100) : 0; };
 
 export function runRecommendation() {
   updateOptionsBadge();
