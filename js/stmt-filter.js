@@ -7,6 +7,11 @@ import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
 import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, expectedCredits } from "./reconcile.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
+import { candidatesFor, findFixes } from "./bonus-finder.js";
+
+// The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
+let shownFixes = [];
+export const fixAt = (i) => shownFixes[i] || null;
 
 const n = (x) => fmtNum(Math.round(Number(x) || 0));
 
@@ -101,10 +106,35 @@ export function stmtBannerHtml(s, rows) {
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
   else if (bank > sure + maybe + 5) verdict = `<div class="stmt-verdict over">➕ ${n(bank - sure - maybe)} ${escapeHtml(unit)} (≈ ${mi(bank - sure - maybe)} mi) more than the app can explain: usually entries on Base that the bank paid a bonus on, or spend not logged.</div>`;
   else verdict = `<div class="stmt-verdict ok">✓ In range: the bank's ${n(bank)} is between ${n(sure)} (sure) and ${n(sure + maybe)} (if every bonus that could land here did).</div>`;
+  // Which entries would explain a bonus gap (v1.63.35). HSBC: the "adjusted" figure against the bonus of the entries it pays for.
+  // Other banks: what the bank credited beyond everything that could land (or below what the app is sure of).
+  shownFixes = [];
+  let fixBlock = "";
+  const inWin = (t, a, b) => { const d = Number(t.postTs) || Number(t.timestamp) || 0; return d > a && d <= b; };
+  const fam = cardsOf(s), mine = (state.transactions || []).filter(t => fam.includes(t.cardId));
+  let fGap = 0, fTxs = [], what = "";
+  if (split) { fGap = s.adjusted - prevBonus; fTxs = mine.filter(t => inWin(t, s.prevFrom || 0, s.prevTo || 0) || (skipEnd && inWin(t, s.from, skipEnd))); what = "bonus (“adjusted”)"; }
+  else if (s.status !== "baseline" && !s.gap) {
+    if (bank > sure + maybe + 5) { fGap = bank - sure - maybe; what = "points"; }
+    else if (bank < sure - 5) { fGap = bank - sure; what = "points"; }
+    fTxs = mine.filter(t => inWin(t, s.from, s.to) || (s.prevTo && inWin(t, s.prevFrom || 0, s.prevTo)));
+  }
+  if (Math.abs(fGap) > 5 && fTxs.length) {
+    const cands = candidatesFor(fTxs);
+    const tol = Math.max(10, Math.ceil(Math.abs(split ? s.adjusted : bank) * 0.005), cands.length);
+    const r = findFixes(cands, fGap, tol);
+    shownFixes = r.sets;
+    const nm = (t) => escapeHtml(String(t.desc || "").slice(0, 28));
+    const head = `<b>🔎 Which entries would explain the ${fGap > 0 ? "+" : "−"}${n(Math.abs(fGap))} ${what}?</b>`;
+    if (!r.sets.length) fixBlock = `<div class="stmt-fix">${head} No combination of the ${r.candidates} entr${r.candidates === 1 ? "y" : "ies"} that could change rate adds up to it. More likely an entry is missing, or the bank used a different rate.</div>`;
+    else fixBlock = `<div class="stmt-fix">${head}
+      ${r.sets.map((set, i) => `<div class="stmt-fix-set"><span>${set.items.map(it => `${nm(it.tx)} <span class="${it.dir === "up" ? "ok" : "bad"}">${it.dir === "up" ? "→ Bonus" : "→ Base"}</span>`).join(", ")} <span class="dim">= ${set.total > 0 ? "+" : "−"}${n(Math.abs(set.total))}${set.diff ? `, ${n(Math.abs(set.diff))} off` : ""}</span></span> <button type="button" class="btn-backup" data-bonus-fix="${i}">Switch ${set.items.length === 1 ? "it" : "these"}</button></div>`).join("")}
+      <div class="hm-note">${r.count === 1 ? "Only this set adds up" : `${r.count > 3 ? `${r.count} sets add up; the 3 closest are shown` : `${r.count} sets add up, closest first`}`} (from ${r.candidates} entr${r.candidates === 1 ? "y" : "ies"} that could change${r.partial ? ", the largest 22 tried" : ""}). A sum that fits is a strong hint, not proof: check a charge in the bank's app if unsure.</div></div>`;
+  }
   return `<div class="stmt-banner">
     <div><b>📄 ${escapeHtml(s.label)}</b> <button type="button" class="stmt-x" data-stmt-clear title="Show all entries again">✕</button></div>
     <div class="stmt-scroll"><table class="stmt-tbl"><thead><tr><th></th><th class="num">App expects</th><th class="num">Bank</th><th class="num">Difference</th></tr></thead><tbody>${body}</tbody></table></div>
-    ${verdict}${gapNote}
+    ${verdict}${gapNote}${fixBlock}
     <div class="hm-note">All figures in ${escapeHtml(unit)} (1 ${escapeHtml(unit)} ≈ ${ratio} mi). The ${rows.length} entr${rows.length === 1 ? "y" : "ies"} below: S$${fmtNum(spent, 2)} · ${fmtNum(Math.round(miles))} mi in the app, base and bonus together.</div>
   </div>`;
 }
