@@ -169,7 +169,7 @@ header {
   .tab-content { display: flex !important; }
   .desktop-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 24px; align-items: start; width: 100%; }
   .card-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .vault-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important; }
+  .vault-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .modal-sheet { border-radius: 24px !important; margin: auto !important; max-height: 80vh !important; }
   .modal-overlay { align-items: center !important; }
   #tabContentCategory { display: none !important; }
