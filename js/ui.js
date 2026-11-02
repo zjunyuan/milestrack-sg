@@ -31,7 +31,7 @@ import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
-import { setFilterRows } from "./col-filter.js";
+import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -529,6 +529,27 @@ async function handleSelectAction(action) {
   } else if (failed.length) showToast('Nothing was deleted. Check your connection and try again.', { kind: 'error' });
 }
 
+// With nothing to show the table header (and its filter funnels) is not drawn, so say which filters are on and offer to clear them.
+function activeFiltersHtml(v, query) {
+  const parts = [];
+  if (query) parts.push(`Search "${escapeHtml(query)}"`);
+  if (v.merchant) parts.push(`Merchant "${escapeHtml(v.merchant)}"`);
+  if (v.cards.length) parts.push(`Card: ${escapeHtml(cardFilterLabel(v))}`);
+  if (v.cats.length) parts.push(`Category: ${escapeHtml(catFilterLabel(v))}`);
+  if (v.amtMin !== '' || v.amtMax !== '') parts.push(`Amount ${v.amtMin !== '' ? 'S$' + escapeHtml(String(v.amtMin)) : 'any'} to ${v.amtMax !== '' ? 'S$' + escapeHtml(String(v.amtMax)) : 'any'}`);
+  if (v.transFrom || v.transTo) parts.push(`Trans date ${escapeHtml(v.transFrom || '…')} to ${escapeHtml(v.transTo || '…')}`);
+  if (v.postFrom || v.postTo) parts.push(`Posted ${escapeHtml(v.postFrom || '…')} to ${escapeHtml(v.postTo || '…')}`);
+  if (!parts.length) return '';
+  return `<div class="tx-filtered-note" style="margin-top:8px;">Filtered by: ${parts.join(' · ')}</div>
+    <button type="button" class="btn-backup" data-clear-filters style="margin-top:8px;">Clear filters</button>`;
+}
+function clearAllTxFilters() {
+  document.getElementById('btnClearTxFilters')?.click();          // resets the column, amount and date filters
+  const input = document.getElementById('txSearchInput');
+  if (input && input.value) { input.value = ''; input.dispatchEvent(new Event('input')); }
+  renderTransactions();
+}
+
 export function renderTransactions() {
   const list = document.getElementById('txList');
   const badge = document.getElementById('txCountBadge');
@@ -539,6 +560,7 @@ export function renderTransactions() {
     list.dataset.bound = '1';
     list.addEventListener('click', (e) => {
       if (e.target.closest('.th-filter')) return;
+      if (e.target.closest('[data-clear-filters]')) { clearAllTxFilters(); return; }
       const th = e.target.closest('th[data-sort]');
       if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
       const selBtn = e.target.closest('[data-sel]');
@@ -606,7 +628,7 @@ export function renderTransactions() {
   if (rows.length === 0) {
     list.innerHTML = state.transactions.length === 0
       ? `<div class="empty-guide"><div class="eg-title">Nothing logged yet</div><div class="eg-text">Every spend you log shows up here, with the card, the category and the miles it earned. Use the recommender or a quick preset at the top, then tap <b>Log</b>. You can also import a bank statement from Settings.</div></div>`
-      : `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.</div>`;
+      : `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.${activeFiltersHtml(view, queryClean)}</div>`;
     return;
   }
 
