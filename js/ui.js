@@ -32,7 +32,7 @@ import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
-import { statementPeriods, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
+import { statementPeriods, periodsForFilter, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
 import { setCopyRows } from "./copy-for-claude.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip, rateTag } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
@@ -537,7 +537,7 @@ export function renderStmtSelect(v = state.txView) {
   const wrap = document.getElementById('txStmtWrap'), sel = document.getElementById('txStmt');
   if (!wrap || !sel) return;
   const vk = vaultOfCardFilter(v.cards);
-  const periods = vk ? statementPeriods(vk) : [];
+  const periods = vk ? periodsForFilter(v.cards) : [];
   // Always shown (v1.63.30): it used to hide until one bank was picked, but the filter row's labels are inline-flex, which beat
   // the hidden attribute, so an empty box showed. Now it says what it needs.
   wrap.hidden = false;
@@ -554,7 +554,7 @@ export function renderStmtSelect(v = state.txView) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => {
       const vk2 = vaultOfCardFilter(state.txView.cards);
-      state.txView.stmt = (vk2 && statementPeriods(vk2).find(p => key(p) === sel.value)) || null;
+      state.txView.stmt = (vk2 && periodsForFilter(state.txView.cards).find(p => key(p) === sel.value)) || null;
       renderTransactions();
     });
   }

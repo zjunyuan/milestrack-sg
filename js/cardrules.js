@@ -79,6 +79,20 @@ export function ocbcMerchantRate(text, ts = Date.now(), mcc = "") {
   return OCBC_PROMO.has(hit[0]) && ts >= OCBC_PROMO_FROM && ts <= OCBC_PROMO_TO ? 6.0 : 4.0;
 }
 
+// DBS Woman's World, used online only (the user's choice, v1.63.47): every spend earns the online bonus unless DBS excludes it, by MCC
+// (Table 1 = DBS_ONLINE_EXCLUDED) or by merchant name (Table 2 of the T&C, 27 Jul 2026), or it is a bill payment, fee or interest.
+// DBS itself pays the bonus only on transactions its system flags as online (T&C s.13), so an in-store tap would earn base.
+// Grab bookings ("GRAB* A-xxxx", ride or food) count as online here; on HSBC they stay unknown (rides earn its bonus, food does not).
+const WWMC_TABLE2 = /\b(axs|amaze|ez-?link|fave ?(pay|ecard)|flashpay|ipaymy|cardup|shopee ?pay|singtel dash|smoov ?pay|smoov pte|razer ?pay|youtrip|transit|sam payments|sam -|sgebiz|singapore e-business|matchmove|moneybookers|skrill|oanda|saxo cap|igmarkets|payeer|kashmi|sedap|bagus|cantine|xtrade|toroption|iplmileslife|simplex)\b|coin|crypto|bitstamp|bitpanda|bitit|paypal (axs|bizconsulta|capitalroya|cmd bitcoin|coinjolt|oandaasiapa|wmccoin|xcoins)/i;
+const WWMC_NOT_SPEND = /bill payment|autopay|internet\/wireless|interest|finance charge|late (payment|charge)|annual fee|cash advance|balance transfer|instalment|installment/i;
+export function wwmcOnlineRate(text, mcc = "") {
+  const t = String(text || "");
+  if (!t.trim() || WWMC_TABLE2.test(t) || WWMC_NOT_SPEND.test(t) || /grab ?pay|top.?up|wallet/i.test(t)) return 0;
+  if (mcc && DBS_ONLINE_EXCLUDED.has(String(mcc))) return 0;
+  return 4.0;
+}
+export const wwmcMerchantRate = (text) => wwmcOnlineRate(text);   // kept for older callers
+
 // HSBC Revolution: 4 mpd MCCs (online or contactless only)
 const hsbcEligible = mccMatcher([
   "3000-3350", "4511", "3351-3500", "3501-3999", "7011", "4411",

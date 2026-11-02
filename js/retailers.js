@@ -240,6 +240,7 @@ export const RETAILERS = [
   r("TADA", "4121", "medium"),
   r("Ryde", "4121", "medium"),
   r("Zig", "4121", "medium"),
+  r("Cabcharge Asia", "4121", "medium", ["cabcharge", "cabcharge asia pte ltd"], { note: "Taxi fares charged through Cabcharge (CDG Zig app and taxi terminals). Statements print CABCHARGE ASIA PTE LTD (v1.63.45)." }),
   r("Uber", "4121", "high"),
 
   // ---- Public transport (4111) ----
