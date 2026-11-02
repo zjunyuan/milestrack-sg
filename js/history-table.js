@@ -5,6 +5,7 @@ import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { categoryOf, mccOf } from "./summary.js";
 import { passesStmt } from "./stmt-filter.js";
+import { pointsSplit } from "./reconcile.js";
 
 export const NO_CATEGORY = '__none';
 export const TX_COLUMNS = [
@@ -14,10 +15,12 @@ export const TX_COLUMNS = [
   { key: 'card', label: 'Card' },
   { key: 'category', label: 'Category' },
   { key: 'amount', label: 'Amount', num: true },
+  { key: 'basepts', label: 'Base pts', num: true },
+  { key: 'bonuspts', label: 'Bonus pts', num: true },
   { key: 'miles', label: 'Miles', num: true },
   { key: 'mpd', label: 'mpd', num: true }
 ];
-const DESC_FIRST = new Set(['date', 'post', 'amount', 'miles', 'mpd']);
+const DESC_FIRST = new Set(['date', 'post', 'amount', 'basepts', 'bonuspts', 'miles', 'mpd']);
 
 export function defaultView() {
   return { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' };
@@ -72,6 +75,8 @@ export function sortTxns(rows, v, cardOf) {
     card: t => cardShort(cardOf(t)).toLowerCase(),
     category: t => (txCategory(t) || '').toLowerCase(),
     amount: t => Number(t.amt) || 0,
+    basepts: t => pointsSplit(t).base,
+    bonuspts: t => pointsSplit(t).bonus,
     miles: t => Number(t.miles) || 0,
     mpd: t => txMpd(t)
   }[v.sortKey] || (t => t.timestamp || 0);
@@ -132,6 +137,7 @@ export function tableHtml(rows, view, cardOf, select = null) {
       <td>${escapeHtml(cardShort(cardOf(t)))}</td>
       <td class="cat ${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>
+      ${(() => { const p = pointsSplit(t); return `<td class="num dim" title="${escapeHtml(p.unit)}">${fmtNum(p.base, 0)}</td><td class="num${p.bonus ? '' : ' dim'}" title="${escapeHtml(p.unit)}">${p.bonus ? fmtNum(p.bonus, 0) : '—'}</td>`; })()}
       <td class="num miles">+${fmtNum(Number(t.miles) || 0, 0)}</td>
       <td class="num${mpd > 0 && mpd < 1 ? ' dim' : ''}">${rateTag(t)} ${mpd.toFixed(2)}</td>
       <td class="acts">${select ? '' : `<button class="btn-tx-action btn-edit" data-act="edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button><button class="btn-tx-action btn-delete" data-act="delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>`}</td>
@@ -139,6 +145,6 @@ export function tableHtml(rows, view, cardOf, select = null) {
   }).join('');
   // Totals under their own columns (v1.63.19), so they can be read against a statement's figures.
   const spent = rows.reduce((s, t) => s + (Number(t.amt) || 0), 0), miles = rows.reduce((s, t) => s + (Number(t.miles) || 0), 0);
-  const foot = rows.length ? `<tfoot><tr class="tx-foot">${select ? '<td></td>' : ''}<td colspan="5">Total · ${rows.length} transaction${rows.length === 1 ? '' : 's'}</td><td class="num">${fmtNum(spent, 2)}</td><td class="num miles">+${fmtNum(miles, 0)}</td><td class="num">${spent > 0 ? (miles / spent).toFixed(2) : '0.00'}</td><td></td></tr></tfoot>` : '';
+  const foot = rows.length ? `<tfoot><tr class="tx-foot">${select ? '<td></td>' : ''}<td colspan="5">Total · ${rows.length} transaction${rows.length === 1 ? '' : 's'}</td><td class="num">${fmtNum(spent, 2)}</td><td class="num">${fmtNum(rows.reduce((s, t) => s + pointsSplit(t).base, 0), 0)}</td><td class="num">${fmtNum(rows.reduce((s, t) => s + pointsSplit(t).bonus, 0), 0)}</td><td class="num miles">+${fmtNum(miles, 0)}</td><td class="num">${spent > 0 ? (miles / spent).toFixed(2) : '0.00'}</td><td></td></tr></tfoot>` : '';
   return `<table class="tx-table"><thead><tr>${selHead}${head}</tr></thead><tbody>${body}</tbody>${foot}</table>`;
 }

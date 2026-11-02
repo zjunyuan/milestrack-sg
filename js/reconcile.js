@@ -41,6 +41,16 @@ function basePoints(card, t, vk) {
   const counted = rule.baseRound === "dollar" ? Math.round(amt) : Math.floor(amt / rule.block) * rule.block;
   return Math.round(counted * card.baseMpd / ratioOf(vk));
 }
+// An entry's points in the bank's own unit, split into base and bonus (v1.63.23): the History table shows both so a month can be read
+// against a statement (base on the statement it posts on, the bonus where the bank pays it, e.g. HSBC a statement later).
+export function pointsSplit(t) {
+  const card = cardById(t.cardId); if (!card) return { base: 0, bonus: 0, total: 0, unit: "" };
+  const vk = card.vaultKey, total = pointsOf(t, vk) || 0;
+  let base = basePoints(card, t, vk);
+  if (base === null) base = Math.round(Math.floor(Number(t.amt) || 0) * (Number(card.baseMpd) || 0) / ratioOf(vk));
+  if (t.bonusCategory === "base" || base > total) base = total;
+  return { base, bonus: Math.max(0, total - base), total, unit: (DEFAULT_VAULT[vk] || {}).unit || "pts" };
+}
 const postedTs = (t) => t.postTs || ((t.timestamp || 0) + 2 * DAY);
 // The bonus for a cycle arrives after the cycle ends; allow until the 7th of the month after the cycle's next start.
 function bonusWindow(card, t) {
