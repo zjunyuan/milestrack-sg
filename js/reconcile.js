@@ -69,7 +69,17 @@ export function expectedCredits(vk, cardIds = null) {
 
 // ---------- what the bank says ----------
 
-export const checkpointsFor = (vk) => (state.pointsLog || []).filter(r => r.vaultKey === vk && (r.kind === "statement" || r.kind === "balance")).sort((a, b) => a.ts - b.ts);
+// A per-card statement record counts toward the vault of the card it belongs to: Citi's Rewards Visa got its own vault in v1.63.15, and
+// records saved before that still say citi_typ.
+export function recVault(r) {
+  if (r && r.ledger && r.kind === "statement") {
+    const id = (r.byCard || []).find(c => c.last4 === r.ledger)?.cardId || "";
+    const c = id && ALL_MASTER_CARDS.find(x => x.id === id);
+    if (c && c.vaultKey && DEFAULT_VAULT[c.vaultKey] && DEFAULT_VAULT[c.vaultKey].unit === (DEFAULT_VAULT[r.vaultKey] || {}).unit) return c.vaultKey;
+  }
+  return r ? r.vaultKey : "";
+}
+export const checkpointsFor = (vk) => (state.pointsLog || []).filter(r => recVault(r) === vk && (r.kind === "statement" || r.kind === "balance")).sort((a, b) => a.ts - b.ts);
 export const outflowsFor = (vk) => (state.pointsLog || []).filter(r => r.vaultKey === vk && r.kind === "out").sort((a, b) => a.ts - b.ts);
 
 // Points the bank credited for spend over the statement period. UOB lists fee reversals ("MEMBERSHIP FEE REV") as adjustments: not earned.
@@ -257,7 +267,9 @@ export async function saveStatementPoints(list, last4s = {}) {
     if (seen.has(id)) continue; seen.add(id);
     const single = (p.byCard || []).length <= 1 && p.fileCard;
     const byCard = (p.byCard || []).map(c => ({ ...c, cardId: last4s[c.last4] || (single ? p.fileCard : "") || "" }));
-    const rec = { kind: "statement", source: "statement", bank: p.bank, vaultKey: p.vaultKey, ledger: p.ledger || "", ts: p.asOf, from: p.from || null,
+    const own = p.ledger ? ALL_MASTER_CARDS.find(c => c.id === (byCard.find(b => b.last4 === p.ledger) || byCard[0] || {}).cardId) : null;
+    const vk = own && DEFAULT_VAULT[own.vaultKey] && DEFAULT_VAULT[own.vaultKey].unit === (DEFAULT_VAULT[p.vaultKey] || {}).unit ? own.vaultKey : p.vaultKey;   // same ID as before, so a re-import overwrites
+    const rec = { kind: "statement", source: "statement", bank: p.bank, vaultKey: vk, ledger: p.ledger || "", ts: p.asOf, from: p.from || null,
       opening: p.opening, earned: p.earned, redeemed: p.redeemed, adjusted: p.adjusted, closing: p.closing, expiring: p.expiring || 0,
       expiryDate: p.expiryDate || null, items: (p.items || []).map(i => ({ ts: i.ts || null, what: String(i.what || "").slice(0, 60), pts: i.pts })),
       byCard, verified: p.verified !== false, at: Date.now() };

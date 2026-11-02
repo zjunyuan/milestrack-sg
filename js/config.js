@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.14";
+export const APP_VERSION = "v1.63.15";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -132,7 +132,9 @@ export function detectYuuMerchant(desc = "") {
 // Source: MileLion "Which credit cards have the smallest miles conversion blocks" (Feb 2026), secondary; HSBC step confirmed by the user. Re-check against each bank.
 export const DEFAULT_VAULT = {
   uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end', transfer: { pts: 5000, miles: 10000 } },
-  citi_typ: { name: 'Citi TYP', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
+  // Citi keeps a separate ThankYou balance for each card (v1.63.15): Mastercard here, the Rewards Visa in citi_typ_visa until that card closes.
+  citi_typ: { name: 'Citi TYP Mastercard', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
+  citi_typ_visa: { name: 'Citi TYP Visa', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
   citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)', transfer: { pts: 10000, miles: 10000 } },
   dbs_pts: { name: 'DBS Points', points: 0, ratio: 2.0, unit: 'pts', rule: '1-3 yrs / Altitude never expires', transfer: { pts: 5000, miles: 10000 } },
   yuu_pts: { name: 'yuu Points', points: 0, ratio: 0.28, unit: 'pts', rule: '2 yrs from month earned', transfer: { pts: 3.6, miles: 1, min: 200 } },
@@ -153,6 +155,7 @@ export const TRANSFER_PARTNERS = {
       hsbc_pts:   { pts: 25000, miles: 10000, conf: 'seen', note: 'HSBC converts 2.5:1 to most airlines other than KrisFlyer (MileLion, ShopBack).' },
       ocbc_pts:   { pts: 10000, miles: 2900, conf: 'seen', note: 'OCBC$ to Asia Miles is 10,000 : 2,900 (MileLion). Mainly Miles (24 Oct 2026) agrees: 725 Asia Miles per 1,000 KrisFlyer-equivalent miles, the same rate. A poor rate; the 90\u00B0N miles rate is 1,000 : 750.' },
       citi_typ:   { pts: 25000, miles: 10000, conf: 'assumed', note: 'MileLion says Citi uses one ratio for all airlines (25,000 : 10,000). ShopBack says 1:1, so check Citi\u2019s page.' },
+      citi_typ_visa: { pts: 25000, miles: 10000, conf: 'assumed', note: 'Same Citi ratio as the Mastercard; the Visa\u2019s ThankYou balance converts on its own.' },
       citi_miles: { pts: 10000, miles: 10000, conf: 'assumed', note: 'Citi Miles are not covered separately by the sources; the KrisFlyer 1:1 block is reused.' },
       uob_uni:    { pts: 5000, miles: 10000, conf: 'assumed', note: 'MileLion says UOB uses one ratio for all airlines; the KrisFlyer block is reused.' },
       dbs_pts:    { pts: 5000, miles: 10000, conf: 'assumed', note: 'Mainly Miles (24 Oct 2026) confirms DBS offers Asia Miles (and not EVA or Avios) but gives no ratio. MileLion says DBS uses one ratio for all airlines; the KrisFlyer block is reused.' },
@@ -325,7 +328,7 @@ export const ALL_MASTER_CARDS = [
     name: 'Citi Rewards Visa', 
     bank: 'Citi', 
     image: 'assets/cards/citi-rewards-visa.png',
-    vaultKey: 'citi_typ', 
+    vaultKey: 'citi_typ_visa', 
     monthlyCap: 1000, 
     minSpend: 0, 
     bonusMpd: 4.0, 
