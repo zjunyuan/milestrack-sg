@@ -57,7 +57,9 @@ export function stmtBannerHtml(s, rows) {
   const spent = rows.reduce((a, t) => a + (Number(t.amt) || 0), 0), miles = rows.reduce((a, t) => a + (Number(t.miles) || 0), 0);
   const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(s.prevTo)}` : "the previous statement's entries";
   // HSBC prints base ("Points Earned") and the month-before bonus ("Points Adjusted") separately, so the two can be matched line by line.
-  const split = s.status !== "baseline" && s.earned !== null && s.adjusted > 0;
+  // Only HSBC is known to work this way (seen on its statements). UOB's "adjusted" holds fee reversals and other items, Maybank and OCBC
+  // credit late bonuses differently, so for them the plain "could land here" layout is kept rather than a line-by-line match that would mislead.
+  const split = s.bankId === "hsbc" && s.status !== "baseline" && s.earned !== null && s.adjusted > 0;
   const diff = (app, bk) => { const d = bk - app; return Math.abs(d) <= 5 ? `<span class="ok">✓</span>` : `<span class="${d > 0 ? "over" : "bad"}">${d > 0 ? "+" : "−"}${n(Math.abs(d))} <span class="dim">(≈ ${mi(Math.abs(d))} mi)</span></span>`; };
   const line = (label, app, bk, cls = "") => `<tr class="${cls}"><td>${label}</td><td class="num">${app === null ? "—" : n(app)}</td><td class="num">${bk === null ? "—" : n(bk)}</td><td class="num">${app === null || bk === null ? "" : diff(app, bk)}</td></tr>`;
   let body;
