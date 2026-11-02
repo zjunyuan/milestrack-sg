@@ -16,6 +16,10 @@ export function statementPeriods(vk, cardId = null) {
     vk, cardId: cid, from: r.from, to: r.to, bank: r.periodBank, sure: r.periodSure, maybe: r.periodMaybe, status: r.status,
     bankId: r.rec.bank, earned: Number.isFinite(Number(r.rec.earned)) ? Number(r.rec.earned) : null, adjusted: Number(r.rec.adjusted) || 0,
     prevFrom: all[i + 1] ? all[i + 1].from : null, prevTo: all[i + 1] ? all[i + 1].to : null, prevTs: all[i + 1] ? all[i + 1].rec.ts : null,
+    // A statement missing between this one and the last imported (v1.63.33): its own printed start is well after the last one's date,
+    // or, with no printed start, the span is over 45 days. The bank figures are this statement's only, so the check is not fair.
+    gap: !!(all[i + 1] && (r.rec.from ? Number(r.rec.from) - Number(all[i + 1].rec.ts) > 7 * 86400000 : r.to - r.from > 45 * 86400000)),
+    gapFrom: all[i + 1] ? Number(all[i + 1].rec.ts) : null, gapTo: r.rec.from ? Number(r.rec.from) : null,
     label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.rec.ts)}${cid ? ` · ${cardName(cid)}` : ""}`
   }));
   const led = reconcileLedgers(vk);
@@ -86,7 +90,8 @@ export function stmtBannerHtml(s, rows) {
     maybeOther ? line("Could land here: entries posting near the cut-off", maybeOther, null, "dim") : ""
   ].join("");
   let verdict;
-  if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
+  if (s.gap) verdict = `<div class="stmt-verdict bad">⚠️ A statement is missing: the app has none between ${fmtDate(s.gapFrom)} and ${s.gapTo ? fmtDate(s.gapTo) : "this one"}, so the entries below cover two statements while the bank's figures are this statement's only. Upload the missing statement (with its points summary) and this check will split in two.</div>`;
+  else if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
   else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
   else if (bank > sure + maybe + 5) verdict = `<div class="stmt-verdict over">➕ ${n(bank - sure - maybe)} ${escapeHtml(unit)} (≈ ${mi(bank - sure - maybe)} mi) more than the app can explain: usually entries on Base that the bank paid a bonus on, or spend not logged.</div>`;
