@@ -2,10 +2,11 @@
 // balance checkpoint against what the app expected, the entries most likely to have missed a bonus, the big entries to look up in a
 // bank app, and forms to log a balance you looked up or a transfer / redemption. The maths is in reconcile.js.
 import { state } from "./state.js";
-import { DEFAULT_VAULT } from "./config.js";
+import { DEFAULT_VAULT, ALL_MASTER_CARDS } from "./config.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { mergeSettingsDoc } from "./firebase.js";
+import { bankHowtoHtml } from "./bank-howto.js";
 import { reconcile, reconcileLedgers, ledgersOf, worstRow, suspects, bigChecks, checkedShort, balanceFromBank, checkpointsFor, outflowsFor, saveBalance, saveOutflow, deleteOutflow,
   setVaultFromBank, saveBankCheck, currencyName, unitName, cardName, fmtDate, BANK_LABEL } from "./reconcile.js";
 
@@ -63,6 +64,7 @@ function render() {
     ${rowsHtml(current, unit)}
     ${cardRowsHtml(current, unit)}
     ${formsHtml(current, unit)}
+    ${bankHowtoHtml((ALL_MASTER_CARDS.find(c => c.vaultKey === current) || {}).bank || "")}
     <label class="hm-note pc-thr">Put entries of S$ <input type="number" id="ptsBig" class="form-control" min="1" step="1" value="${Number(state.bigCheck) || 250}"> and more on the "check in the bank app" list (DBS, UOB PPV and HSBC show points per transaction).</label>`;
   if (hadBox) {
     box.querySelectorAll("details[data-sec]").forEach(d => { if (open.has(d.dataset.sec)) d.open = true; });
