@@ -14,7 +14,7 @@ const BANKS = [
     ["seen", "“Points Adjusted” is the bonus (9 more points per S$1) for the lines of the statement before."],
     ["seen", "A line posted on the statement date belongs to the next statement."],
     ["seen", "Some statements print no rewards summary; the next statement then carries both statements' points."],
-    ["tc", "The bonus only applies at the listed MCCs, paid online or by contactless (T&C 1 Apr 2026). Fast food (5814), streaming (4899) and games (5816) are not on the list."],
+    ["tc", "The bonus only applies at the listed MCCs, paid online or by contactless (T&C 1 Apr 2026). Fast food (5814, including GrabFood), streaming (4899) and games (5816) are not on the list; rides (4121) are."],
     ["app", "KrisFlyer transfers are 3:1, but the app counts points at 2.5:1 (other airlines' rate)."]
   ] },
   { bank: "OCBC", unit: "OCBC$ (1 OCBC$ ≈ 0.4 mi)", notes: [
@@ -38,6 +38,7 @@ const BANKS = [
     ["tc", "Points per full S$5 (DBS Rewards Programme T&C, Sep 2026)."],
     ["tc", "Woman's World Card: 1 point per S$5 on each transaction, the next working day. Online bonus: 9 more per S$5 (7 for overseas online) on the calendar month's total online spend, first S$1,000 a month, credited by the end of the next month (T&C 27 Jul 2026, s.16-19)."],
     ["tc", "DBS decides what counts as online from the merchant's own indicator, so a taxi or ride paid in an app is online and a tap in the car is not."],
+    ["app", "Grab bookings (rides or food; the statement code does not say which) are counted as online bonus on Woman's World. Wallet top-ups are not."],
     ["seen", "DBS prints points per card (Vantage, Woman's World, yuu ...): filter History to one card to check it on its own. Vantage: points on the same statement."]
   ] },
   { bank: "yuu", unit: "yuu points (3.6 points = 1 mi)", notes: [

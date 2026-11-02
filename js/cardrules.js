@@ -79,6 +79,15 @@ export function ocbcMerchantRate(text, ts = Date.now(), mcc = "") {
   return OCBC_PROMO.has(hit[0]) && ts >= OCBC_PROMO_FROM && ts <= OCBC_PROMO_TO ? 6.0 : 4.0;
 }
 
+// DBS Woman's World: Grab bookings ("GRAB* A-xxxx" on statements) earn the online bonus whether they are rides (4121) or food (5814),
+// since both are paid in the app and neither MCC is excluded. The booking code does not say which, so this is decided per card, not by
+// giving Grab one MCC: HSBC pays the bonus on rides but not on food (5814 is not on its list). Wallet top-ups (6540) are excluded. v1.63.46.
+export function wwmcMerchantRate(text) {
+  const t = String(text || "").toLowerCase();
+  if (!/\bgrab\b/.test(t) || /grabpay|top.?up|wallet/.test(t)) return 0;
+  return 4.0;
+}
+
 // HSBC Revolution: 4 mpd MCCs (online or contactless only)
 const hsbcEligible = mccMatcher([
   "3000-3350", "4511", "3351-3500", "3501-3999", "7011", "4411",

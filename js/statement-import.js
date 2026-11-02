@@ -14,7 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcMerchantRate } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
@@ -99,6 +99,7 @@ function estimateTx(card, line, spentInBucket) {
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
     if (r > rate) rate = r;
   }
+  if (card.id === "dbs-wwmc") { const r = wwmcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`); if (r > rate) rate = r; }   // v1.63.46
   const ratio = state.myVault[card.vaultKey]?.ratio || 1;
   const amt = line.amt, base = card.baseMpd;
   if (!(rate > base)) { const miles = calcEarnedMiles(card, amt, base); return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: "base" }; }
