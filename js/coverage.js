@@ -32,8 +32,8 @@ export function coverageData(year, now = new Date()) {
 }
 
 // clickable: cells with a statement become buttons (data-card = the card's first entry id, data-ym = "YYYY-MM") so History can jump to them.
-export function coverageTableHtml(data, { clickable = false } = {}) {
-  const body = data.rows.map(r => `<tr><th>${escapeHtml(r.label)}</th>${r.cells.map(c => {
+export function coverageTableHtml(data, { clickable = false, clearable = false } = {}) {
+  const body = data.rows.map(r => `<tr><th>${clearable ? `<button type="button" class="cv-clear" data-cv-clear="${escapeHtml(r.key)}" title="Clear this card's ticks">${escapeHtml(r.label)}</button>` : escapeHtml(r.label)}</th>${r.cells.map(c => {
     if (c.future) return `<td class="cv-future"></td>`;
     const cls = c.has ? "cv-yes" : (c.current ? "cv-now" : "cv-no");
     const txt = c.has ? "✓" : (c.current ? "" : "·");

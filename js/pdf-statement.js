@@ -155,13 +155,14 @@ export async function readPdfParts(file, askPassword, progress) {
   if (ocr) { const p = await readByOcr(pdf, progress); return [{ ...p, points: readPointsSummary(p.lines || []) }]; }
   const points = readPointsSummary(lines);
   const sections = splitCardSections(lines);
-  if (sections) return sections.map(s => ({ ...s, points }));
+  const stmtYm = statementYm(lines.join("\n"));                  // no coverage tick may go past the statement's own month
+  if (sections) return sections.map(s => ({ ...s, points, stmtYm }));
   const rows = pdfTextToRows(lines);
   const hasTx = rows.some(r => /^\d{2} \w{3} \d{4}$/.test(String(r[0])));
   const ym = !hasTx && looksUnused(lines) ? statementYm(lines.join("\n")) : "";   // a statement of an unused card: nothing to import, but its month can be ticked
-  if (ym) return [{ name: "", last4: "", rows, empty: true, ym, verify: null, points }];
+  if (ym) return [{ name: "", last4: "", rows, empty: true, ym, verify: null, points, stmtYm }];
   if (rows.length < 2) throw new Error(NO_LINES);
-  return [{ name: "", last4: "", rows, verify: null, points }];
+  return [{ name: "", last4: "", rows, verify: null, points, stmtYm }];
 }
 
 // Text recognition drops or garbles a line now and then, and different settings miss different lines. So: read with one setting, check the
@@ -359,7 +360,11 @@ export function pdfTextToRows(lines, ctx = {}) {
     || /STATEMENT PRINTED ON\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole)      // DBS: "STATEMENT PRINTED ON 30 Jan 2026"
     || /STATEMENT DATE[\s\S]{0,120}?(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/.exec(whole);   // DBS: the date sits under the heading
   const per = /(?:Statement\s+period|Statement\s+From)[\s\S]{0,60}?\bto\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole);   // HSBC: "From 02 DEC 2025 to 02 JAN 2026"
-  const stYear = per ? +per[3] : sdw ? +sdw[3] : sd ? +sd[3] : new Date().getFullYear(), stMonth = per ? (MONTH_NO[per[2].toUpperCase()] || 12) : sdw ? (MONTH_NO[sdw[2].toUpperCase()] || 12) : sd ? +sd[2] : 12;
+  // Citi pages print no statement date, only "Payment Due Date: January 23, 2026": the statement is the month before (so a December line on it is last year's).
+  const due = !per && !sdw && !sd ? /Payment Due Date:\s*([A-Za-z]{3})[A-Za-z]*\s+\d{1,2},\s*(\d{4})/i.exec(whole) : null;
+  const dueMo = due ? MONTH_NO[due[1].toUpperCase()] : 0;
+  const dueSt = dueMo ? (dueMo === 1 ? [+due[2] - 1, 12] : [+due[2], dueMo - 1]) : null;
+  const stYear = per ? +per[3] : sdw ? +sdw[3] : sd ? +sd[3] : dueSt ? dueSt[0] : new Date().getFullYear(), stMonth = per ? (MONTH_NO[per[2].toUpperCase()] || 12) : sdw ? (MONTH_NO[sdw[2].toUpperCase()] || 12) : sd ? +sd[2] : dueSt ? dueSt[1] : 12;
   const postFirst = /^\s*Post\s+Tran/im.test(whole);                                       // UOB and HSBC list the Post date before the Trans date
   const yearFor = (mon) => (MONTH_NO[mon] > stMonth ? stYear - 1 : stYear);        // a December line on a January statement
   const card = ctx.last4 ? [null, ctx.last4] : /\b\d{4}-\d{4}-\d{4}-(\d{4})\b/.exec(text) || /\b(?:\d{4}\s){3}(\d{4})\b/.exec(text);
