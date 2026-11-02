@@ -2,9 +2,21 @@
 import { state } from "./state.js";
 import { searchRetailers, normalizeText, escapeHtml } from "./retailers.js";
 import { runRecommendation, selectRetailer } from "./recommender.js";
-import { searchKrisPlus, krisPlusMcc } from "./krisplus-merchants.js";
+import { searchKrisPlus, krisPlusMcc, KRISPLUS_MERCHANTS } from "./krisplus-merchants.js";
 import { getSearchMode, setSearchMode } from "./search-mode.js";
 import { searchMccs, mccName, isKnownMcc, nearestMccs } from "./mcc.js";
+
+// A curated retailer that is also on the Kris+ list (same name, ignoring a bracketed outlet) shows the Kris+ rate too (v1.63.41):
+// the Kris+ row itself is hidden as a duplicate, so Paris Baguette lost its Kris+ tag.
+const krisCache = new Map();
+function krisOf(r) {
+  if (krisCache.has(r.name)) return krisCache.get(r.name);
+  const names = new Set([r.name, ...(r.aliases || [])].map(normalizeText));
+  const hits = KRISPLUS_MERCHANTS.filter(m => names.has(m.base) || names.has(m.full));
+  const best = hits.sort((a, b) => b.mpd - a.mpd)[0] || null;
+  krisCache.set(r.name, best);
+  return best;
+}
 
 const CONF_LABEL = { high: "", medium: "varies", low: "unsure" };
 
@@ -133,6 +145,7 @@ export function initRetailerSuggest() {
       const tags = [
         r.source === "household" ? `<span class="rs-tag rs-ok">household</span>` : "",
         r.promo ? `<span class="rs-tag rs-promo">${escapeHtml(r.promo)}</span>` : "",
+        krisOf(r) ? `<span class="rs-tag rs-kris">Kris+ ${krisOf(r).mpd} mpd</span>` : "",
         CONF_LABEL[r.conf] && r.source !== "household" ? `<span class="rs-tag rs-${r.conf}">${CONF_LABEL[r.conf]}</span>` : ""
       ].join("");
       const cat = mccName(r.mcc);
