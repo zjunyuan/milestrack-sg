@@ -3,6 +3,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   onAuthStateChanged,
   setPersistence,
@@ -80,6 +82,13 @@ export async function resolveVaultKey(email = "") {
   }
 }
 
+// v1.64.0: iPhone Home Screen apps cannot finish Google's pop-up sign-in when the app and Firebase's sign-in pages are on different
+// sites (GitHub Pages vs milestracker-sg.firebaseapp.com). When the app is served from the Firebase auth domain itself (Firebase Hosting,
+// same origin) a full-page redirect sign-in works there, so it is used on that address only. Everywhere else the pop-up stays.
+export function usesRedirectSignIn(host = location.hostname, authDomain = firebaseConfig.authDomain) {
+  return !!host && !!authDomain && host.toLowerCase() === authDomain.toLowerCase();
+}
+
 export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
   if (isDemo()) return startDemo(onAuthSuccess);   // sample data, no Firebase (js/demo.js)
   const app = initializeApp(firebaseConfig);
@@ -88,6 +97,14 @@ export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
   googleProvider = new GoogleAuthProvider();
 
   setPersistence(auth, indexedDBLocalPersistence).catch(console.error);
+
+  // Coming back from Google after a redirect sign-in: success is picked up by onAuthStateChanged below; only errors need showing here.
+  if (usesRedirectSignIn()) {
+    getRedirectResult(auth).catch((e) => {
+      sessionStorage.removeItem('auth_in_progress');
+      if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') alert(e.message);
+    });
+  }
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -115,6 +132,7 @@ export async function loginWithGoogle() {
       btn.innerText = "Signing in...";
     }
     await setPersistence(auth, indexedDBLocalPersistence);
+    if (usesRedirectSignIn()) { await signInWithRedirect(auth, googleProvider); return; }   // the page leaves for Google and comes back signed in
     await signInWithPopup(auth, googleProvider);
   } catch (e) {
     sessionStorage.removeItem('auth_in_progress');

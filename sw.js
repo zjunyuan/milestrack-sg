@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.63.5';
+const CACHE_NAME = 'milestrack-cache-v1.64.0';
 
 const CORE_ASSETS = [
   './',
@@ -125,6 +125,7 @@ self.addEventListener('fetch', (event) => {
 
   if (
     event.request.method !== 'GET' ||
+    url.pathname.startsWith('/__/') ||   // Firebase Hosting's reserved sign-in handler / init files (v1.64.0)
     url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('firebaseio.com') ||
     url.hostname.includes('identitytoolkit.googleapis.com') ||

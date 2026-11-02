@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", ".firebaserc", "**/.*", "**/node_modules/**", "docs/**", "CLAUDE.md", "README.md"],
+    "headers": [
+      { "source": "/@(sw.js|index.html|manifest.json)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}
