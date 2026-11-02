@@ -40,6 +40,21 @@ export function statementPeriods(vk, cardId = null) {
   return cardId ? pick(reconcile(vk, cardId), cardId) : pick(reconcile(vk), null);
 }
 
+// The statements for History's card filter (v1.63.45). When the filter is one card (or its channel entries) and the bank prints a row per
+// card (DBS: Vantage, Woman's World, yuu ... in one summary), each check uses that card's own row; otherwise the whole currency's figure.
+// Before this a Woman's World filter was checked against the total of every DBS card.
+export function periodsForFilter(cards) {
+  const vk = vaultOfCardFilter(cards);
+  if (!vk) return [];
+  const fams = new Set((cards || []).map(id => familyIds(id).slice().sort().join(",")));
+  if (fams.size === 1) {
+    const fam = familyIds(cards[0]);
+    const perCard = (state.pointsLog || []).some(r => r.kind === "statement" && (r.byCard || []).length > 1 && r.byCard.some(c => c.cardId && fam.includes(c.cardId)));
+    if (perCard) return statementPeriods(vk, cards[0]);
+  }
+  return statementPeriods(vk);
+}
+
 // The vault the History card filter points at, if all the chosen cards share one (else null: no Statement list).
 export function vaultOfCardFilter(cards) {
   const vks = [...new Set((cards || []).map(id => (ALL_MASTER_CARDS.find(c => c.id === id) || {}).vaultKey).filter(Boolean))];

@@ -232,7 +232,7 @@ export const RETAILERS = [
   r("TikTok Shop", "5999", "low", ["tiktok"], { promo: "OCBC 6 mpd promo" }),
 
   // ---- Ride-hailing / taxis (4121) ----
-  r("Grab", "4121", "medium", ["grab ride", "grabcar", "grab car", "grabtaxi"], { alt: ["5814"], note: "GrabFood orders are usually 5814; wallet top-ups may not earn bonus miles." }),
+  r("Grab", "4121", "medium", ["grab ride", "grabcar", "grab car", "grabtaxi", "grab a", "grab* a"], { alt: ["5814"], note: "GrabFood orders are usually 5814; wallet top-ups may not earn bonus miles." }),
   r("Gojek", "4121", "high", ["go-jek"]),
   r("SimplyGo", "4111", "high", ["bus/mrt", "bus mrt", "simply go"], { note: "Bank statements print bus and MRT taps as BUS/MRT." }),
   r("ComfortDelGro", "4121", "high", ["cdg", "comfort", "comfort taxi", "cab", "taxi"]),
@@ -240,6 +240,7 @@ export const RETAILERS = [
   r("TADA", "4121", "medium"),
   r("Ryde", "4121", "medium"),
   r("Zig", "4121", "medium"),
+  r("Cabcharge Asia", "4121", "medium", ["cabcharge", "cabcharge asia pte ltd"], { note: "Taxi fares charged through Cabcharge (CDG Zig app and taxi terminals). Statements print CABCHARGE ASIA PTE LTD (v1.63.45)." }),
   r("Uber", "4121", "high"),
 
   // ---- Public transport (4111) ----

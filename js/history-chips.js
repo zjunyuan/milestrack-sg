@@ -30,8 +30,8 @@ function amountLabel(v) {
 }
 const datesCount = (v) => [v.transFrom || v.transTo, v.postFrom || v.postTo].filter(Boolean).length;
 
-import { statementPeriods, vaultOfCardFilter } from './stmt-filter.js';
-const stmtList = (v) => { const vk = vaultOfCardFilter(v.cards); return vk ? statementPeriods(vk) : []; };
+import { periodsForFilter } from './stmt-filter.js';
+const stmtList = (v) => periodsForFilter(v.cards);
 
 export function renderTxChips(rows) {
   periodRows = rows || periodRows;

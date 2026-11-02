@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.44";
+export const APP_VERSION = "v1.63.45";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -1058,5 +1058,5 @@ export const BONUS_SPLIT = {
   'hsbc-rev':           { bonusRound: 'month', block: 1, baseRound: 'dollar', timing: 'by the end of the next calendar month' },
   'ocbc-rewards':       { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
   'mb-horizon-vs':      { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
-  'dbs-wwmc':           { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' }
+  'dbs-wwmc':           { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next calendar month' }   // T&C 27 Jul 2026 s.19: online spend totalled per calendar month (v1.63.45)
 };
