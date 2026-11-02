@@ -706,10 +706,19 @@ function renderCoverage() {
   const data = coverageData(new Date().getFullYear());
   box.innerHTML = `<summary>${coverageSummaryText(data)}</summary>
     ${coverageTableHtml(data, { clearable: true })}
-    <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends. Ticks look wrong for a card? Tap its name to clear its row, then import its statements again.</div>`;
+    <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends. Ticks look wrong for a card? Tap its name to clear its row, then import its statements again.</div>
+    ${Object.keys(state.stmtCoverage || {}).length ? `<button type="button" class="btn-backup" data-cv-clear-all style="margin-top:6px;">Clear all ticks</button>` : ""}`;
   if (!box.dataset.bound) {
     box.dataset.bound = "1";
     box.addEventListener("click", async (e) => {
+      if (e.target.closest("[data-cv-clear-all]")) {
+        e.preventDefault();
+        if (!confirm("Clear the statement ticks for every card? Entries are not touched. Months with entries a statement confirmed stay ticked; importing your statements again fills the rest back in.")) return;
+        const all = {}; for (const k of Object.keys(state.stmtCoverage || {})) all[k] = true;
+        await untickCoverage(all);
+        renderCoverage();
+        return;
+      }
       const b = e.target.closest("[data-cv-clear]"); if (!b) return;
       e.preventDefault();
       const key = b.dataset.cvClear, label = b.textContent.trim();
