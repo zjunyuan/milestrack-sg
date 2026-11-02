@@ -27,7 +27,14 @@ export function statementPeriods(vk, cardId = null) {
     recId: r.rec.id, recDate: Number(r.rec.ts),
     gapFrom: all[i + 1] ? Number(all[i + 1].rec.ts) : null, gapTo: r.rec.from ? Number(r.rec.from) : null,
     label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.rec.ts)}${cid ? ` · ${cardName(cid)}` : ""}`
-  }));
+  })).map((p, i, list) => {
+    // After a statement that carried a skipped one (v1.63.38): that statement already paid the skipped statement's bonus, so
+    // "the previous statement's entries" are only the ones from the printed start of that statement on (HSBC: 3 Jun – 1 Jul,
+    // not 4 May – 1 Jul; the May bonus was paid in July and was counted again on the August check).
+    const pr = list[i + 1];
+    if (pr && pr.gap && pr.gapTo) p.prevFrom = new Date(new Date(pr.gapTo).setHours(0, 0, 0, 0)).getTime() - 1;
+    return p;
+  });
   const led = reconcileLedgers(vk);
   if (led.length) return led.filter(l => l.cardId && (!cardId || familyIds(cardId).includes(l.cardId))).flatMap(l => pick(l.rows, l.cardId));
   return cardId ? pick(reconcile(vk, cardId), cardId) : pick(reconcile(vk), null);
