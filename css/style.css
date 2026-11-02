@@ -1236,3 +1236,7 @@ body:has(#demoBar) { padding-top: 28px; }
 .empty-guide.eg-wide { grid-column: 1 / -1; }
 .eg-title { font-weight: 700; font-size: 0.88rem; color: #e5e7eb; }
 .eg-text { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; line-height: 1.5; }
+/* Statement view in History (v1.63.20) */
+.stmt-banner { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.35); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; }
+.stmt-x { background: none; border: 0; color: #94a3b8; cursor: pointer; font: inherit; float: right; }
+.pc-link { align-self: flex-start; background: none; border: 0; padding: 2px 0; color: var(--primary, #a8c7fa); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }

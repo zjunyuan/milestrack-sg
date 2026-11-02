@@ -4,6 +4,7 @@ import { cardShort } from "./config.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { categoryOf, mccOf } from "./summary.js";
+import { passesStmt } from "./stmt-filter.js";
 
 export const NO_CATEGORY = '__none';
 export const TX_COLUMNS = [
@@ -22,7 +23,7 @@ export function defaultView() {
   return { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' };
 }
 export function viewIsFiltered(v) {
-  return !!v.merchant || v.cards.length > 0 || v.cats.length > 0 || (!!v.rate && v.rate !== 'ALL') || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
+  return !!v.merchant || v.cards.length > 0 || v.cats.length > 0 || (!!v.rate && v.rate !== 'ALL') || !!v.stmt || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
 }
 
 const dayStart = (s) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
@@ -49,6 +50,7 @@ export function passesView(tx, v) {
   if (v.cards.length && !v.cards.includes(tx.cardId)) return false;
   if (v.cats.length && !v.cats.includes(txCategory(tx) || NO_CATEGORY)) return false;
   if (v.rate && v.rate !== 'ALL' && rateOf(tx) !== v.rate) return false;
+  if (v.stmt && !passesStmt(tx, v.stmt)) return false;
   const tf = dayStart(v.transFrom), tt = dayEnd(v.transTo);
   if (tf !== null && !(tx.timestamp >= tf)) return false;
   if (tt !== null && !(tx.timestamp <= tt)) return false;

@@ -30,6 +30,9 @@ function amountLabel(v) {
 }
 const datesCount = (v) => [v.transFrom || v.transTo, v.postFrom || v.postTo].filter(Boolean).length;
 
+import { statementPeriods, vaultOfCardFilter } from './stmt-filter.js';
+const stmtList = (v) => { const vk = vaultOfCardFilter(v.cards); return vk ? statementPeriods(vk) : []; };
+
 export function renderTxChips(rows) {
   periodRows = rows || periodRows;
   const el = document.getElementById('txChips');
@@ -39,10 +42,12 @@ export function renderTxChips(rows) {
   const cat = catFilterLabel(v);
   const chip = (kind, text, on) => `<button type="button" class="tx-chip${on ? ' on' : ''}" data-chip="${kind}">${escapeHtml(text)} ▾</button>`;
   const rate = v.rate === 'bonus' ? 'Bonus rate' : v.rate === 'base' ? 'Base rate' : '';
-  const anyOn = !!(card || cat || rate || amountLabel(v) || datesCount(v));
+  const anyOn = !!(card || cat || rate || v.stmt || amountLabel(v) || datesCount(v));
+  const stmts = stmtList(v);
   el.innerHTML =
     chip('card', card || 'Card', !!card) +
     chip('category', cat || 'Category', !!cat) +
+    (stmts.length ? chip('stmt', v.stmt ? 'Statement ' + v.stmt.label.replace(/^.*statement /, '') : 'Statement', !!v.stmt) : '') +
     chip('rate', rate || 'Rate', !!rate) +
     chip('amount', amountLabel(v) || 'Amount', !!amountLabel(v)) +
     chip('dates', datesCount(v) ? `Dates (${datesCount(v)})` : 'Dates', !!datesCount(v)) +
@@ -72,6 +77,11 @@ function openSheet(kind) {
     title = 'Sort by';
     items = SORTS.map(s => ({ label: s.label, value: s.label }));
     body = options(items, sortLabel(v), 'sort');
+  } else if (kind === 'stmt') {
+    title = 'Statement';
+    const list = stmtList(v);
+    items = [{ label: 'All dates', value: '' }, ...list.map(p => ({ label: p.label, value: `${p.cardId || ''}|${p.to}` }))];
+    body = options(items, v.stmt ? `${v.stmt.cardId || ''}|${v.stmt.to}` : '', 'stmt');
   } else if (kind === 'rate') {
     title = 'Rate';
     items = [{ label: 'All', value: '' }, { label: 'Bonus rate', value: 'bonus' }, { label: 'Base rate', value: 'base' }];
@@ -101,7 +111,7 @@ export function initHistoryChips(renderFn) {
     const b = e.target.closest('[data-chip]');
     if (!b) return;
     if (b.dataset.chip === 'clear') {
-      Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+      Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', stmt: null, amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
       rerender();
     } else openSheet(b.dataset.chip);
   });
@@ -117,6 +127,7 @@ export function initHistoryChips(renderFn) {
       const vals = JSON.parse(sheet().dataset.items || '[]');
       const val = vals[Number(opt.dataset.i)];
       if (opt.dataset.kind === 'rate') v.rate = val || '';
+      if (opt.dataset.kind === 'stmt') v.stmt = stmtList(v).find(p => `${p.cardId || ''}|${p.to}` === val) || null;
       if (opt.dataset.kind === 'sort') { const s = SORTS.find(x => x.label === val) || SORTS[0]; v.sortKey = s.key; v.sortDir = s.dir; }
       return apply();
     }

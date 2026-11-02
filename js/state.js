@@ -15,7 +15,7 @@ export const state = {
   mccRules: {},            // household card rules per MCC, set by the admin (Firestore milestrack_mccRules)
   txSearchQuery: "",
   txSelect: { on: false, ids: new Set() },   // History select mode (mass delete)
-  txView: { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], rate: '', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' },   // History table: sort, category, amount range, date ranges
+  txView: { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], rate: '', stmt: null, amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' },   // History table: sort, category, amount range, date ranges
   enabledCardIds: ALL_MASTER_CARDS.map(c => c.id),
   cards: ALL_MASTER_CARDS,
   transactions: [],

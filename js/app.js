@@ -336,7 +336,7 @@ Object.entries(txViewInputs).forEach(([id, key]) => {
   el?.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { state.txView[key] = el.value; renderTransactions(); });
 });
 document.getElementById('btnClearTxFilters')?.addEventListener('click', () => {
-  Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+  Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', stmt: null, amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
   Object.keys(txViewInputs).forEach(id => { const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? 'ALL' : ''; });
   renderTransactions();
 });
