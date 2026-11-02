@@ -110,11 +110,16 @@ export function reconcile(vk, cardId = null) {
     return row ? { ...r, ...row, kind: r.kind, earnedSpan: Number(row.earned) || 0, items: [] } : null;
   }).filter(Boolean);
   if (!recs.length) return [];
-  const start0 = recs[0].from || new Date(new Date(recs[0].ts).setMonth(new Date(recs[0].ts).getMonth() - 1)).getTime();
+  // A statement that prints its own period start ("From 02 DEC 2025 to 02 JAN 2026", HSBC, OCBC) holds everything posted from that day on,
+  // so the statement before it ends the evening before, even when that statement is dated the same day (v1.63.29: HSBC puts a line posted
+  // on 2 Dec on the statement dated 2 Jan, not on the one dated 2 Dec; the app had filed it a statement early and its bonus a month early).
+  const dayStart = (t) => new Date(new Date(t).setHours(0, 0, 0, 0)).getTime();
+  const ends = recs.map((r, k) => { const nx = recs[k + 1]; return nx && nx.kind === "statement" && nx.from && dayStart(nx.from) <= r.ts && dayStart(nx.from) > r.ts - 20 * DAY ? dayStart(nx.from) - 1 : r.ts; });
+  const start0 = recs[0].from ? dayStart(recs[0].from) - 1 : new Date(new Date(recs[0].ts).setMonth(new Date(recs[0].ts).getMonth() - 1)).getTime();
   const rows = [];
   let bankCum = 0, cumStart = null, prev = null;
   for (let k = 0; k < recs.length; k++) {
-    const r = recs[k], to = r.ts, from = k ? recs[k - 1].ts : start0;
+    const r = recs[k], to = ends[k], from = k ? ends[k - 1] : start0;
     let spanBank = r.earnedSpan;
     if (spanBank === null) {                                           // a balance you typed: the change since the last one, plus what you moved out
       spanBank = prev ? (Number(r.closing) || 0) - (Number(prev.closing) || 0) + outs.filter(o => o.ts > prev.ts && o.ts <= to).reduce((s, o) => s + (Number(o.pts) || 0), 0) : null;

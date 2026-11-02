@@ -15,8 +15,8 @@ export function statementPeriods(vk, cardId = null) {
   const pick = (rows, cid) => rows.filter(r => r.rec && r.rec.kind === "statement").map((r, i, all) => ({
     vk, cardId: cid, from: r.from, to: r.to, bank: r.periodBank, sure: r.periodSure, maybe: r.periodMaybe, status: r.status,
     bankId: r.rec.bank, earned: Number.isFinite(Number(r.rec.earned)) ? Number(r.rec.earned) : null, adjusted: Number(r.rec.adjusted) || 0,
-    prevFrom: all[i + 1] ? all[i + 1].from : null, prevTo: all[i + 1] ? all[i + 1].to : null,
-    label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.to)}${cid ? ` · ${cardName(cid)}` : ""}`
+    prevFrom: all[i + 1] ? all[i + 1].from : null, prevTo: all[i + 1] ? all[i + 1].to : null, prevTs: all[i + 1] ? all[i + 1].rec.ts : null,
+    label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.rec.ts)}${cid ? ` · ${cardName(cid)}` : ""}`
   }));
   const led = reconcileLedgers(vk);
   if (led.length) return led.filter(l => l.cardId && (!cardId || familyIds(cardId).includes(l.cardId))).flatMap(l => pick(l.rows, l.cardId));
@@ -59,7 +59,7 @@ export function stmtBannerHtml(s, rows) {
   const prevBonus = add(credits.filter(c => c.kind === "bonus" && postedPrev(c)));
   const sure = sureBase + sureBonus, maybe = maybeEarlier + maybeThese + maybeOther, bank = Number(s.bank) || 0;
   const spent = rows.reduce((a, t) => a + (Number(t.amt) || 0), 0), miles = rows.reduce((a, t) => a + (Number(t.miles) || 0), 0);
-  const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(s.prevTo)}` : "the previous statement's entries";
+  const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(s.prevTs || s.prevTo)}` : "the previous statement's entries";
   // HSBC prints base ("Points Earned") and the month-before bonus ("Points Adjusted") separately, so the two can be matched line by line.
   // Only HSBC is known to work this way (seen on its statements). UOB's "adjusted" holds fee reversals and other items, Maybank and OCBC
   // credit late bonuses differently, so for them the plain "could land here" layout is kept rather than a line-by-line match that would mislead.
