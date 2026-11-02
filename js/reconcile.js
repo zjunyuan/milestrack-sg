@@ -111,7 +111,9 @@ export function reconcile(vk, cardId = null) {
     }
     const chainGap = prev && r.kind === "statement" && prev.kind === "statement" && Number.isFinite(r.opening) ? Math.round(r.opening - prev.closing) : 0;
     const inSpan = (c, a, b) => c.lo > a && c.hi <= b, overlaps = (c, a, b) => c.hi > a && c.lo <= b;
-    if (spanBank === null) { rows.push({ rec: r, from, to, baseline: true, status: "baseline" }); prev = r; continue; }
+    // The earliest statement is the starting point, not a check (v1.63.21): it carries the bonus for the month before (HSBC pays a month's
+    // bonus a statement later), which no entry in the app can explain. Checking starts from the next statement.
+    if (spanBank === null || (k === 0 && r.kind === "statement")) { rows.push({ rec: r, from, to, baseline: true, status: "baseline", periodBank: spanBank }); prev = r; continue; }
     if (cumStart === null) cumStart = from;                            // the running check starts at the first checkpoint with a figure
     const base0 = cumStart;
     bankCum += spanBank;

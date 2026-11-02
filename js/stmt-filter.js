@@ -12,7 +12,7 @@ const n = (x) => fmtNum(Math.round(Number(x) || 0));
 
 // Every statement checkpoint for a vault (one list per card when the bank keeps a balance per card), newest first.
 export function statementPeriods(vk, cardId = null) {
-  const pick = (rows, cid) => rows.filter(r => r.rec && r.rec.kind === "statement" && !r.baseline).map(r => ({
+  const pick = (rows, cid) => rows.filter(r => r.rec && r.rec.kind === "statement").map(r => ({
     vk, cardId: cid, from: r.from, to: r.to, bank: r.periodBank, sure: r.periodSure, maybe: r.periodMaybe, status: r.status,
     label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.to)}${cid ? ` · ${cardName(cid)}` : ""}`
   }));
@@ -39,10 +39,10 @@ export function passesStmt(tx, s) {
 export function stmtBannerHtml(s, rows) {
   if (!s) return "";
   const spent = rows.reduce((a, t) => a + (Number(t.amt) || 0), 0), miles = rows.reduce((a, t) => a + (Number(t.miles) || 0), 0);
-  const gap = (Number(s.bank) || 0) - (Number(s.sure) || 0) - (Number(s.maybe) || 0);
+  const gap = s.status === "baseline" ? 0 : (Number(s.bank) || 0) - (Number(s.sure) || 0) - (Number(s.maybe) || 0);
   return `<div class="stmt-banner">
     <div><b>📄 ${escapeHtml(s.label)}</b> <button type="button" class="stmt-x" data-stmt-clear title="Show all entries again">✕</button></div>
-    <div class="hm-note">Bank credited <b>${n(s.bank)}</b> points · the app expects <b>${n(s.sure)}</b>${s.maybe ? ` + up to ${n(s.maybe)}` : ""}${gap > 5 ? ` · <span class="st-warn">${n(gap)} the app can't explain: look for Base entries the bank paid a bonus on</span>` : ""}</div>
+    <div class="hm-note">${s.status === "baseline" ? `Bank credited <b>${n(s.bank)}</b> points · your earliest statement, the starting point: not checked, because it includes the bonus for the month before your first entries` : `Bank credited <b>${n(s.bank)}</b> points · the app expects <b>${n(s.sure)}</b>${s.maybe ? ` + up to ${n(s.maybe)}` : ""}`}${gap > 5 ? ` · <span class="st-warn">${n(gap)} the app can't explain: look for Base entries the bank paid a bonus on</span>` : ""}</div>
     <div class="hm-note">Entries that posted in this statement: ${rows.length} · S$${fmtNum(spent, 2)} · ${n(miles)} mi (by posting date, the way the bank counts them)</div>
   </div>`;
 }
