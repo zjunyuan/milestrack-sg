@@ -100,7 +100,8 @@ export function totalsHtml(rows, view) {
   const mpd = spent > 0 ? (miles / spent).toFixed(2) : '0.00';
   const postNote = (view.postFrom || view.postTo)
     ? ` · ${state.transactions.filter(t => !t.postTs).length} transactions have no post date and are hidden` : '';
-  return `<div class="tx-totals"><b>${rows.length}</b> transaction${rows.length === 1 ? '' : 's'} · <b>S$${fmtNum(spent, 2)}</b> · <b>${fmtNum(miles, 0)} mi</b> · ${mpd} mpd${postNote}</div>`;
+  // The figures sit in the table's own Total row now; this line only carries the note about rows a posted-date filter hides.
+  return postNote ? `<div class="tx-totals">${postNote.replace(/^ · /, '')}</div>` : '';
 }
 
 const fmtDay = (ms) => {
@@ -134,5 +135,8 @@ export function tableHtml(rows, view, cardOf, select = null) {
       <td class="acts">${select ? '' : `<button class="btn-tx-action btn-edit" data-act="edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button><button class="btn-tx-action btn-delete" data-act="delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>`}</td>
     </tr>`;
   }).join('');
-  return `<table class="tx-table"><thead><tr>${selHead}${head}</tr></thead><tbody>${body}</tbody></table>`;
+  // Totals under their own columns (v1.63.19), so they can be read against a statement's figures.
+  const spent = rows.reduce((s, t) => s + (Number(t.amt) || 0), 0), miles = rows.reduce((s, t) => s + (Number(t.miles) || 0), 0);
+  const foot = rows.length ? `<tfoot><tr class="tx-foot">${select ? '<td></td>' : ''}<td colspan="5">Total · ${rows.length} transaction${rows.length === 1 ? '' : 's'}</td><td class="num">${fmtNum(spent, 2)}</td><td class="num miles">+${fmtNum(miles, 0)}</td><td class="num">${spent > 0 ? (miles / spent).toFixed(2) : '0.00'}</td><td></td></tr></tfoot>` : '';
+  return `<table class="tx-table"><thead><tr>${selHead}${head}</tr></thead><tbody>${body}</tbody>${foot}</table>`;
 }

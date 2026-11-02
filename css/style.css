@@ -969,6 +969,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .tx-table th.sorted { color: var(--primary); }
 .tx-table th.num, .tx-table td.num { text-align: right; }
 .tx-table td { background: var(--surface); padding: 9px 8px; color: #e2e8f0; white-space: nowrap; }
+.tx-table tfoot td { background: rgba(148,163,184,0.10); font-weight: 700; color: #fff; border-top: 1px solid var(--surface-variant); }
+.tx-table tfoot td:first-child { border-radius: 10px 0 0 10px; } .tx-table tfoot td:last-child { border-radius: 0 10px 10px 0; }
 .tx-table td:first-child { border-radius: 10px 0 0 10px; }
 .tx-table td:last-child { border-radius: 0 10px 10px 0; }
 .tx-table td.merch { white-space: normal; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
