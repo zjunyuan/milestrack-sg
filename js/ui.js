@@ -33,6 +33,7 @@ import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
 import { statementPeriods, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
+import { setCopyRows } from "./copy-for-claude.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip, rateTag } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -638,6 +639,7 @@ export function renderTransactions() {
     return true;
   });
   const rows = sortTxns(filteredTxns, view, cardOf);
+  setCopyRows(rows);   // what "Copy for Claude" copies
 
   // Select mode: only rows that are showing can stay selected, so nothing hidden by a filter is deleted by mistake.
   const sel = state.txSelect;
