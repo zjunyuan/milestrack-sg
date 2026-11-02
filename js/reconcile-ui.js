@@ -24,7 +24,7 @@ export function tileStatus(vk) {
   const r = worstRow(vk);
   if (!r || r.status === "baseline") return { cls: "pc-wait", text: "Bank balance noted" };
   const [label, cls] = STATUS[r.status];
-  return { cls, text: `${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""} · ${fmtDate(r.to)}` };
+  return { cls, text: `${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""} · ${fmtDate(r.rec.ts)}` };
 }
 
 const currencies = () => {
@@ -98,7 +98,7 @@ function rowHtml(r, unit, withSuspects = true, ctx = null) {
   const rec = r.rec, [label, cls] = STATUS[r.status];
   const src = rec.kind === "statement" ? `${BANK_LABEL[rec.bank] || ""} statement` : "Balance you added";
   const link = ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : "";
-  if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.to)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">${rec.kind === "statement"
+  if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.rec.ts)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">${rec.kind === "statement"
     ? `Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries. Balance ${n(rec.closing)} ${escapeHtml(unit)}; later statements are checked from here.`
     : `Balance ${n(rec.closing)} ${escapeHtml(unit)}. The next balance you add is checked against this one.`}</div>${link}</div>`;
   const extra = (rec.items || []).length ? `<div class="hm-note">${rec.items.map(i => `${escapeHtml(i.what)} ${i.pts > 0 ? "+" : "−"}${n(Math.abs(i.pts))}`).join(" · ")}${rec.bank === "uob" && rec.items.some(i => i.pts > 0) ? " (added back, not counted as earned)" : ""}</div>` : "";
@@ -109,7 +109,7 @@ function rowHtml(r, unit, withSuspects = true, ctx = null) {
     : r.status === "pending" ? `<div class="hm-note">Up to ${n(r.due)} more is due (a bonus the bank credits after the cycle ends). Checked again at the next statement.</div>`
     : r.maybe ? `<div class="hm-note">Includes a bonus the bank paid within its window.</div>` : "";
   return `<div class="pc-cp">
-    <div class="pc-head"><b>${fmtDate(r.to)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""}</span></div>
+    <div class="pc-head"><b>${fmtDate(r.rec.ts)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""}</span></div>
     <div class="pc-nums"><span>This period: bank <b>${n(r.periodBank)}</b></span><span>expected <b>${n(r.periodSure)}</b>${r.periodMaybe ? ` + up to ${n(r.periodMaybe)}` : ""}</span></div>
     <div class="pc-nums hm-note"><span>Since ${fmtDate(r.start)}: bank ${n(r.bank)}</span><span>expected ${n(r.sure)}${r.maybe ? ` + up to ${n(r.maybe)}` : ""}</span><span>allowance ±${n(r.tol)}</span></div>
     ${extra}${chain}${unver}${why}${sus}

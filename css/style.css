@@ -1179,6 +1179,7 @@ body:has(#demoBar) { padding-top: 28px; }
 .tx-rate { font-size: 0.64rem; font-weight: 700; border-radius: 4px; padding: 0 5px; white-space: nowrap; vertical-align: 1px; }
 .tx-rate.bonus { color: #7ee2a8; background: rgba(126,226,168,0.12); }
 .tx-rate.base { color: #94a3b8; background: rgba(148,163,184,0.14); }
+.tx-rate.refunded { color: #fca5a5; background: rgba(252,165,165,0.14); }
 .tx-stmt { color: #4ade80; font-size: 0.68rem; font-weight: 600; }
 
 .ms-cat { cursor: pointer; }
@@ -1258,3 +1259,4 @@ body:has(#demoBar) { padding-top: 28px; }
 .stmt-scroll { overflow-x: auto; }
 .stmt-tbl td .ok { color: #7ee2a8; } .stmt-tbl td .over { color: #ffd27a; } .stmt-tbl td .bad { color: #ffb4a9; } .stmt-tbl .dim { color: #94a3b8; }
 @media (min-width: 900px) { #txList { overflow-x: auto; } .tx-table th.num, .tx-table td.num { padding-left: 6px; padding-right: 6px; } }   /* v1.63.23: two points columns; a narrow window scrolls the table, not the page */
+.tx-listhead-btns { display: inline-flex; gap: 6px; align-items: center; }

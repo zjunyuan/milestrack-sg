@@ -293,7 +293,8 @@ initStatementImport();
 initPointsCheck();
 initOnboarding();
 setTimeout(initInstallHint, 1500);   // iOS only; after the app has drawn
-initIconFallback();                   // words instead of icons when no icon font can load (v1.63.25)
+initIconFallback();
+document.getElementById('btnTxCopy')?.addEventListener('click', async (e) => { const btn = e.currentTarget; const { copyForClaude } = await import('./copy-for-claude.js'); copyForClaude(btn); });                   // words instead of icons when no icon font can load (v1.63.25)
 initInstallHelp();                    // Settings > Data "Install on iPhone" row (iOS only)
 document.getElementById("btnOpenPointsCheck")?.addEventListener("click", () => openPointsCheck());
 document.getElementById("btnOpenPartners")?.addEventListener("click", () => openPartners("asiamiles", state.myVault));

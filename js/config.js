@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.26";
+export const APP_VERSION = "v1.63.29";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
