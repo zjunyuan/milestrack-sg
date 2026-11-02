@@ -90,19 +90,37 @@ function estimateTx(card, line, spentInBucket) {
     const ratio = state.myVault[card.vaultKey]?.ratio || 1;
     return { miles: y.miles, earnedRawPoints: Math.round(y.miles / ratio), bonusCategory: y.partner ? "bonus" : "base" };
   }
-  let rate = card.baseMpd, bonus = false;
+  let rate = card.baseMpd;
   const retailer = lookupBrand(line.merchant || line.desc);
   const entry = retailer && getMccEntry(retailer.mcc);
   const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
-  const room = card.monthlyCap >= 999999 || spentInBucket + line.amt <= card.monthlyCap;
-  if (cand && room) { rate = cand.baseRate; bonus = true; }
-  if (card.id === "ocbc-rewards" && room) {                          // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
+  if (cand) rate = cand.baseRate;
+  if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
-    if (r > rate) { rate = r; bonus = true; }
+    if (r > rate) rate = r;
   }
-  const miles = calcEarnedMiles(card, line.amt, rate);
   const ratio = state.myVault[card.vaultKey]?.ratio || 1;
-  return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: bonus ? "bonus" : "base" };
+  const amt = line.amt, base = card.baseMpd;
+  if (!(rate > base)) { const miles = calcEarnedMiles(card, amt, base); return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: "base" }; }
+  // A line that crosses the monthly cap earns the bonus on the part that fits and base on the rest (v1.63.44: the whole line used to go
+  // to base). OCBC's promo rate only covers the first S$1,000, then the regular bonus runs to the S$1,110 cap.
+  if (card.id === "ocbc-rewards") {
+    // OCBC counts in S$5 blocks a month: 5 OCBC$ base on every block, 45 regular bonus on the first 222 blocks (S$1,110), and during
+    // the promo 25 more on the first 200 (S$1,000). Checked against a statement where the month went over both caps: exact.
+    const blocks = Math.floor(amt / 5), used = Math.floor((spentInBucket + 0.001) / 5);
+    const reg = Math.min(blocks, Math.max(0, 222 - used)), promo = rate > 4 ? Math.min(blocks, Math.max(0, 200 - used)) : 0;
+    const pts = blocks * 5 + reg * 45 + promo * 25;
+    return { miles: Math.round(pts * ratio), earnedRawPoints: pts, bonusCategory: reg > 0 ? "bonus" : "base", capSpend: blocks * 5 };
+  }
+  const cap = card.monthlyCap >= 999999 ? Infinity : card.monthlyCap;
+  const tiers = card.id === "ocbc-rewards" && rate > 4 ? [[Math.min(1000, cap), rate], [cap, 4]] : [[cap, rate]];
+  let spent = spentInBucket, left = amt, miles = 0, eligible = 0;
+  for (const [upto, r] of tiers) {
+    const part = Math.max(0, Math.min(left, upto - spent));
+    if (part > 0) { miles += calcEarnedMiles(card, part, r); spent += part; left -= part; eligible += part; }
+  }
+  if (left > 0.005) miles += calcEarnedMiles(card, left, base);
+  return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: eligible > 0 ? "bonus" : "base", capSpend: eligible };
 }
 
 function colSelect(id, label, value, allowNone = true) {
@@ -413,7 +431,9 @@ async function undoLastImport() {
 
 function makeCtx() {
   const bucketSpend = {};
-  for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
+  for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc || t.bonusCategory === "base" || t.refunded) continue;   // only bonus spend fills a cap (v1.63.44)
+    const b = tc.id + cycleBucket(tc, countsTs(t, tc)); const a = Number(t.amt) || 0;
+    bucketSpend[b] = (bucketSpend[b] || 0) + (tc.id === "ocbc-rewards" ? Math.floor(a / 5) * 5 : a); }
   const base = Date.now();
   const importId = "imp" + base.toString(36);
   return { bucketSpend, vaultDeltas: {}, base, importId, stamp: { importId, importedAt: base }, seq: 0, done: 0, seenKeys: new Set(), touched: new Set(), refunded: new Set(), saved: {}, masked: 0, addVault: $("stAddVault").checked };
@@ -444,7 +464,7 @@ async function applyLines(ctx) {
       const rfl = refundOfLine.get(r.idx);
       let est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
       if (rfl) est = { ...est, miles: 0, earnedRawPoints: 0 };              // refunded later on this statement: no points
-      bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
+      bucketSpend[bucket] = (bucketSpend[bucket] || 0) + (est.capSpend || 0);
       const id = String(base + (ctx.seq++));
       if (rfl) { ctx.refunded.add(id); ctx.refundsDone = (ctx.refundsDone || 0) + 1; }
       await save(id, {
@@ -476,7 +496,7 @@ async function applyLines(ctx) {
       if (r.status === "moved") {
         const bucket = nc.id + cycleBucket(nc, pt ? countsTs({ timestamp: l.ts, postTs: pt }, nc) : l.ts);
         const est = estimateTx(nc, l, bucketSpend[bucket] || 0);
-        bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
+        bucketSpend[bucket] = (bucketSpend[bucket] || 0) + (est.capSpend || 0);
         bonusCategory = est.bonusCategory; miles = est.miles; raw = est.earnedRawPoints;
       } else {
         const rate = old.bonusCategory === "bonus" ? nc.bonusMpd : nc.baseMpd;
