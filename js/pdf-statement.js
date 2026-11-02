@@ -368,7 +368,9 @@ export function pdfTextToRows(lines, ctx = {}) {
   const BANKS = [["Maybank ", /MAYBANK/gi], ["UOB ", /\bUOB\b|UNITED OVERSEAS/gi], ["DBS ", /\bDBS\b/g], ["Citi ", /CITIBANK|\bCITI\b/gi], ["HSBC ", /HSBC/gi], ["OCBC ", /OCBC/gi]];
   const bank = BANKS.map(([n, re]) => [n, (whole.match(re) || []).length]).sort((a, b) => b[1] - a[1]).filter(x => x[1] > 0)[0]?.[0] || "";
   const rows = [];
-  const product = ctx.name ? "" : ((/HSBC\s+(?:VISA|MASTERCARD)(?:\s+[A-Z]{3,})?/.exec(text) || [])[0] || "").replace(/\s+/g, " ");
+  // HSBC: "HSBC VISA REVOLUTION". Citi pages: "CITI REWARDS VISA SIGNATURE 4147 4650 0212 1599" (the name is how Visa and Mastercard are told apart).
+  const citiProduct = (/\b(CITI\s+(?:REWARDS|PREMIERMILES)[A-Z ]*?)\s+\d{4}\s\d{4}\s\d{4}\s\d{4}\b/.exec(text) || [])[1];
+  const product = ctx.name ? "" : (citiProduct || (/HSBC\s+(?:VISA|MASTERCARD)(?:\s+[A-Z]{3,})?/.exec(text) || [])[0] || "").replace(/\s+/g, " ");
   if (ctx.name) rows.push(["Account Type:", ctx.name]);
   else if (product) rows.push(["Account Type:", product]);
   else if (title || bank) rows.push(["Account Type:", (bank + (title ? title[1].trim() : "")).trim()]);

@@ -538,7 +538,11 @@ function prepareCore(rows, fileName = "") {
   const probe = buildLines(S.rows, S.headerRow, S.cols, { order: S.order });
   // Payments, transfers and fees sit on the opposite side of spend, so leave them out when judging which sign means spend.
   const spendish = probe.filter(l => !l.fee && !/visa direct|payment|giro|fund transfer|moneysend|refund|rebate|cashback/i.test(l.desc));
-  S.flip = spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
+  // A payment to the card is the surest sign of the file's convention: it is a credit, so if payments come out positive the file shows spend as negative.
+  // (A month of nine small refunds and one purchase fooled the count below: HSBC March 2026.)
+  const pays = probe.filter(l => /visa direct|payment|giro|fund transfer|moneysend/i.test(l.desc) && Math.abs(l.amt) >= 1);
+  S.flip = pays.length ? pays.filter(l => l.amt > 0).length > pays.length / 2
+    : spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
   return guess;
 }
 // A file may hold several cards (a combined UOB PDF): returns [{ label, rows, name, last4 }], one per card section, else one entry.
