@@ -27,7 +27,7 @@ body {
   padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); 
 }
 
-.app-container { width: 100%; max-width: 1180px; padding: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
+.app-container { width: 100%; max-width: 1180px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; display: flex; flex-direction: column; gap: 14px; }   /* v1.63.4: keep the header clear of the clock / Dynamic Island when run from the iPhone Home Screen (translucent status bar) */
 
 /* 2-Row Header Layout */
 header { 
