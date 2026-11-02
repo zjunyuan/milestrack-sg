@@ -389,7 +389,14 @@ export function detectCardHint(rows) {
 // Suggests one of the app's card ids from a statement card name, or "" when unsure.
 export function suggestCardId(hint, enabledIds = [], remembered = {}) {
   if (!hint) return "";
-  if (hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4])) return remembered[hint.last4];
+  const byName = cardFromName(hint, enabledIds);
+  const mem = hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4]) ? remembered[hint.last4] : "";
+  // The remembered card for these last 4 digits wins only when the statement's own name agrees with it (or names nothing):
+  // a wrong pick once saved (HSBC remembered as OCBC, Citi Visa as Mastercard) must not stick for good.
+  if (mem && (!byName || familyOf(mem).includes(byName))) return mem;
+  return byName;
+}
+function cardFromName(hint, enabledIds) {
   const n = (hint.name || "").toLowerCase();
   const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";
   if (/hsbc|revolution/.test(n)) return pick("hsbc-rev");
