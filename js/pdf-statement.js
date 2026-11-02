@@ -157,6 +157,9 @@ export async function readPdfParts(file, askPassword, progress) {
   const sections = splitCardSections(lines);
   if (sections) return sections.map(s => ({ ...s, points }));
   const rows = pdfTextToRows(lines);
+  const hasTx = rows.some(r => /^\d{2} \w{3} \d{4}$/.test(String(r[0])));
+  const ym = !hasTx && looksUnused(lines) ? statementYm(lines.join("\n")) : "";   // a statement of an unused card: nothing to import, but its month can be ticked
+  if (ym) return [{ name: "", last4: "", rows, empty: true, ym, verify: null, points }];
   if (rows.length < 2) throw new Error(NO_LINES);
   return [{ name: "", last4: "", rows, verify: null, points }];
 }
@@ -271,6 +274,23 @@ function verifySection(sectionLines, rows, total) {
   const diff = Math.round((prev + sum - total) * 100) / 100;
   return { ok: Math.abs(diff) < 0.015, text: true, prev, total, sum: Math.round(sum * 100) / 100, diff };
 }
+// The month a statement is dated (YYYY-MM), from the same date patterns pdfTextToRows uses for the year. "" when none is found.
+export function statementYm(text) {
+  const per = /(?:Statement\s+period|Statement\s+From)[\s\S]{0,60}?\bto\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(text);
+  const sdw = /Statement Date\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(text) || /STATEMENT PRINTED ON\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(text) || /STATEMENT DATE[\s\S]{0,120}?(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/.exec(text);
+  const d = per || sdw;
+  if (d) { const mo = MONTH_NO[d[2].toUpperCase()]; return mo ? `${d[3]}-${String(mo).padStart(2, "0")}` : ""; }
+  const sd = /\b(\d{2})\/(\d{2})\/(\d{4})\b/.exec(text) || /STATEMENT DATE[\s\S]{0,200}?\b(\d{2})-(\d{2})-(\d{4})\b/.exec(text);   // OCBC: "25-06-2026" under the heading
+  if (sd) { return +sd[2] >= 1 && +sd[2] <= 12 ? `${sd[3]}-${sd[2]}` : ""; }
+  // Citi pages carry only "Payment Due Date: April 23, 2026"; the statement is dated about the 28th of the month before.
+  const due = /Payment Due Date:\s*([A-Za-z]{3})[A-Za-z]*\s+\d{1,2},\s*(\d{4})/i.exec(text);
+  if (due && MONTH_NO[due[1].toUpperCase()]) { let y = +due[2], mo = MONTH_NO[due[1].toUpperCase()] - 1; if (mo < 1) { mo = 12; y--; } return `${y}-${String(mo).padStart(2, "0")}`; }
+  return "";
+}
+// A section or file with a "previous balance" line and no line that starts with a date and ends in an amount: a card that was not used this month.
+const PREV_BAL = /PREVIOUS\s+BALANCE|BALANCE\s+PREVIOUS|LAST\s+MONTH'?S\s+BALANCE/i;
+const DATED_AMOUNT = /^\s*\d{1,2}\s?[A-Za-z]{3,4}\b.*\d[\d,]*\.\d{2}\s*(?:CR|DR)?\s*$/i;
+export function looksUnused(lines) { return lines.some(l => PREV_BAL.test(l)) && !lines.some(l => DATED_AMOUNT.test(l)); }
 const CARD_LINE = /^\s*[\dXx•*]{4}[- ][\dXx•*]{4}[- ][\dXx•*]{4}[- ](\d{4})\s+[A-Z]/;
 // Splits statement text into per-card sections: a header line, then "XXXX-XXXX-XXXX-1234 NAME", then the lines, ending at "TOTAL BALANCE FOR".
 // A section continued on a later page ("... (continued)") is joined to the first one. Returns null unless two or more cards are found.
@@ -313,10 +333,14 @@ export function splitCardSections(lines) {
   const out = [];
   for (const last4 of order) {
     const rows = pdfTextToRows(by[last4], { dateText: full, name: names[last4] || "", last4 });
-    if (rows.some(r => /^\d{2} \w{3} \d{4}$/.test(String(r[0])))) {      // a card with no lines this month (only a balance) is left out
+    if (rows.some(r => /^\d{2} \w{3} \d{4}$/.test(String(r[0])))) {
       const part = { name: names[last4] || "", last4, rows };
       if (last4 in totals) part.verify = verifySection(by[last4], rows, totals[last4]);   // DBS prints each card's own total
       out.push(part);
+    } else if (looksUnused(by[last4])) {          // a card with no lines this month (only a balance): kept so its month can be ticked, with nothing to import
+      const ym = statementYm(full);
+      const v = last4 in totals ? verifySection(by[last4], rows, totals[last4]) : null;   // previous balance + no lines must equal the printed total
+      if (ym && (!v || v.ok)) out.push({ name: names[last4] || "", last4, rows, empty: true, ym });
     }
   }
   return out.length ? out : null;

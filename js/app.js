@@ -108,6 +108,7 @@ window.addEventListener('settings-updated', () => {
   renderCategoryTracker();
   renderExpiryRadar();
   checkUobFeeDefense();
+  refreshHistory();   // the statement coverage grid lives in settings
 });
 
 window.addEventListener('txns-updated', () => {
