@@ -1256,6 +1256,9 @@ body:has(#demoBar) { padding-top: 28px; }
 .stmt-tbl tr.strong td { color: #fff; }
 .stmt-verdict { font-size: 0.82rem; font-weight: 600; }
 .stmt-verdict.ok { color: #7ee2a8; } .stmt-verdict.over { color: #ffd27a; } .stmt-verdict.bad { color: #ffb4a9; }
+.stmt-fix { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(148,163,184,0.3); font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; }
+.stmt-fix-set { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.stmt-fix .ok { color: #7ee2a8; } .stmt-fix .bad { color: #ffb4a9; } .stmt-fix .dim { color: #94a3b8; }
 .stmt-scroll { overflow-x: auto; }
 .stmt-tbl td .ok { color: #7ee2a8; } .stmt-tbl td .over { color: #ffd27a; } .stmt-tbl td .bad { color: #ffb4a9; } .stmt-tbl .dim { color: #94a3b8; }
 @media (min-width: 900px) { #txList { overflow-x: auto; } .tx-table th.num, .tx-table td.num { padding-left: 6px; padding-right: 6px; } }   /* v1.63.23: two points columns; a narrow window scrolls the table, not the page */

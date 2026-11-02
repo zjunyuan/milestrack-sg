@@ -594,6 +594,19 @@ export function renderTransactions() {
       if (e.target.closest('.th-filter')) return;
       if (e.target.closest('[data-clear-filters]')) { clearAllTxFilters(); return; }
       if (e.target.closest('[data-stmt-clear]')) { state.txView.stmt = null; renderTransactions(); return; }
+      const fixBtn = e.target.closest('[data-bonus-fix]');
+      if (fixBtn) {
+        import('./stmt-filter.js').then(async ({ fixAt }) => {
+          const set = fixAt(Number(fixBtn.dataset.bonusFix)); if (!set) return;
+          const names = set.items.map(it => `${it.tx.desc} → ${it.dir === 'up' ? 'Bonus' : 'Base'}`).join('\n');
+          if (!confirm(`Switch these entries?\n\n${names}\n\nPoints, miles and the Vault are recalculated. You can edit any of them back later.`)) return;
+          fixBtn.disabled = true;
+          try { const { applyFix } = await import('./bonus-finder.js'); const k = await applyFix(set); showToast(`Switched ${k} entr${k === 1 ? 'y' : 'ies'}`); }
+          catch (err) { showToast(`Couldn't switch: ${err.message || err}`, { kind: 'error' }); fixBtn.disabled = false; }
+          renderTransactions();
+        });
+        return;
+      }
       const th = e.target.closest('th[data-sort]');
       if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
       const selBtn = e.target.closest('[data-sel]');
