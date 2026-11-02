@@ -4,7 +4,7 @@ import { ALL_MASTER_CARDS } from "./config.js";
 import { saveTxToFirestore, deleteTxFromFirestore, updateVaultDoc } from "./firebase.js";
 
 // Raw points a logged transaction put into the balances (statement lines imported without "add to balances" never did).
-function rawPointsOf(tx) {
+export function rawPointsOf(tx) {
   if (tx.source === "statement" && !tx.vaultCounted) return 0;
   const c = ALL_MASTER_CARDS.find(x => x.id === tx.cardId);
   const ratio = (c && state.myVault[c.vaultKey]?.ratio) || 1;
