@@ -16,7 +16,8 @@ export function suggestRate() {
   if (!card || card.id === "dbs-yuu") return;
   const back = () => { if (sel.dataset.auto === "1") { sel.value = "bonus"; sel.dataset.auto = ""; } };   // undo our own earlier pick
   if (!desc) return back();
-  const entry = resolveMccEntry(desc);
+  const own = ($("txMccInput")?.value || "").trim();
+  const entry = resolveMccEntry(/^\d{4}$/.test(own) ? own : desc);   // an MCC typed on the form beats the merchant name
   const list = entry && (cardId.endsWith("-fcy") ? entry.candidatesOverseas : entry.candidatesLocal);
   if (!Array.isArray(list)) return back();   // merchant not recognised: back to the default, never a guess
   const eligible = list.some(c => c.id === cardId);
@@ -30,6 +31,7 @@ export function suggestRate() {
 export function initRateHint() {
   $("bonusCategory")?.addEventListener("change", () => { $("bonusCategory").dataset.touched = "1"; $("bonusCategory").dataset.auto = ""; if ($("rateHint")) $("rateHint").textContent = ""; });
   $("descInput")?.addEventListener("input", suggestRate);
+  $("txMccInput")?.addEventListener("input", suggestRate);
   $("cardSelect")?.addEventListener("change", suggestRate);
   window.addEventListener("rate-suggest", suggestRate);
 }

@@ -21,7 +21,7 @@ import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
-import { monthlySummaryHtml, monthDeltas, deltaText } from "./summary.js";
+import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
 import { familyOf } from "./statements.js";
 import { trustExpiry, pointsExpiry } from "./expiry.js";
@@ -899,6 +899,7 @@ export function openModal() {
   setLogContext(null);
   document.getElementById('editTxId').value = '';
   document.getElementById('descInput').value = '';
+  const mccIn = document.getElementById('txMccInput'); if (mccIn) { mccIn.value = ''; mccIn.placeholder = '4 digits, e.g. 7011'; }
   document.getElementById('bonusCategory').value = 'bonus'; document.getElementById('bonusCategory').dataset.touched = '';
   const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
   document.getElementById('amtInput').value = '';
@@ -937,6 +938,8 @@ export function openEditModal(txId) {
   }
 
   document.getElementById('amtInput').value = tx.amt;
+  const mccIn = document.getElementById('txMccInput');
+  if (mccIn) { mccIn.value = tx.mcc || ''; const auto = mccOf(tx.desc); mccIn.placeholder = auto ? `${auto} from the merchant name` : '4 digits, e.g. 7011'; }
   document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
   document.getElementById('bonusCategory').dataset.touched = '1';
   const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
@@ -996,6 +999,9 @@ export async function saveTransaction() {
     if (postTs < txTimestamp) return alert('The posting date cannot be before the transaction date.');
   }
 
+  const mccTyped = (document.getElementById('txMccInput')?.value || '').trim();
+  if (mccTyped && !/^\d{4}$/.test(mccTyped)) return alert('The MCC is 4 digits, e.g. 7011. Leave it empty to use the merchant\'s own code.');
+
   const btn = document.getElementById('btnSaveLedger');
   if (btn?.disabled) return;                      // already saving: ignore a second tap
   const vaultBefore = JSON.stringify(state.myVault);
@@ -1004,8 +1010,10 @@ export async function saveTransaction() {
   if (btn) btn.disabled = true;
 
   try {
-    if (editId) {
-      const oldTx = state.transactions.find(t => t.id === editId);
+    const oldTx = editId ? state.transactions.find(t => t.id === editId) : null;
+    // A statement line imported without "add to balances" never moved the Vault, so editing it must not either (v1.63.17).
+    const counted = !(oldTx && oldTx.source === 'statement' && !oldTx.vaultCounted);
+    if (editId && counted) {
       if (oldTx) {
         const oldCard = ALL_MASTER_CARDS.find(c => c.id === oldTx.cardId);
         if (oldCard && state.myVault[oldCard.vaultKey]) {
@@ -1025,14 +1033,18 @@ export async function saveTransaction() {
     }
     let earnedRawPoints = Math.round(earnedMiles / (state.myVault[card.vaultKey]?.ratio || 1));
 
-    if (state.myVault[card.vaultKey]) {
+    if (counted && state.myVault[card.vaultKey]) {
       state.myVault[card.vaultKey].points = (Number(state.myVault[card.vaultKey].points) || 0) + earnedRawPoints;
       await updateVaultDoc(state.myVaultKey, state.myVault);
       vaultWritten = true;
     }
 
     const txRecordId = editId || String(Date.now());
+    // Editing keeps everything the form does not show (statement mark, import tags, bank points, posting date) instead of dropping it.
+    const kept = oldTx ? Object.fromEntries(Object.entries(oldTx).filter(([k]) => !['firestoreId', 'mcc', 'postTs'].includes(k))) : {};
+    if (oldTx && oldTx.postTs && postingRule(card)?.basis === 'transaction') kept.postTs = oldTx.postTs;
     const payload = {
+      ...kept,
       id: txRecordId,
       owner: state.myVaultKey,
       timestamp: txTimestamp,
@@ -1043,7 +1055,8 @@ export async function saveTransaction() {
       miles: earnedMiles,
       earnedRawPoints,
       date: displayDateStr,
-      ...(postTs ? { postTs } : {})
+      ...(postTs ? { postTs } : {}),
+      ...(mccTyped ? { mcc: mccTyped } : {})
     };
     await saveTxToFirestore(txRecordId, payload);
 
