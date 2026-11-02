@@ -628,7 +628,7 @@ export function renderTransactions() {
   if (rows.length === 0) {
     list.innerHTML = state.transactions.length === 0
       ? `<div class="empty-guide"><div class="eg-title">Nothing logged yet</div><div class="eg-text">Every spend you log shows up here, with the card, the category and the miles it earned. Use the recommender or a quick preset at the top, then tap <b>Log</b>. You can also import a bank statement from Settings.</div></div>`
-      : `${selectBar}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.${activeFiltersHtml(view, queryClean)}</div>`;
+      : `${selectBar}${window.matchMedia('(min-width: 900px)').matches ? tableHtml(rows, view, cardOf, sel.on ? sel : null) : ''}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.${activeFiltersHtml(view, queryClean)}</div>`;
     return;
   }
 
