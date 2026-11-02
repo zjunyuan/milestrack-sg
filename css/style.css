@@ -1240,3 +1240,11 @@ body:has(#demoBar) { padding-top: 28px; }
 .stmt-banner { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.35); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; }
 .stmt-x { background: none; border: 0; color: #94a3b8; cursor: pointer; font: inherit; float: right; }
 .pc-link { align-self: flex-start; background: none; border: 0; padding: 2px 0; color: var(--primary, #a8c7fa); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.stmt-tbl { width: 100%; max-width: 640px; border-collapse: collapse; font-size: 0.8rem; }
+.stmt-tbl th { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.4px; color: #94a3b8; font-weight: 600; padding: 2px 6px; text-align: left; }
+.stmt-tbl td { padding: 2px 6px; color: #e2e8f0; }
+.stmt-tbl .num { text-align: right; white-space: nowrap; }
+.stmt-tbl tr.dim td, .stmt-tbl td.dim { color: #94a3b8; }
+.stmt-tbl tr.strong td { color: #fff; }
+.stmt-verdict { font-size: 0.82rem; font-weight: 600; }
+.stmt-verdict.ok { color: #7ee2a8; } .stmt-verdict.over { color: #ffd27a; } .stmt-verdict.bad { color: #ffb4a9; }

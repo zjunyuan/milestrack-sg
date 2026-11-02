@@ -97,7 +97,10 @@ function balanceHtml(vk, unit) {
 function rowHtml(r, unit, withSuspects = true, ctx = null) {
   const rec = r.rec, [label, cls] = STATUS[r.status];
   const src = rec.kind === "statement" ? `${BANK_LABEL[rec.bank] || ""} statement` : "Balance you added";
-  if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.to)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">Balance ${n(rec.closing)} ${escapeHtml(unit)}. The next balance you add is checked against this one.</div></div>`;
+  const link = ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : "";
+  if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.to)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">${rec.kind === "statement"
+    ? `Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries. Balance ${n(rec.closing)} ${escapeHtml(unit)}; later statements are checked from here.`
+    : `Balance ${n(rec.closing)} ${escapeHtml(unit)}. The next balance you add is checked against this one.`}</div>${link}</div>`;
   const extra = (rec.items || []).length ? `<div class="hm-note">${rec.items.map(i => `${escapeHtml(i.what)} ${i.pts > 0 ? "+" : "−"}${n(Math.abs(i.pts))}`).join(" · ")}${rec.bank === "uob" && rec.items.some(i => i.pts > 0) ? " (added back, not counted as earned)" : ""}</div>` : "";
   const chain = r.chainGap ? `<div class="hm-note st-warn">Opening balance ${n(rec.opening)} is ${r.chainGap > 0 ? "more" : "less"} than the last closing balance by ${n(Math.abs(r.chainGap))}: a statement may be missing in between, or the bank adjusted something.</div>` : "";
   const unver = rec.verified === false ? `<div class="hm-note st-warn">Read by text recognition and the figures don't add up, so a number may be misread. Check it against the statement.</div>` : "";
@@ -110,7 +113,7 @@ function rowHtml(r, unit, withSuspects = true, ctx = null) {
     <div class="pc-nums"><span>This period: bank <b>${n(r.periodBank)}</b></span><span>expected <b>${n(r.periodSure)}</b>${r.periodMaybe ? ` + up to ${n(r.periodMaybe)}` : ""}</span></div>
     <div class="pc-nums hm-note"><span>Since ${fmtDate(r.start)}: bank ${n(r.bank)}</span><span>expected ${n(r.sure)}${r.maybe ? ` + up to ${n(r.maybe)}` : ""}</span><span>allowance ±${n(r.tol)}</span></div>
     ${extra}${chain}${unver}${why}${sus}
-    ${ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : ""}
+    ${link}
   </div>`;
 }
 function rowsHtml(vk, unit) {
