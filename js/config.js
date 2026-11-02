@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.6";
+export const APP_VERSION = "v1.63.7";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -648,7 +648,7 @@ export const ALL_MASTER_CARDS = [
 export const MCC_DATABASE = {
   "5541": {
     name: "Petrol Service Stations (Shell, SPC, Esso, Caltex)",
-    notes: "⛽ <b>Shell Exclusive:</b> Pay with UOB PPV (Mobile Tap) or UOB VS for an <b>instant 14% discount</b> (10% Shell GO+ & 4% UOB) + <b>4.0 mpd</b>! Maybank World MC earns 4 mpd uncapped (10% off). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 for 4 mpd on OCBC/Citi Rewards.",
+    notes: "⛽ <b>Shell Exclusive:</b> Pay with UOB PPV (Mobile Tap) or UOB VS for an <b>instant 14% discount</b> (10% Shell GO+ & 4% UOB) + <b>4.0 mpd</b>! The 4% UOB discount does not need the S$1,000 spend (VS's 4 mpd does). Maybank World MC earns 4 mpd uncapped (10% off). Pro-tip: Buy Shell vouchers on HeyMax under MCC 5311 for 4 mpd on OCBC/Citi Rewards.",
     candidatesLocal: [
       { id: "uob-ppv-contactless", baseRate: 4.0 },
       { id: "uob-vs-contactless", baseRate: 4.0 },
