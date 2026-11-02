@@ -297,6 +297,12 @@ export async function mergeSettingsDoc(targetVaultKey, partial) {
   await setDoc(doc(db, "milestrack_settings", targetVaultKey), partial, { merge: true });
 }
 
+// Replaces the whole coverage map (a merge cannot take months out): Undo of an import, or clearing one card's ticks.
+export async function replaceCoverage(targetVaultKey, cov) {
+  if (isDemo()) { state.stmtCoverage = cov; return; }
+  await setDoc(doc(db, "milestrack_settings", targetVaultKey), { stmtCoverage: cov }, { mergeFields: ["stmtCoverage"] });
+}
+
 export async function savePointsRecord(id, rec) {
   if (isDemo()) return demoPoints(id, rec);
   await setDoc(doc(db, "milestrack_points", id), { ...rec, owner: state.myVaultKey });

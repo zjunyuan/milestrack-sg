@@ -2,7 +2,7 @@
 // Nothing leaves the device except the transactions the user chooses to import.
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS, cardShort } from "./config.js";
-import { saveTxToFirestore, updateVaultDoc, deleteTxFromFirestore, mergeSettingsDoc } from "./firebase.js";
+import { saveTxToFirestore, updateVaultDoc, deleteTxFromFirestore, mergeSettingsDoc, replaceCoverage } from "./firebase.js";
 import { calcEarnedMiles } from "./recommender.js";
 import { yuuEntryMiles } from "./yuu.js";
 import { getMccEntry } from "./mcc.js";
@@ -42,6 +42,23 @@ const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? 
 const REMOVED_KEY = "milestrack_last_removed";   // entries the last import removed, kept on this device so Undo can put them back
 const loadRemoved = () => { try { return JSON.parse(localStorage.getItem(REMOVED_KEY) || "null"); } catch { return null; } };
 const saveRemoved = (v) => { try { if (v) localStorage.setItem(REMOVED_KEY, JSON.stringify(v)); else localStorage.removeItem(REMOVED_KEY); } catch { /* storage unavailable */ } };
+const COVER_KEY = "milestrack_last_cover";       // coverage months the last import added, kept on this device for Undo
+const loadCoverAdded = () => { try { return JSON.parse(localStorage.getItem(COVER_KEY) || "null"); } catch { return null; } };
+const saveCoverAdded = (v) => { try { if (v && Object.keys(v).length) localStorage.setItem(COVER_KEY, JSON.stringify(v)); else localStorage.removeItem(COVER_KEY); } catch { /* storage unavailable */ } };
+// Takes months out of the coverage record ({ cardKey: ["YYYY-MM", ...] }, or { cardKey: true } for the whole row) and saves the result.
+async function untickCoverage(which) {
+  if (!which || !Object.keys(which).length) return;
+  const next = { ...(state.stmtCoverage || {}) };
+  for (const [k, ms] of Object.entries(which)) {
+    if (ms === true) { delete next[k]; continue; }
+    if (!next[k]) continue;
+    next[k] = { ...next[k] }; for (const m of ms) delete next[k][m];
+    if (!Object.keys(next[k]).length) delete next[k];
+  }
+  state.stmtCoverage = next;
+  try { await replaceCoverage(state.myVaultKey, next); } catch (e) { console.error("Coverage save failed", e); }
+  window.dispatchEvent(new CustomEvent("settings-updated"));
+}
 const GRACE_DAYS = 7;   // entries this close to the end of a statement may simply post on the next one
 
 const blankFile = () => ({ stale: [], recent: [], remove: {}, chan: {}, flip: false, since: "", hint: null, card: null, rows: [], headerRow: -1, cols: {}, order: "dmy", results: [], missing: [], choice: {}, post: {}, fileName: "", lo: 0, hi: 0 });
@@ -347,6 +364,7 @@ async function undoLastImport() {
     for (const [k, raw] of Object.entries(vaultMinus)) if (state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) - raw); touched = true; }
     if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
     if (li.removed && li.removed.length) { await restoreTransactions(li.removed); saveRemoved(null); }
+    await untickCoverage(loadCoverAdded()); saveCoverAdded(null);
     alert("Import undone.");
   } catch (err) {
     console.error("Undo import failed", err);
@@ -442,6 +460,9 @@ function coverageFor(F) {
   const lo = new Date(F.lo), hi = new Date(F.hi);
   for (let d = new Date(lo.getFullYear(), lo.getMonth(), 1); d <= hi; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) months[dayKey(d.getTime()).slice(0, 7)] = { n: 0 };
   for (const r of F.results) { if (r.status === "credit") continue; const m = dayKey(r.line.ts).slice(0, 7); if (months[m]) months[m].n++; }
+  // A statement cannot cover a month after its own date, or after this month (a misread year once ticked a whole year ahead).
+  const cap = [F.stmtYm, dayKey(Date.now()).slice(0, 7)].filter(Boolean).sort()[0];
+  for (const m of Object.keys(months)) if (m > cap) delete months[m];
   return months;
 }
 
@@ -474,6 +495,9 @@ async function finishApply(ctx, files) {
     const prev = state.stmtCoverage || {};
     const next = { ...prev };
     for (const [k, ms] of Object.entries(cover)) next[k] = { ...(prev[k] || {}), ...ms };
+    const added = {};                                 // months this import ticked for the first time, so Undo can take them back
+    for (const [k, ms] of Object.entries(cover)) for (const m of Object.keys(ms)) if (!(prev[k] && prev[k][m])) (added[k] = added[k] || []).push(m);
+    saveCoverAdded(added);
     state.stmtCoverage = next;
     try { await mergeSettingsDoc(state.myVaultKey, { stmtCoverage: cover }); } catch (e) { console.error("Coverage save failed", e); }
   }
@@ -556,14 +580,14 @@ async function readParts(file) {
     if (bad) return [{ label: file.name, error: bad.missing
       ? "This PDF has no text, so I read it as a picture, but couldn't find the statement's own balances to check the lines against, so nothing can be imported safely. Please tell me and I'll look at it."
       : `This PDF has no text, so I read it as a picture, and the lines don't add up to the statement (the lines total S$${bad.sum.toFixed(2)}, previous balance S$${bad.prev.toFixed(2)}, statement total S$${bad.total.toFixed(2)}: S$${Math.abs(bad.diff).toFixed(2)} out). A misread amount could overwrite a correct entry, so nothing was imported. Try again, or add these by hand.` }];
-    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows, points: parts[0].points, empty: parts[0].empty, ym: parts[0].ym }]
+    return parts.length === 1 && !parts[0].last4 ? [{ label: file.name, rows: parts[0].rows, points: parts[0].points, empty: parts[0].empty, ym: parts[0].ym, stmtYm: parts[0].stmtYm }]
       : parts.map(p => {
         const label = `${file.name} · ${p.name || "card"}${p.last4 ? " ····" + p.last4 : ""}`;
         const v = p.verify;
         if (v && v.text && !v.ok) return { label, error: v.missing
           ? "I couldn't find this card's previous balance in the PDF, so I can't check its lines against the statement. Nothing was imported for this card. Please tell me and I'll look at it."
           : `This card's lines don't add up to the statement (previous balance S$${v.prev.toFixed(2)} + lines S$${v.sum.toFixed(2)} should be S$${v.total.toFixed(2)}: S$${Math.abs(v.diff).toFixed(2)} out). A line may be missing, so nothing was imported for this card. Please tell me and I'll look at it.` };
-        return { label, rows: p.rows, points: p.points, empty: p.empty, ym: p.ym };
+        return { label, rows: p.rows, points: p.points, empty: p.empty, ym: p.ym, stmtYm: p.stmtYm };
       });
   }
   return [{ label: file.name, rows: await readRows(file) }];
@@ -604,7 +628,7 @@ function loadParts(parts) {
     if (part.error) F.error = part.error;
     else {
       try {
-        S = F; prepareCore(part.rows, part.label);
+        S = F; F.stmtYm = part.stmtYm || ""; prepareCore(part.rows, part.label);
         if (part.empty && part.ym) { F.emptyYm = part.ym; if (!F.card) continue; }   // an unused card the app does not know (DBS Esso, say) is left out
         else if (F.card) computeCore();
         // The points summary: read from the PDF, or from the rows above a CSV's header (the HSBC script writes it there).
@@ -681,8 +705,19 @@ function renderCoverage() {
   const box = $("stCoverage"); if (!box) return;
   const data = coverageData(new Date().getFullYear());
   box.innerHTML = `<summary>${coverageSummaryText(data)}</summary>
-    ${coverageTableHtml(data)}
-    <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends.</div>`;
+    ${coverageTableHtml(data, { clearable: true })}
+    <div class="hm-note">✓ = a statement for that card and month has been imported. · = still to download and import. The current month is not counted until it ends. Ticks look wrong for a card? Tap its name to clear its row, then import its statements again.</div>`;
+  if (!box.dataset.bound) {
+    box.dataset.bound = "1";
+    box.addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-cv-clear]"); if (!b) return;
+      e.preventDefault();
+      const key = b.dataset.cvClear, label = b.textContent.trim();
+      if (!confirm(`Clear the statement ticks for ${label}? Entries are not touched. Months with entries a statement confirmed stay ticked; import the card's statements again to fill the rest back in.`)) return;
+      await untickCoverage({ [key]: true });
+      renderCoverage();
+    });
+  }
 }
 
 // One-off clean-up of text saved before masking existed: finds entries whose saved bank text still holds a long number and masks it.
