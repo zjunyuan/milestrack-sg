@@ -94,7 +94,7 @@ function balanceHtml(vk, unit) {
   </div>`;
 }
 
-function rowHtml(r, unit, withSuspects = true) {
+function rowHtml(r, unit, withSuspects = true, ctx = null) {
   const rec = r.rec, [label, cls] = STATUS[r.status];
   const src = rec.kind === "statement" ? `${BANK_LABEL[rec.bank] || ""} statement` : "Balance you added";
   if (r.baseline) return `<div class="pc-cp"><div class="pc-head"><b>${fmtDate(r.to)}</b> · ${escapeHtml(src)} <span class="pc-chip ${cls}">${label}</span></div><div class="hm-note">Balance ${n(rec.closing)} ${escapeHtml(unit)}. The next balance you add is checked against this one.</div></div>`;
@@ -110,17 +110,18 @@ function rowHtml(r, unit, withSuspects = true) {
     <div class="pc-nums"><span>This period: bank <b>${n(r.periodBank)}</b></span><span>expected <b>${n(r.periodSure)}</b>${r.periodMaybe ? ` + up to ${n(r.periodMaybe)}` : ""}</span></div>
     <div class="pc-nums hm-note"><span>Since ${fmtDate(r.start)}: bank ${n(r.bank)}</span><span>expected ${n(r.sure)}${r.maybe ? ` + up to ${n(r.maybe)}` : ""}</span><span>allowance ±${n(r.tol)}</span></div>
     ${extra}${chain}${unver}${why}${sus}
+    ${ctx && rec.kind === "statement" ? `<button type="button" class="pc-link" data-stmt-vk="${escapeHtml(ctx.vk)}" data-stmt-card="${escapeHtml(ctx.cardId || "")}" data-stmt-to="${r.to}">Show these entries →</button>` : ""}
   </div>`;
 }
 function rowsHtml(vk, unit) {
   const led = reconcileLedgers(vk);
   if (led.length) {                                               // this bank keeps a balance for each card: one check per card
     return `<div class="pc-sec"><b>Statements, card by card</b>${led.map(l => `<div class="pc-cardrow"><b>${escapeHtml(l.cardId ? cardName(l.cardId) : "Card ending " + l.ledger)}</b>${
-      l.rows.length ? l.rows.slice(0, 12).map(r => rowHtml(r, unit)).join("") : `<div class="hm-note">${l.cardId ? "No check yet." : "Import this statement once with the card chosen so it can be matched to your entries."}</div>`}</div>`).join("")}</div>`;
+      l.rows.length ? l.rows.slice(0, 12).map(r => rowHtml(r, unit, true, { vk, cardId: l.cardId })).join("") : `<div class="hm-note">${l.cardId ? "No check yet." : "Import this statement once with the card chosen so it can be matched to your entries."}</div>`}</div>`).join("")}</div>`;
   }
   const rows = reconcile(vk);
   if (!rows.length) return "";
-  return `<div class="pc-sec"><b>Statements and balances</b>${rows.slice(0, 12).map(r => rowHtml(r, unit)).join("")}</div>`;
+  return `<div class="pc-sec"><b>Statements and balances</b>${rows.slice(0, 12).map(r => rowHtml(r, unit, true, { vk, cardId: null })).join("")}</div>`;
 }
 // Banks that print each card's points (DBS, OCBC): the same check per card, so a shortfall points at one card.
 function cardRowsHtml(vk, unit) {
@@ -130,7 +131,7 @@ function cardRowsHtml(vk, unit) {
   if (ids.size < 2) return "";
   return `<details class="pc-sec" data-sec="cards"><summary>By card</summary>${[...ids].map(id => {
     const r = reconcile(vk, id)[0];
-    return r ? `<div class="pc-cardrow"><b>${escapeHtml(cardName(id))}</b>${rowHtml(r, unit)}</div>` : "";
+    return r ? `<div class="pc-cardrow"><b>${escapeHtml(cardName(id))}</b>${rowHtml(r, unit, true, { vk, cardId: id })}</div>` : "";
   }).join("")}</details>`;
 }
 function suspectHtml(r) {
@@ -199,5 +200,15 @@ function wire(box) {
 export function initPointsCheck() {
   $("btnClosePts")?.addEventListener("click", closePointsCheck);
   $("ptsOverlay")?.addEventListener("click", (e) => { if (e.target.id === "ptsOverlay") closePointsCheck(); });
+  // "Show these entries" on a statement check: History filtered to that card and statement (v1.63.20).
+  // Capture phase: the sheet stops click bubbling (onclick="event.stopPropagation()"), so a bubbling listener never hears it.
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("#ptsOverlay [data-stmt-to]"); if (!b) return;
+    const { statementPeriods, openStatementView } = await import("./stmt-filter.js");
+    const p = statementPeriods(b.dataset.stmtVk, b.dataset.stmtCard || null).find(x => String(x.to) === b.dataset.stmtTo);
+    if (!p) return;
+    closePointsCheck();
+    openStatementView(p);
+  }, true);
   for (const ev of ["points-updated", "txns-updated", "vault-updated", "settings-updated"]) window.addEventListener(ev, render);
 }

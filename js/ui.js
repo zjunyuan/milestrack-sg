@@ -32,6 +32,7 @@ import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
+import { statementPeriods, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip, rateTag } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
@@ -530,6 +531,27 @@ async function handleSelectAction(action) {
 }
 
 // With nothing to show the table header (and its filter funnels) is not drawn, so say which filters are on and offer to clear them.
+// Desktop "Statement" select: shown once the card filter points at one bank balance; lists that balance's imported statements.
+export function renderStmtSelect(v = state.txView) {
+  const wrap = document.getElementById('txStmtWrap'), sel = document.getElementById('txStmt');
+  if (!wrap || !sel) return;
+  const vk = vaultOfCardFilter(v.cards);
+  const periods = vk ? statementPeriods(vk) : [];
+  wrap.hidden = !periods.length;
+  if (!periods.length) { sel.innerHTML = ''; return; }
+  const key = (p) => `${p.cardId || ''}|${p.to}`;
+  const cur = v.stmt ? key(v.stmt) : '';
+  sel.innerHTML = `<option value="">All dates</option>` + periods.map(p => `<option value="${escapeHtml(key(p))}" ${key(p) === cur ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
+  if (!sel.dataset.bound) {
+    sel.dataset.bound = '1';
+    sel.addEventListener('change', () => {
+      const vk2 = vaultOfCardFilter(state.txView.cards);
+      state.txView.stmt = (vk2 && statementPeriods(vk2).find(p => key(p) === sel.value)) || null;
+      renderTransactions();
+    });
+  }
+}
+
 function activeFiltersHtml(v, query) {
   const parts = [];
   if (query) parts.push(`Search "${escapeHtml(query)}"`);
@@ -537,6 +559,7 @@ function activeFiltersHtml(v, query) {
   if (v.cards.length) parts.push(`Card: ${escapeHtml(cardFilterLabel(v))}`);
   if (v.cats.length) parts.push(`Category: ${escapeHtml(catFilterLabel(v))}`);
   if (v.rate && v.rate !== 'ALL') parts.push(v.rate === 'base' ? 'Base rate' : 'Bonus rate');
+  if (v.stmt) parts.push(escapeHtml(v.stmt.label));
   if (v.amtMin !== '' || v.amtMax !== '') parts.push(`Amount ${v.amtMin !== '' ? 'S$' + escapeHtml(String(v.amtMin)) : 'any'} to ${v.amtMax !== '' ? 'S$' + escapeHtml(String(v.amtMax)) : 'any'}`);
   if (v.transFrom || v.transTo) parts.push(`Trans date ${escapeHtml(v.transFrom || '…')} to ${escapeHtml(v.transTo || '…')}`);
   if (v.postFrom || v.postTo) parts.push(`Posted ${escapeHtml(v.postFrom || '…')} to ${escapeHtml(v.postTo || '…')}`);
@@ -562,6 +585,7 @@ export function renderTransactions() {
     list.addEventListener('click', (e) => {
       if (e.target.closest('.th-filter')) return;
       if (e.target.closest('[data-clear-filters]')) { clearAllTxFilters(); return; }
+      if (e.target.closest('[data-stmt-clear]')) { state.txView.stmt = null; renderTransactions(); return; }
       const th = e.target.closest('th[data-sort]');
       if (th) { toggleSort(state.txView, th.dataset.sort); renderTransactions(); return; }
       const selBtn = e.target.closest('[data-sel]');
@@ -593,6 +617,8 @@ export function renderTransactions() {
   const cardOf = (tx) => ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
   const view = state.txView;
   const queryClean = state.txSearchQuery.toLowerCase().trim();
+  if (view.stmt && vaultOfCardFilter(view.cards) !== view.stmt.vk) view.stmt = null;   // the card filter moved off that statement's card
+  renderStmtSelect(view);
   const inPeriodRows = state.transactions.filter(inHistoryPeriod);
 
   setFilterRows(inPeriodRows);
@@ -629,16 +655,16 @@ export function renderTransactions() {
   if (rows.length === 0) {
     list.innerHTML = state.transactions.length === 0
       ? `<div class="empty-guide"><div class="eg-title">Nothing logged yet</div><div class="eg-text">Every spend you log shows up here, with the card, the category and the miles it earned. Use the recommender or a quick preset at the top, then tap <b>Log</b>. You can also import a bank statement from Settings.</div></div>`
-      : `${selectBar}${window.matchMedia('(min-width: 900px)').matches ? tableHtml(rows, view, cardOf, sel.on ? sel : null) : ''}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.${activeFiltersHtml(view, queryClean)}</div>`;
+      : `${stmtBannerHtml(view.stmt, rows)}${selectBar}${window.matchMedia('(min-width: 900px)').matches ? tableHtml(rows, view, cardOf, sel.on ? sel : null) : ''}<div style="text-align:center; padding:16px; font-size:0.8rem; color:#94a3b8;">No matching transactions found.${activeFiltersHtml(view, queryClean)}</div>`;
     return;
   }
 
   if (window.matchMedia('(min-width: 900px)').matches) {
-    list.innerHTML = selectBar + tableHtml(rows, view, cardOf, sel.on ? sel : null) + totalsHtml(rows, view);
+    list.innerHTML = stmtBannerHtml(view.stmt, rows) + selectBar + tableHtml(rows, view, cardOf, sel.on ? sel : null) + totalsHtml(rows, view);
     return;
   }
 
-  list.innerHTML = selectBar;
+  list.innerHTML = stmtBannerHtml(view.stmt, rows) + selectBar;
   rows.forEach(tx => {
     const card = cardOf(tx);
     const row = document.createElement('div');
@@ -1190,6 +1216,7 @@ export function refreshHistory() {
 
 /** True when tx falls in the History period picked in #archiveMonthSelect. */
 function inHistoryPeriod(tx) {
+  if (state.txView.stmt) return true;              // a statement view crosses months: the statement's own dates decide
   const key = document.getElementById('archiveMonthSelect')?.value;
   if (!key) return true;
   if (!tx.timestamp) return false;

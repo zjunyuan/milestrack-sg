@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.18";
+export const APP_VERSION = "v1.63.20";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -132,7 +132,7 @@ export function detectYuuMerchant(desc = "") {
 // Source: MileLion "Which credit cards have the smallest miles conversion blocks" (Feb 2026), secondary; HSBC step confirmed by the user. Re-check against each bank.
 export const DEFAULT_VAULT = {
   uob_uni: { name: 'UOB UNI$', points: 0, ratio: 2.0, unit: 'UNI$', rule: '2 yrs from quarter end', transfer: { pts: 5000, miles: 10000 } },
-  // Citi keeps a separate ThankYou balance for each card (v1.63.18): Mastercard here, the Rewards Visa in citi_typ_visa until that card closes.
+  // Citi keeps a separate ThankYou balance for each card (v1.63.15): Mastercard here, the Rewards Visa in citi_typ_visa until that card closes.
   citi_typ: { name: 'Citi TYP Mastercard', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
   citi_typ_visa: { name: 'Citi TYP Visa', points: 0, ratio: 0.4, unit: 'TYP', rule: '5 yrs from card approval', transfer: { pts: 25000, miles: 10000 } },
   citi_miles: { name: 'Citi Miles', points: 0, ratio: 1.0, unit: 'miles', rule: 'Never Expire (Non-pooling)', transfer: { pts: 10000, miles: 10000 } },

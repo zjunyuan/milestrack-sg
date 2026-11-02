@@ -128,7 +128,7 @@ export function reconcile(vk, cardId = null) {
   return rows.reverse();
 }
 const sum = (list) => list.reduce((s, c) => s + c.pts, 0);
-function familyIds(cardId) {
+export function familyIds(cardId) {
   const c = cardById(cardId); if (!c) return [cardId];
   // Channel entries of one physical card (uob-ppv-contactless / -online, ...) share the statement row.
   const stem = cardId.replace(/-(contactless|online|fcy|dining|travel)$/, "");

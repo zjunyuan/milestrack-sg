@@ -19,7 +19,7 @@ export const RETAILERS = [
   r("Cold Storage", "5411", "high", ["cs", "cs fresh"]),
   r("Giant", "5411", "medium", ["giant hypermarket", "giant supermarket"]),
   r("Jasons Market Place", "5411", "medium", ["jasons", "marketplace"]),
-  r("Prime Supermarket", "5411", "high", ["prime"]),
+  r("Prime Supermarket", "5411", "high", []),   // no bare "prime" alias: it caught "AMZNPRIMESG MEMBERSHI" (Amazon Prime) on statements
   r("Don Don Donki", "5411", "medium", ["donki", "don quijote"], { alt: ["5999"] }),
   r("Meidi-Ya", "5411", "medium", ["meidiya"]),
   r("Little Farms", "5411", "medium"),
@@ -218,6 +218,7 @@ export const RETAILERS = [
   r("Pandora", "5944", "medium", [], { alt: ["5999"] }),
   r("Lovisa", "5944", "medium", [], { alt: ["5999"] }),
   r("Amazon", "5999", "low", [], { note: "Varies by what you buy; treated as general retail." }),
+  r("Amazon Prime", "5999", "medium", ["amznprime", "amazonprime", "amznprimesg"], { note: "The Prime membership fee (statements print AMZNPRIMESG MEMBERSHI). Coded 5999 (the user's call; HSBC paid the 10x bonus on it)." }),
   r("Qoo10", "5999", "low"),
   r("Carousell", "5999", "low"),
   r("Temu", "5999", "low"),
