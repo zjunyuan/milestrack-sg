@@ -50,7 +50,10 @@ export function stmtBannerHtml(s, rows) {
   const postedHere = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return d > s.from && d <= s.to; };
   const add = (list) => list.reduce((a, c) => a + c.pts, 0);
   const sureBase = add(credits.filter(c => inside(c) && c.kind !== "bonus")), sureBonus = add(credits.filter(c => inside(c) && c.kind === "bonus"));
-  const maybeEarlier = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && !postedHere(c)));
+  // Only the previous statement's entries, as the label says (v1.63.32): older entries' bonus windows can still overlap this statement
+  // (HSBC's February bonus, already paid on the March statement, showed up again as "could land here" on April's).
+  const postedPrev0 = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return s.prevTo ? d > (s.prevFrom || 0) && d <= s.prevTo : true; };
+  const maybeEarlier = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && !postedHere(c) && postedPrev0(c)));
   const maybeThese = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && postedHere(c)));
   const maybeOther = add(credits.filter(c => overlaps(c) && c.kind !== "bonus"));
   // For the line-by-line match: the bonus for the entries that posted in the PREVIOUS statement only. The window rule would also pull in

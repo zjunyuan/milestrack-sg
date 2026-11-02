@@ -218,7 +218,7 @@ export const RETAILERS = [
   r("Pandora", "5944", "medium", [], { alt: ["5999"] }),
   r("Lovisa", "5944", "medium", [], { alt: ["5999"] }),
   r("Amazon", "5999", "low", [], { note: "Varies by what you buy; treated as general retail." }),
-  r("Amazon Prime", "5999", "medium", ["amznprime", "amazonprime", "amznprimesg"], { note: "The Prime membership fee (statements print AMZNPRIMESG MEMBERSHI). Coded 5999 (the user's call; HSBC paid the 10x bonus on it)." }),
+  r("Amazon Prime", "4899", "high", ["amznprime", "amazonprime", "amznprimesg"], { note: "The Prime membership fee (statements print AMZNPRIMESG MEMBERSHI). MCC 4899 (streaming / pay TV), checked by the user (v1.63.31; was 5999)." }),
   r("Qoo10", "5999", "low"),
   r("Carousell", "5999", "low"),
   r("Temu", "5999", "low"),
