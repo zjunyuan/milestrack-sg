@@ -22,7 +22,7 @@ const BANKS = [
     ["sec", "Promo: 25 more OCBC$ per S$5 at Watsons, Shopee, Lazada, Taobao and TikTok Shop (6 mpd), 1 Jul 2025 to 31 Mar 2027, on the first S$1,000 a month; then 4 mpd up to S$1,110."],
     ["seen", "“Earned” on a statement is the base for its lines; the bonus arrives one statement later."],
     ["seen", "January to May 2026 statements printed no rewards table (OCBC system maintenance)."],
-    ["app", "A line that goes over the monthly cap is counted at base in full; OCBC pays the bonus on the part that fits."]
+    ["seen", "The caps count S$5 blocks in the month: regular bonus on the first 222 blocks (S$1,110), promo bonus on the first 200 (S$1,000). A line that crosses a cap earns the bonus on the blocks that fit."]
   ] },
   { bank: "UOB", unit: "UNI$ (1 UNI$ = 2 mi)", notes: [
     ["sec", "Points per S$5: 1 UNI$ base. The bonus (9 UNI$ per S$5) is worked out once on the month's eligible spend and credited the month after."],
