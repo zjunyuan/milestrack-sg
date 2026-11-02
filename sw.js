@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.63.24';
+const CACHE_NAME = 'milestrack-cache-v1.63.25';
 
 const CORE_ASSETS = [
   './',
@@ -55,6 +55,8 @@ const CORE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './assets/fonts/material-symbols-outlined.woff2',
+  './js/icon-fallback.js',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0'
 ];
 

@@ -24,6 +24,7 @@ import { initLayoutReport } from "./layout-report.js";
 import { initHistoryChips } from "./history-chips.js";
 import { openPartners, closePartners } from "./partners.js";
 import { initInstallHint, initInstallHelp } from "./install-hint.js";
+import { initIconFallback } from "./icon-fallback.js";
 import { initOnboarding } from "./onboarding.js";
 import { initColFilters } from "./col-filter.js";
 import { 
@@ -292,6 +293,7 @@ initStatementImport();
 initPointsCheck();
 initOnboarding();
 setTimeout(initInstallHint, 1500);   // iOS only; after the app has drawn
+initIconFallback();                   // words instead of icons when no icon font can load (v1.63.25)
 initInstallHelp();                    // Settings > Data "Install on iPhone" row (iOS only)
 document.getElementById("btnOpenPointsCheck")?.addEventListener("click", () => openPointsCheck());
 document.getElementById("btnOpenPartners")?.addEventListener("click", () => openPartners("asiamiles", state.myVault));
