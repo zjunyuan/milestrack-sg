@@ -1,4 +1,5 @@
 import { APP_VERSION, ALL_MASTER_CARDS, VAULT_LABELS, normalizeVault } from "./config.js";
+import { rawPointsOf } from "./bulk-delete.js";
 import { state } from "./state.js";
 import { 
   initFirebase, 
@@ -140,6 +141,8 @@ document.getElementById('btnHeaderVault')?.addEventListener('click', () => {
     el.min = '0';
     el.step = 'any';
   }
+  const asOf = document.getElementById('vaultAsOf');
+  if (asOf) { const d = new Date(); asOf.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; asOf.max = asOf.value; }
   document.getElementById('vaultOverlay')?.classList.add('open');
 });
 
@@ -150,15 +153,33 @@ document.querySelectorAll('#vaultOverlay input[type="number"]').forEach(el =>
 document.getElementById('btnSaveVaultBalances')?.addEventListener('click', async () => {
   const btn = document.getElementById('btnSaveVaultBalances');
   const next = normalizeVault(state.myVault);
+  // "Balances as of" (v1.63.14): a figure from the bank app on that day. Entries that post after it are not in it yet, so they are added on top,
+  // and each changed balance is also kept as a dated check for the points check (same record as Check with banks).
+  const asOfStr = document.getElementById('vaultAsOf')?.value || '';
+  const asOfEnd = asOfStr ? new Date(`${asOfStr}T23:59:59.999`).getTime() : Date.now();
+  const changed = [];
   for (const [id, key] of Object.entries(VAULT_FIELDS)) {
     const v = parseFloat(document.getElementById(id)?.value);
-    next[key].points = Number.isFinite(v) && v >= 0 ? v : 0;
+    const typed = Number.isFinite(v) && v >= 0 ? v : 0;
+    const before = Number(state.myVault[key]?.points) || 0;
+    if (typed === before) { next[key].points = typed; continue; }      // untouched: keep the tile as it is
+    let later = 0;
+    for (const t of state.transactions) {
+      const c = ALL_MASTER_CARDS.find(x => x.id === t.cardId);
+      if (c && c.vaultKey === key && (Number(t.postTs) || Number(t.timestamp) || 0) > asOfEnd) later += rawPointsOf(t);
+    }
+    next[key].points = typed + later;
+    changed.push({ key, typed });
   }
   const prev = state.myVault;
   state.myVault = next;
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   try {
     await updateVaultDoc(state.myVaultKey, next);
+    if (changed.length) {
+      const { saveBalance } = await import('./reconcile.js');
+      for (const c of changed) { try { await saveBalance(c.key, asOfEnd, c.typed, 'Edit Points Balances'); } catch (e) { console.error('Balance check save failed', e); } }
+    }
     renderVault();
     renderCards();
     document.getElementById('vaultOverlay')?.classList.remove('open');
