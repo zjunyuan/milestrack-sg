@@ -139,11 +139,15 @@ export function renderPresets() {
   if (!container) return;
   container.innerHTML = '';
 
-  DEFAULT_PRESETS.forEach(preset => {
+  // A preset is a shop plus a card. Show both, and hide presets whose card is switched off in Settings (it would not be in the Log sheet's card list).
+  const enabled = new Set(state.cards.map(c => c.id));
+  DEFAULT_PRESETS.filter(p => enabled.has(p.cardId)).forEach(preset => {
+    const card = ALL_MASTER_CARDS.find(c => c.id === preset.cardId);
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'preset-chip';
-    chip.innerHTML = `<span class="preset-icon">${preset.icon}</span><span>${preset.label}</span>`;
+    chip.setAttribute('aria-label', `${preset.label} on ${cardShort(card)}`);
+    chip.innerHTML = `<span class="preset-icon">${preset.icon}</span><span class="preset-text"><span class="preset-label">${preset.label}</span><span class="preset-card">${cardShort(card)}</span></span>`;
     chip.addEventListener('click', () => quickLogPreset(preset.id));
     container.appendChild(chip);
   });
@@ -153,6 +157,7 @@ export function quickLogPreset(presetId) {
   const preset = DEFAULT_PRESETS.find(p => p.id === presetId);
   if (!preset) return;
 
+  openModal();   // first: it clears the form (description, title), so the preset's values are filled in afterwards
   document.getElementById('editTxId').value = '';
   document.getElementById('cardSelect').value = preset.cardId;
   onCardSelectChange();
@@ -171,10 +176,8 @@ export function quickLogPreset(presetId) {
   document.getElementById('bonusCategory').dataset.touched = '';
   window.dispatchEvent(new Event('rate-suggest'));
   document.getElementById('amtInput').value = '';
-  document.getElementById('modalFormTitle').innerText = `Log: ${preset.label}`;
+  document.getElementById('modalFormTitle').innerText = `Log: ${preset.label} on ${cardShort(ALL_MASTER_CARDS.find(c => c.id === preset.cardId))}`;
   document.getElementById('btnSaveLedger').innerText = "Save to Ledger";
-
-  openModal();
 }
 
 // Card artwork at a given size class: "" (list, 96x61), "card-thumb-rec" (recommendation, 128x81), "card-thumb-sm" (64x40).
