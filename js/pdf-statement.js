@@ -290,8 +290,11 @@ export function statementYm(text) {
 }
 // A section or file with a "previous balance" line and no line that starts with a date and ends in an amount: a card that was not used this month.
 const PREV_BAL = /PREVIOUS\s+BALANCE|BALANCE\s+PREVIOUS|LAST\s+MONTH'?S\s+BALANCE/i;
-const DATED_AMOUNT = /^\s*\d{1,2}\s?[A-Za-z]{3,4}\b.*\d[\d,]*\.\d{2}\s*(?:CR|DR)?\s*$/i;
-export function looksUnused(lines) { return lines.some(l => PREV_BAL.test(l)) && !lines.some(l => DATED_AMOUNT.test(l)); }
+// The date can be "11 JUN" (UOB, DBS, HSBC, Citi) or "11/06" / "11-06" (OCBC, v1.63.40: OCBC files all looked unused), and the amount
+// can be in brackets for a credit ("(1,641.00 )"). A payment to the card does not count as using it.
+const DATED_AMOUNT = /^\s*\d{1,2}(?:\s?[A-Za-z]{3,4}\b|[\/-]\d{1,2}\b).*\(?\s*\d[\d,]*\.\d{2}\s*\)?\s*(?:CR|DR)?\s*$/i;
+const PAYMENT_LINE = /\bPAYMENT\b|\bGIRO\b|MONEY\s*SEND|FAST\s+PAYMENT|THANK\s+YOU/i;
+export function looksUnused(lines) { return lines.some(l => PREV_BAL.test(l)) && !lines.some(l => DATED_AMOUNT.test(l) && !PAYMENT_LINE.test(l)); }
 const CARD_LINE = /^\s*[\dXx•*]{4}[- ][\dXx•*]{4}[- ][\dXx•*]{4}[- ](\d{4})\s+[A-Z]/;
 // Splits statement text into per-card sections: a header line, then "XXXX-XXXX-XXXX-1234 NAME", then the lines, ending at "TOTAL BALANCE FOR".
 // A section continued on a later page ("... (continued)") is joined to the first one. Returns null unless two or more cards are found.
@@ -355,7 +358,7 @@ export function pdfTextToRows(lines, ctx = {}) {
   const text = lines.join("\n");
   const whole = ctx.dateText || text;
   // statement date, e.g. "25/10/2026": year for lines that print only "23SEP"
-  const sd = /\b(\d{2})\/(\d{2})\/(\d{4})\b/.exec(whole);
+  const sd = /\b(\d{2})\/(\d{2})\/(\d{4})\b/.exec(whole) || /STATEMENT DATE[\s\S]{0,200}?\b(\d{2})-(\d{2})-(\d{4})\b/.exec(whole);   // OCBC: "25-06-2026" under the heading
   const sdw = /Statement Date\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole)    // UOB: "Statement Date 23 JAN 2026"
     || /STATEMENT PRINTED ON\s+(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(whole)      // DBS: "STATEMENT PRINTED ON 30 Jan 2026"
     || /STATEMENT DATE[\s\S]{0,120}?(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/.exec(whole);   // DBS: the date sits under the heading
@@ -387,8 +390,21 @@ export function pdfTextToRows(lines, ctx = {}) {
   // Text recognition also reads the side panel on the same visual line, so the amount is the first money value after the two dates.
   const lenRe = new RegExp(String.raw`^\s*${DATE}\s+${DATE}\s+(.+?)\s+(-?[\d,]+\.\d{2})(?:\s*(CR|DR)\b)?`, "i");
   const repRe = new RegExp(String.raw`^\s*${DATE}\s+${DATE}\s+(.+?)\s+(\d{3,6})(?:\s*(CR|DR)\b)?(?:\s|$)`, "i");
+  // OCBC (v1.63.40): "11/06   PAYMENT - MONEY SEND   (1,641.00 )": one date, day/month in numbers, a credit in brackets.
+  const numRe = /^\s*(\d{1,2})\/(\d{1,2})\s+(.+?)\s+(\()?\s*(-?[\d,]+\.\d{2})\s*\)?\s*(CR|DR)?\s*$/i;
+  const MON_BY_NO = Object.fromEntries(Object.entries(MONTH_NO).filter(([k]) => k.length === 3).map(([k, v]) => [v, k]));
   let last = null;
   for (const raw of lines) {
+    const nm = !ctx.lenient && numRe.exec(raw);
+    if (nm && +nm[2] >= 1 && +nm[2] <= 12 && +nm[1] >= 1 && +nm[1] <= 31 && MON_BY_NO[+nm[2]] && MON[MON_BY_NO[+nm[2]]]) {
+      const mon = MON_BY_NO[+nm[2]];
+      let amt = nm[5].replace(/,/g, "");
+      if (nm[4] || /CR/i.test(nm[6] || "")) amt = "-" + amt.replace(/^-/, "");
+      if (!(Math.abs(parseFloat(amt)) > 0)) { last = null; continue; }
+      last = [`${String(nm[1]).padStart(2, "0")} ${MON[mon]} ${yearFor(mon)}`, "", nm[3].replace(/\s{2,}/g, " ").trim(), amt];
+      rows.push(last);
+      continue;
+    }
     let m = ctx.lenient ? lenRe.exec(raw) : txRe.exec(raw);
     if (!m && ctx.repair) {                                           // "TAOBAO Singapore SG 6296": the decimal point was not read
       const n = repRe.exec(raw);
