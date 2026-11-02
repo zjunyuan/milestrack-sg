@@ -16,6 +16,10 @@ export function statementPeriods(vk, cardId = null) {
     vk, cardId: cid, from: r.from, to: r.to, bank: r.periodBank, sure: r.periodSure, maybe: r.periodMaybe, status: r.status,
     bankId: r.rec.bank, earned: Number.isFinite(Number(r.rec.earned)) ? Number(r.rec.earned) : null, adjusted: Number(r.rec.adjusted) || 0,
     prevFrom: all[i + 1] ? all[i + 1].from : null, prevTo: all[i + 1] ? all[i + 1].to : null, prevTs: all[i + 1] ? all[i + 1].rec.ts : null,
+    // A statement missing between this one and the last imported (v1.63.33): its own printed start is well after the last one's date,
+    // or, with no printed start, the span is over 45 days. The bank figures are this statement's only, so the check is not fair.
+    gap: !!(all[i + 1] && (r.rec.from ? Number(r.rec.from) - Number(all[i + 1].rec.ts) > 7 * 86400000 : r.to - r.from > 45 * 86400000)),
+    gapFrom: all[i + 1] ? Number(all[i + 1].rec.ts) : null, gapTo: r.rec.from ? Number(r.rec.from) : null,
     label: `${BANK_LABEL[r.rec.bank] || ""} statement ${fmtDate(r.from + 86400000)} – ${fmtDate(r.rec.ts)}${cid ? ` · ${cardName(cid)}` : ""}`
   }));
   const led = reconcileLedgers(vk);
@@ -54,15 +58,19 @@ export function stmtBannerHtml(s, rows) {
   // (HSBC's February bonus, already paid on the March statement, showed up again as "could land here" on April's).
   const postedPrev0 = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return s.prevTo ? d > (s.prevFrom || 0) && d <= s.prevTo : true; };
   const maybeEarlier = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && !postedHere(c) && postedPrev0(c)));
-  const maybeThese = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && postedHere(c)));
+  const maybeThese = add(credits.filter(c => overlaps(c) && c.kind === "bonus" && postedHere(c) && !(s.gap && s.gapTo && Number(c.tx.postTs || c.tx.timestamp) < new Date(new Date(s.gapTo).setHours(0, 0, 0, 0)).getTime())));
   const maybeOther = add(credits.filter(c => overlaps(c) && c.kind !== "bonus"));
   // For the line-by-line match: the bonus for the entries that posted in the PREVIOUS statement only. The window rule would also pull in
   // older entries whose window still overlaps (November's bonus, already paid on the December statement), overstating what is due (v1.63.26).
   const postedPrev = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return s.prevTo && d > (s.prevFrom || 0) && d <= s.prevTo; };
-  const prevBonus = add(credits.filter(c => c.kind === "bonus" && postedPrev(c)));
+  // HSBC sometimes prints no REWARDS SUMMARY (seen: the 4 May – 2 Jun 2026 statement); the next statement then carries the base for
+  // both and, as "adjusted", the bonus for the previous imported statement's entries plus the skipped one's (v1.63.34).
+  const skipEnd = s.gap && s.gapTo ? new Date(new Date(s.gapTo).setHours(0, 0, 0, 0)).getTime() - 1 : null;
+  const postedSkip = (c) => { const d = Number(c.tx.postTs) || Number(c.tx.timestamp) || 0; return skipEnd && d > s.from && d <= skipEnd; };
+  const prevBonus = add(credits.filter(c => c.kind === "bonus" && (postedPrev(c) || postedSkip(c))));
   const sure = sureBase + sureBonus, maybe = maybeEarlier + maybeThese + maybeOther, bank = Number(s.bank) || 0;
   const spent = rows.reduce((a, t) => a + (Number(t.amt) || 0), 0), miles = rows.reduce((a, t) => a + (Number(t.miles) || 0), 0);
-  const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(s.prevTs || s.prevTo)}` : "the previous statement's entries";
+  const prevLbl = s.prevTo ? `entries of ${fmtDate(s.prevFrom + 86400000)} – ${fmtDate(skipEnd || s.prevTs || s.prevTo)}` : "the previous statement's entries";
   // HSBC prints base ("Points Earned") and the month-before bonus ("Points Adjusted") separately, so the two can be matched line by line.
   // Only HSBC is known to work this way (seen on its statements). UOB's "adjusted" holds fee reversals and other items, Maybank and OCBC
   // credit late bonuses differently, so for them the plain "could land here" layout is kept rather than a line-by-line match that would mislead.
@@ -86,7 +94,9 @@ export function stmtBannerHtml(s, rows) {
     maybeOther ? line("Could land here: entries posting near the cut-off", maybeOther, null, "dim") : ""
   ].join("");
   let verdict;
-  if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
+  const gapNote = s.gap ? `<div class="hm-note">⚠️ No points figures for the statement of ${fmtDate(s.gapFrom + 86400000)} – ${s.gapTo ? fmtDate(s.gapTo - 86400000) : "?"}. ${split ? "If it printed no points summary (HSBC sometimes leaves it out), this statement carries its points too, as compared above; if it did, upload it and this check splits in two." : "Upload it (with its points summary) and this check will split in two."}</div>` : "";
+  if (s.gap && !split) verdict = `<div class="stmt-verdict bad">⚠️ A statement is missing: the app has none between ${fmtDate(s.gapFrom)} and ${s.gapTo ? fmtDate(s.gapTo) : "this one"}, so the entries below cover two statements while the bank's figures are this statement's only. Upload the missing statement (with its points summary) and this check will split in two.</div>`;
+  else if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
   else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
   else if (bank > sure + maybe + 5) verdict = `<div class="stmt-verdict over">➕ ${n(bank - sure - maybe)} ${escapeHtml(unit)} (≈ ${mi(bank - sure - maybe)} mi) more than the app can explain: usually entries on Base that the bank paid a bonus on, or spend not logged.</div>`;
@@ -94,7 +104,7 @@ export function stmtBannerHtml(s, rows) {
   return `<div class="stmt-banner">
     <div><b>📄 ${escapeHtml(s.label)}</b> <button type="button" class="stmt-x" data-stmt-clear title="Show all entries again">✕</button></div>
     <div class="stmt-scroll"><table class="stmt-tbl"><thead><tr><th></th><th class="num">App expects</th><th class="num">Bank</th><th class="num">Difference</th></tr></thead><tbody>${body}</tbody></table></div>
-    ${verdict}
+    ${verdict}${gapNote}
     <div class="hm-note">All figures in ${escapeHtml(unit)} (1 ${escapeHtml(unit)} ≈ ${ratio} mi). The ${rows.length} entr${rows.length === 1 ? "y" : "ies"} below: S$${fmtNum(spent, 2)} · ${fmtNum(Math.round(miles))} mi in the app, base and bonus together.</div>
   </div>`;
 }
