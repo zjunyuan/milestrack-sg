@@ -31,7 +31,7 @@ export function copyText() {
     const p = pointsSplit(t);
     amt += Number(t.amt) || 0; base += p.base; bonus += p.bonus; miles += Number(t.miles) || 0;
     parts.push([day(t.timestamp), day(t.postTs), clean(t.desc), mccOf(t.desc, t.mcc) || "", categoryOf(t.desc, t.mcc) || "", card ? cardShort(card) : t.cardId,
-      (Number(t.amt) || 0).toFixed(2), t.bonusCategory === "base" ? "Base" : "Bonus", p.base, p.bonus, Math.round(Number(t.miles) || 0),
+      (Number(t.amt) || 0).toFixed(2), t.refunded ? "Refunded" : t.bonusCategory === "base" ? "Base" : "Bonus", p.base, p.bonus, Math.round(Number(t.miles) || 0),
       (t.stmtConfirmed || t.stmtKey || t.source === "statement") ? "yes" : ""].join("\t"));
   }
   parts.push(["Total", "", "", "", "", "", amt.toFixed(2), "", base, bonus, Math.round(miles), ""].join("\t"));

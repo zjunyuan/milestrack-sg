@@ -178,6 +178,27 @@ function computeCore() {
   });
   m.results.forEach((r, i) => { S.choice[i] = r.status === "new" ? (r.line.fee ? "skip" : "add") : (r.status === "differs" || r.status === "moved") ? "statement" : "skip"; });
   S.lo = lines.length ? Math.min(...lines.map(l => l.ts)) : 0; S.hi = hiTs;
+  S.refunds = matchRefunds(m.results, existing);
+}
+
+// Refunds (v1.63.28): a credit line that reverses a purchase (same amount, same merchant, on or after it, within 120 days) means the bank
+// takes that purchase's points back. The purchase is kept (so spend still lines up with the statement) but marked refunded with no points.
+// The purchase can be a line in this same file or an entry already in the app. Payments, rebates and cashback are never refunds.
+const NOT_REFUND = /visa direct|payment|giro|fund transfer|moneysend|bill pay|paynow|rebate|cashback|cash back|reward|interest|reversal of fee|fee waiver/i;
+const nameKey = (t) => String(t || "").toUpperCase().replace(/[^A-Z ]/g, " ").split(/\s+/).filter(w => w.length >= 4 && !/^(SINGAPORE|PTE|LTD|COM|WWW|MEMBERSHI|PAYMENT)$/.test(w));
+const sameMerchant = (a, b) => { const A = nameKey(a), B = new Set(nameKey(b)); return A.some(w => B.has(w) || [...B].some(x => x.startsWith(w.slice(0, 5)) || w.startsWith(x.slice(0, 5)))); };
+function matchRefunds(results, existing) {
+  const out = [], taken = new Set(), DAY = 86400000;
+  for (const r of results) {
+    if (r.status !== "credit" || r.line.fee || NOT_REFUND.test(r.line.desc || "")) continue;
+    const amt = Math.round(-r.line.amt * 100) / 100, ts = r.line.ts;
+    const near = (pts) => pts <= ts + DAY && pts >= ts - 120 * DAY;
+    const line = results.find(x => x.status !== "credit" && !taken.has("L" + x.idx) && Math.abs(x.line.amt - amt) < 0.005 && near(x.line.ts) && sameMerchant(x.line.desc, r.line.desc));
+    if (line) { taken.add("L" + line.idx); out.push({ refundIdx: r.idx, lineIdx: line.idx, amt, ts, desc: r.line.desc }); continue; }
+    const tx = existing.find(t => !t.refunded && !taken.has("T" + t.id) && Math.abs((Number(t.amt) || 0) - amt) < 0.005 && near(Number(t.timestamp) || 0) && sameMerchant(`${t.stmtDesc || ""} ${t.desc || ""}`, r.line.desc));
+    if (tx) { taken.add("T" + tx.id); out.push({ refundIdx: r.idx, txId: tx.id, amt, ts, desc: r.line.desc }); }
+  }
+  return out;
 }
 // Online-vs-tap (PPV) or dining-vs-travel (Lady's) cannot be read from a statement: a per-line choice, guessed for PPV.
 function entryLabel(id) { return ALL_MASTER_CARDS.find(c => c.id === id)?.name || id; }
@@ -230,7 +251,7 @@ function rowHtml(r, i) {
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
-  return `<div class="st-line">${head}${timingHtml(r, i)}<div class="st-sub">${r.status === "credit" ? "Refund or payment: not tracked" : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "") + (r.existing && r.dateChanged ? ` · date set to ${dateLabel(r.line.ts)} from the statement` : "")}</div></div>`;
+  return `<div class="st-line">${head}${timingHtml(r, i)}<div class="st-sub">${r.status === "credit" ? refundNote(r) : "✅ " + escapeHtml(r.reason) + (r.existing ? ` ("${escapeHtml(r.existing.desc)}")` : "") + (r.existing && r.dateChanged ? ` · date set to ${dateLabel(r.line.ts)} from the statement` : "")}</div></div>`;
 }
 
 function timingSummary() {
@@ -288,6 +309,16 @@ function renderReview(box = $("stmtReview")) {
   updateApplyLabel();
 }
 
+// The line under a credit: a matched refund names the purchase whose points come off.
+function refundNote(r) {
+  const rf = (S.refunds || []).find(x => x.refundIdx === r.idx);
+  if (!rf) return "Refund or payment: not tracked";
+  const pr = rf.lineIdx !== undefined ? S.results.find(x => x.idx === rf.lineIdx) : null;
+  const tx = rf.txId ? state.transactions.find(t => t.id === rf.txId) : pr && pr.existing;
+  const what = tx ? `"${escapeHtml(tx.desc)}" ${dateLabel(Number(tx.timestamp))}` : pr ? `${escapeHtml(friendlyName(pr.line))} ${dateLabel(pr.line.ts)} on this statement` : "a purchase";
+  return `↩️ Refund of ${what}: that purchase will earn no points`;
+}
+
 function plan() {
   let add = 0, update = 0, confirm = 0;
   const remove = S.stale.filter(t => S.remove[t.id]).length;
@@ -297,19 +328,21 @@ function plan() {
     if (r.status === "differs" || r.status === "moved") { if (c === "statement") update++; else if (c === "new") add++; }
     else if (r.status === "matched" && r.existing) { if (r.dateChanged || S.post[i]) update++; else if (r.unconfirmed) confirm++; }
   });
-  return { add, update, confirm, remove };
+  // Refunds that take points off an entry already in the app (a refund of a line added now is part of that add).
+  const refund = (S.refunds || []).filter(rf => rf.txId || (S.results.find(x => x.idx === rf.lineIdx) || {}).existing).length;
+  return { add, update, confirm, remove, refund };
 }
 function planText(p) {
   const any = p.add + p.update + p.confirm + p.remove;
-  return any === 0 ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}${p.remove ? `, remove ${p.remove}` : ""}`;
+  return any === 0 && !p.refund ? "Nothing to import" : `Import: add ${p.add}, update ${p.update}${p.confirm ? `, confirm ${p.confirm}` : ""}${p.remove ? `, remove ${p.remove}` : ""}${p.refund ? `, ${p.refund} refund${p.refund > 1 ? "s" : ""}` : ""}`;
 }
-const sumPlans = ps => ps.reduce((a, p) => ({ add: a.add + p.add, update: a.update + p.update, confirm: a.confirm + p.confirm, remove: a.remove + p.remove }), { add: 0, update: 0, confirm: 0, remove: 0 });
+const sumPlans = ps => ps.reduce((a, p) => ({ add: a.add + p.add, update: a.update + p.update, confirm: a.confirm + p.confirm, remove: a.remove + p.remove, refund: a.refund + (p.refund || 0) }), { add: 0, update: 0, confirm: 0, remove: 0, refund: 0 });
 const batchFiles = () => B.files.filter(F => F.card && (F.results.length || F.emptyYm));
 const emptyMonths = () => B.files.filter(F => F.card && F.emptyYm && !F.results.length).length;   // statements with no lines, to be ticked in the grid
 function updateApplyLabel() {
   const btn = $("btnStmtApply");
   const p = isBatch() ? sumPlans(batchFiles().map(F => withFile(F, plan))) : plan();
-  const any = p.add + p.update + p.confirm + p.remove;
+  const any = p.add + p.update + p.confirm + p.remove + (p.refund || 0);
   const ticks = isBatch() ? emptyMonths() : 0;
   btn.disabled = any === 0 && ticks === 0;
   btn.textContent = any === 0 && ticks ? `Record ${ticks} month${ticks === 1 ? "" : "s"} with no transactions` : planText(p) + (ticks ? ` · tick ${ticks} empty month${ticks === 1 ? "" : "s"}` : "");
@@ -317,7 +350,7 @@ function updateApplyLabel() {
 }
 
 // Fields an import can change on an existing transaction; undo puts them back.
-const UNDO_FIELDS = ["postTs", "amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote", "timestamp", "date", "cardId", "bonusCategory", "stmtConfirmed", "stmtDesc"];
+const UNDO_FIELDS = ["refunded", "refundTs", "postTs", "amt", "miles", "earnedRawPoints", "estimatedMiles", "reconciled", "amtOriginal", "stmtKey", "stmtNote", "timestamp", "date", "cardId", "bonusCategory", "stmtConfirmed", "stmtDesc"];
 
 // The most recent import still in the list: lines it added, and lines it changed.
 export function lastImport() {
@@ -378,7 +411,7 @@ function makeCtx() {
   for (const t of state.transactions) { const tc = ALL_MASTER_CARDS.find(c => c.id === t.cardId); if (!tc) continue; const b = tc.id + cycleBucket(tc, countsTs(t, tc)); bucketSpend[b] = (bucketSpend[b] || 0) + (Number(t.amt) || 0); }
   const base = Date.now();
   const importId = "imp" + base.toString(36);
-  return { bucketSpend, vaultDeltas: {}, base, importId, stamp: { importId, importedAt: base }, seq: 0, done: 0, seenKeys: new Set(), touched: new Set(), masked: 0, addVault: $("stAddVault").checked };
+  return { bucketSpend, vaultDeltas: {}, base, importId, stamp: { importId, importedAt: base }, seq: 0, done: 0, seenKeys: new Set(), touched: new Set(), refunded: new Set(), saved: {}, masked: 0, addVault: $("stAddVault").checked };
 }
 
 // Applies the lines of the current file (S). Shared by single and batch imports; ctx carries the totals across files.
@@ -390,6 +423,8 @@ async function applyLines(ctx) {
   const dateStr = ts => new Date(ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" });
   const prevOf = old => { const prev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) prev[f] = old[f]; return prev; };
   const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
+  const refundOfLine = new Map((S.refunds || []).filter(x => x.lineIdx !== undefined).map(x => [x.lineIdx, x]));
+  const save = async (id, rec) => { ctx.saved[id] = rec; await saveTxToFirestore(id, rec); };   // the latest copy, for the refund pass below
   for (const i of order) {
     const r = S.results[i], c = S.choice[i], l = r.line;
     // Overlapping files: a line or an entry already handled earlier in this import is not handled twice.
@@ -401,16 +436,21 @@ async function applyLines(ctx) {
       const tCard = targetCard(l, i);
       const postTs = postFor(tCard, l);
       const bucket = tCard.id + cycleBucket(tCard, postTs ? countsTs({ timestamp: l.ts, postTs }, tCard) : l.ts);
-      const est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
+      const rfl = refundOfLine.get(r.idx);
+      let est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
+      if (rfl) est = { ...est, miles: 0, earnedRawPoints: 0 };              // refunded later on this statement: no points
       bucketSpend[bucket] = (bucketSpend[bucket] || 0) + l.amt;
       const id = String(base + (ctx.seq++));
-      await saveTxToFirestore(id, {
+      if (rfl) { ctx.refunded.add(id); ctx.refundsDone = (ctx.refundsDone || 0) + 1; }
+      await save(id, {
+        ...(rfl ? { refunded: true, refundTs: rfl.ts, stmtNote: `Refunded S$${rfl.amt.toFixed(2)} (${scrub(rfl.desc)})` } : {}),
         id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
         source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
       });
       addDelta(vaultDeltas, tCard.vaultKey, est.earnedRawPoints); ctx.done++;
+      r.savedId = id;
     } else if (r.status === "matched" && r.existing && (r.dateChanged || r.unconfirmed || S.post[i])) {
       // The statement confirms this entry: mark it, take the statement's date, and record the posting date when it matters.
       ctx.touched.add(r.existing.id);
@@ -418,7 +458,7 @@ async function applyLines(ctx) {
       const oc = ALL_MASTER_CARDS.find(x => x.id === old.cardId) || card;
       const pt = S.post[i] ? postFor(oc, l) : null;
       const patch = { stmtKey: r.key, stmtConfirmed: true, stmtDesc: scrub(l.desc), ...(r.dateChanged ? { timestamp: l.ts, date: dateStr(l.ts) } : {}), ...(pt ? { postTs: pt } : {}) };
-      await saveTxToFirestore(old.id, { ...old, ...stamp, importUpdated: true, importPrev: prevOf(old), ...patch });
+      await save(old.id, { ...old, ...stamp, importUpdated: true, importPrev: prevOf(old), ...patch });
       ctx.done++;
     } else if ((r.status === "differs" || r.status === "moved") && c === "statement" && r.existing) {
       // The statement wins: its amount, date and card replace the entry's. The channel and the friendly name stay as the user set them.
@@ -440,7 +480,7 @@ async function applyLines(ctx) {
       }
       const adj = {};
       if (addVault) { addDelta(adj, oldCard.vaultKey, -(Number(old.earnedRawPoints) || 0)); addDelta(adj, nc.vaultKey, raw); for (const [k, v] of Object.entries(adj)) addDelta(vaultDeltas, k, v); }
-      await saveTxToFirestore(old.id, {
+      await save(old.id, {
         ...old, ...stamp, importUpdated: true, importPrev: prevOf(old),
         ...(addVault && Object.keys(adj).length ? { vaultAdj: adj } : {}),
         cardId: nc.id, bonusCategory, timestamp: r.dateChanged ? l.ts : old.timestamp, date: r.dateChanged ? dateStr(l.ts) : old.date,
@@ -449,6 +489,27 @@ async function applyLines(ctx) {
       });
       ctx.done++;
     }
+  }
+  // Refunds of entries already in the app (or matched just above): that purchase earns nothing now. Undo puts its points back.
+  for (const rf of S.refunds || []) {
+    const pr = rf.lineIdx !== undefined ? S.results.find(x => x.idx === rf.lineIdx) : null;
+    const id = rf.txId || (pr && pr.existing && pr.existing.id);
+    if (!id || ctx.refunded.has(id)) continue;
+    const cur = ctx.saved[id] || state.transactions.find(t => t.id === id);
+    if (!cur) continue;
+    ctx.refunded.add(id);
+    const old = { ...cur }; delete old.firestoreId;
+    const oc = ALL_MASTER_CARDS.find(x => x.id === old.cardId);
+    const again = !!ctx.saved[id];                                           // already saved in this import: keep its first copy for Undo
+    const adj = again && old.vaultAdj && typeof old.vaultAdj === "object" ? { ...old.vaultAdj } : {};
+    if (addVault && oc && (old.vaultCounted || old.source !== "statement") && Number(old.earnedRawPoints)) {
+      addDelta(adj, oc.vaultKey, -Number(old.earnedRawPoints)); addDelta(vaultDeltas, oc.vaultKey, -Number(old.earnedRawPoints));
+    }
+    const prev = again ? (old.importPrev || {}) : prevOf(old);
+    if (!again) delete old.vaultAdj;
+    await save(id, { ...old, ...stamp, ...(Object.keys(adj).length ? { vaultAdj: adj } : {}), importUpdated: true, importPrev: prev, refunded: true, refundTs: rf.ts, miles: 0, earnedRawPoints: 0,
+      stmtNote: `Refunded S$${rf.amt.toFixed(2)} (${scrub(rf.desc)})` });
+    ctx.refundsDone = (ctx.refundsDone || 0) + 1; ctx.done++;
   }
 }
 
@@ -692,7 +753,7 @@ function renderBatchCounts() {
     tot = sumPlans([tot, p]); ready++;
     const check = n.differs + n.moved;
     el.className = "st-file-counts";
-    el.textContent = (!F.results.length && F.emptyYm ? `No transactions this month · ${F.emptyYm} will be ticked` : F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found")
+    el.textContent = (!F.results.length && F.emptyYm ? `No transactions this month · ${F.emptyYm} will be ticked` : F.results.length ? `add ${p.add} · update ${p.update} · confirm ${p.confirm}${p.remove ? ` · remove ${p.remove}` : ""}${(F.refunds || []).length ? ` · ${F.refunds.length} refund${F.refunds.length > 1 ? "s" : ""} matched` : ""}${check ? ` · ${check} to check` : ""}` : "No lines found")
       + (F.points && F.points.length ? ` · ${F.points.map(pointsLine).join(" · ")}` : "");
   });
   const head = $("stBatchHead");

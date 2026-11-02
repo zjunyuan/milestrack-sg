@@ -40,7 +40,7 @@ export function mccChip(tx) {
 export function txCategory(tx) { return categoryOf(tx.desc, tx.mcc); }
 // Bonus or base: the rate the entry was logged at (yuu partner spend counts as bonus). v1.63.18.
 export const rateOf = (tx) => (tx.bonusCategory === 'base' ? 'base' : 'bonus');
-export const rateTag = (tx) => `<span class="tx-rate ${rateOf(tx)}" title="Logged at the card's ${rateOf(tx)} rate">${rateOf(tx) === 'base' ? 'Base' : 'Bonus'}</span>`;
+export const rateTag = (tx) => tx.refunded ? `<span class="tx-rate refunded" title="${escapeHtml(tx.stmtNote || 'Refunded on a statement')}: no points">Refunded</span>` : `<span class="tx-rate ${rateOf(tx)}" title="Logged at the card's ${rateOf(tx)} rate">${rateOf(tx) === 'base' ? 'Base' : 'Bonus'}</span>`;
 export function txMpd(tx) { const a = Number(tx.amt) || 0; return a > 0 ? (Number(tx.miles) || 0) / a : 0; }
 
 /** Rows that pass the advanced filters (card, merchant text and period are handled by the caller). */
