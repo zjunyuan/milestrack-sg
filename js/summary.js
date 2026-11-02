@@ -42,7 +42,8 @@ export function deltaText(d) {
 }
 
 // The MCC the merchant name resolves to (same lookup as categoryOf), shown beside the description in History.
-export function mccOf(desc) {
+export function mccOf(desc, own) {
+  if (own && /^\d{4}$/.test(String(own))) return String(own);   // the MCC set on the entry itself (v1.63.17)
   try {
     const r = findRetailerForInput(desc, state.merchantOverrides);
     return r && r.mcc ? String(r.mcc) : null;
@@ -50,12 +51,13 @@ export function mccOf(desc) {
 }
 
 const categoryCache = new Map();
-export function categoryOf(desc) {
-  const key = String(desc || '').toLowerCase();
+export function categoryOf(desc, own) {
+  const code = own && /^\d{4}$/.test(String(own)) ? String(own) : '';
+  const key = code ? `#${code}` : String(desc || '').toLowerCase();
   if (categoryCache.has(key)) return categoryCache.get(key);
   let cat = null;
   try {
-    const r = findRetailerForInput(desc, state.merchantOverrides);
+    const r = code ? { mcc: code } : findRetailerForInput(desc, state.merchantOverrides);
     const e = r && r.mcc ? getMccEntry(r.mcc) : null;
     if (e && e.name) cat = shortCategory(e.name);
   } catch (_) { /* unknown merchant */ }
@@ -134,7 +136,7 @@ export function monthlySummaryHtml(y, m, stmtSpent, now = new Date()) {
   for (const t of txns) {
     const amt = Number(t.amt) || 0, mi = Number(t.miles) || 0;
     totalSpend += amt; totalMiles += mi;
-    const k = categoryOf(t.desc) || NO_CATEGORY;
+    const k = categoryOf(t.desc, t.mcc) || NO_CATEGORY;
     const c = cats.get(k) || { spend: 0, miles: 0 };
     c.spend += amt; c.miles += mi;
     cats.set(k, c);

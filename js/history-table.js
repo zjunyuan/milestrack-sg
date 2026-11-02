@@ -30,10 +30,10 @@ const dayEnd = (s) => (s ? new Date(`${s}T23:59:59.999`).getTime() : null);
 const num = (s) => (s === '' || s === null || s === undefined || isNaN(Number(s)) ? null : Number(s));
 
 export function mccChip(tx) {
-  const m = mccOf(tx.desc);
-  return m ? ` <span class="tx-mcc" title="MCC the merchant name resolves to">${m}</span>` : '';
+  const m = mccOf(tx.desc, tx.mcc);
+  return m ? ` <span class="tx-mcc" title="${tx.mcc ? 'MCC set on this entry' : 'MCC the merchant name resolves to'}">${m}</span>` : '';
 }
-export function txCategory(tx) { return categoryOf(tx.desc); }
+export function txCategory(tx) { return categoryOf(tx.desc, tx.mcc); }
 export function txMpd(tx) { const a = Number(tx.amt) || 0; return a > 0 ? (Number(tx.miles) || 0) / a : 0; }
 
 /** Rows that pass the advanced filters (card, merchant text and period are handled by the caller). */
