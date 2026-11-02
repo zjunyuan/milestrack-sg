@@ -22,7 +22,7 @@ export function defaultView() {
   return { sortKey: 'date', sortDir: 'desc', merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' };
 }
 export function viewIsFiltered(v) {
-  return !!v.merchant || v.cards.length > 0 || v.cats.length > 0 || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
+  return !!v.merchant || v.cards.length > 0 || v.cats.length > 0 || (!!v.rate && v.rate !== 'ALL') || v.amtMin !== '' || v.amtMax !== '' || v.transFrom || v.transTo || v.postFrom || v.postTo;
 }
 
 const dayStart = (s) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
@@ -34,6 +34,9 @@ export function mccChip(tx) {
   return m ? ` <span class="tx-mcc" title="${tx.mcc ? 'MCC set on this entry' : 'MCC the merchant name resolves to'}">${m}</span>` : '';
 }
 export function txCategory(tx) { return categoryOf(tx.desc, tx.mcc); }
+// Bonus or base: the rate the entry was logged at (yuu partner spend counts as bonus). v1.63.18.
+export const rateOf = (tx) => (tx.bonusCategory === 'base' ? 'base' : 'bonus');
+export const rateTag = (tx) => `<span class="tx-rate ${rateOf(tx)}" title="Logged at the card's ${rateOf(tx)} rate">${rateOf(tx) === 'base' ? 'Base' : 'Bonus'}</span>`;
 export function txMpd(tx) { const a = Number(tx.amt) || 0; return a > 0 ? (Number(tx.miles) || 0) / a : 0; }
 
 /** Rows that pass the advanced filters (card, merchant text and period are handled by the caller). */
@@ -45,6 +48,7 @@ export function passesView(tx, v) {
   if (v.merchant && !String(tx.desc || '').toLowerCase().includes(v.merchant.toLowerCase().trim())) return false;
   if (v.cards.length && !v.cards.includes(tx.cardId)) return false;
   if (v.cats.length && !v.cats.includes(txCategory(tx) || NO_CATEGORY)) return false;
+  if (v.rate && v.rate !== 'ALL' && rateOf(tx) !== v.rate) return false;
   const tf = dayStart(v.transFrom), tt = dayEnd(v.transTo);
   if (tf !== null && !(tx.timestamp >= tf)) return false;
   if (tt !== null && !(tx.timestamp <= tt)) return false;
@@ -126,7 +130,7 @@ export function tableHtml(rows, view, cardOf, select = null) {
       <td class="cat ${txCategory(t) ? '' : 'dim'}">${escapeHtml(txCategory(t) || '—')}</td>
       <td class="num">${fmtNum(Number(t.amt) || 0, 2)}</td>
       <td class="num miles">+${fmtNum(Number(t.miles) || 0, 0)}</td>
-      <td class="num${mpd > 0 && mpd < 1 ? ' dim' : ''}">${mpd.toFixed(2)}</td>
+      <td class="num${mpd > 0 && mpd < 1 ? ' dim' : ''}">${rateTag(t)} ${mpd.toFixed(2)}</td>
       <td class="acts">${select ? '' : `<button class="btn-tx-action btn-edit" data-act="edit" title="Edit entry"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button><button class="btn-tx-action btn-delete" data-act="delete" title="Delete entry"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>`}</td>
     </tr>`;
   }).join('');

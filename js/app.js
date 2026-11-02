@@ -330,13 +330,13 @@ document.getElementById('btnClearTxSearch')?.addEventListener('click', () => {
 initHistoryChips(renderTransactions);
 initColFilters(renderTransactions);
 // History advanced filters (category, amount range, date ranges)
-const txViewInputs = { txAmtMin: 'amtMin', txAmtMax: 'amtMax', txTransFrom: 'transFrom', txTransTo: 'transTo', txPostFrom: 'postFrom', txPostTo: 'postTo' };
+const txViewInputs = { txRate: 'rate', txAmtMin: 'amtMin', txAmtMax: 'amtMax', txTransFrom: 'transFrom', txTransTo: 'transTo', txPostFrom: 'postFrom', txPostTo: 'postTo' };
 Object.entries(txViewInputs).forEach(([id, key]) => {
   const el = document.getElementById(id);
   el?.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { state.txView[key] = el.value; renderTransactions(); });
 });
 document.getElementById('btnClearTxFilters')?.addEventListener('click', () => {
-  Object.assign(state.txView, { merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+  Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
   Object.keys(txViewInputs).forEach(id => { const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? 'ALL' : ''; });
   renderTransactions();
 });

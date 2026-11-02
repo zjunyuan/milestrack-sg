@@ -32,7 +32,7 @@ import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
-import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip } from "./history-table.js";
+import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip, rateTag } from "./history-table.js";
 import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
@@ -536,6 +536,7 @@ function activeFiltersHtml(v, query) {
   if (v.merchant) parts.push(`Merchant "${escapeHtml(v.merchant)}"`);
   if (v.cards.length) parts.push(`Card: ${escapeHtml(cardFilterLabel(v))}`);
   if (v.cats.length) parts.push(`Category: ${escapeHtml(catFilterLabel(v))}`);
+  if (v.rate && v.rate !== 'ALL') parts.push(v.rate === 'base' ? 'Base rate' : 'Bonus rate');
   if (v.amtMin !== '' || v.amtMax !== '') parts.push(`Amount ${v.amtMin !== '' ? 'S$' + escapeHtml(String(v.amtMin)) : 'any'} to ${v.amtMax !== '' ? 'S$' + escapeHtml(String(v.amtMax)) : 'any'}`);
   if (v.transFrom || v.transTo) parts.push(`Trans date ${escapeHtml(v.transFrom || '…')} to ${escapeHtml(v.transTo || '…')}`);
   if (v.postFrom || v.postTo) parts.push(`Posted ${escapeHtml(v.postFrom || '…')} to ${escapeHtml(v.postTo || '…')}`);
@@ -650,7 +651,7 @@ export function renderTransactions() {
         <div class="tx-meta">${escapeHtml(cardShort(card))} • ${tx.date}${isStatementEntry(tx) ? ' • <span class="tx-stmt" title="Confirmed by a bank statement">✓ statement</span>' : ''}</div>
       </div>
       <div>
-        <div class="tx-miles">+${fmtNum(tx.miles)} mi</div>
+        <div class="tx-miles">${rateTag(tx)} +${fmtNum(tx.miles)} mi</div>
         <div class="tx-amt">$${fmtNum(Number(tx.amt || 0), 2)}</div>
       </div>
       ${sel.on ? '' : `<div class="tx-actions">

@@ -38,10 +38,12 @@ export function renderTxChips(rows) {
   const card = cardFilterLabel(v);
   const cat = catFilterLabel(v);
   const chip = (kind, text, on) => `<button type="button" class="tx-chip${on ? ' on' : ''}" data-chip="${kind}">${escapeHtml(text)} ▾</button>`;
-  const anyOn = !!(card || cat || amountLabel(v) || datesCount(v));
+  const rate = v.rate === 'bonus' ? 'Bonus rate' : v.rate === 'base' ? 'Base rate' : '';
+  const anyOn = !!(card || cat || rate || amountLabel(v) || datesCount(v));
   el.innerHTML =
     chip('card', card || 'Card', !!card) +
     chip('category', cat || 'Category', !!cat) +
+    chip('rate', rate || 'Rate', !!rate) +
     chip('amount', amountLabel(v) || 'Amount', !!amountLabel(v)) +
     chip('dates', datesCount(v) ? `Dates (${datesCount(v)})` : 'Dates', !!datesCount(v)) +
     chip('sort', sortLabel(v), v.sortKey !== 'date' || v.sortDir !== 'desc') +
@@ -70,6 +72,10 @@ function openSheet(kind) {
     title = 'Sort by';
     items = SORTS.map(s => ({ label: s.label, value: s.label }));
     body = options(items, sortLabel(v), 'sort');
+  } else if (kind === 'rate') {
+    title = 'Rate';
+    items = [{ label: 'All', value: '' }, { label: 'Bonus rate', value: 'bonus' }, { label: 'Base rate', value: 'base' }];
+    body = options(items, v.rate || '', 'rate');
   } else if (kind === 'amount') {
     title = 'Amount (S$)';
     body = `<div class="tx-sheet-row"><input type="number" id="txSheetMin" class="form-control" placeholder="min" min="0" step="any" value="${escapeHtml(v.amtMin)}"><span>to</span><input type="number" id="txSheetMax" class="form-control" placeholder="max" min="0" step="any" value="${escapeHtml(v.amtMax)}"></div>
@@ -95,7 +101,7 @@ export function initHistoryChips(renderFn) {
     const b = e.target.closest('[data-chip]');
     if (!b) return;
     if (b.dataset.chip === 'clear') {
-      Object.assign(state.txView, { merchant: '', cards: [], cats: [], amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
+      Object.assign(state.txView, { merchant: '', cards: [], cats: [], rate: '', amtMin: '', amtMax: '', transFrom: '', transTo: '', postFrom: '', postTo: '' });
       rerender();
     } else openSheet(b.dataset.chip);
   });
@@ -110,6 +116,7 @@ export function initHistoryChips(renderFn) {
     if (opt) {
       const vals = JSON.parse(sheet().dataset.items || '[]');
       const val = vals[Number(opt.dataset.i)];
+      if (opt.dataset.kind === 'rate') v.rate = val || '';
       if (opt.dataset.kind === 'sort') { const s = SORTS.find(x => x.label === val) || SORTS[0]; v.sortKey = s.key; v.sortDir = s.dir; }
       return apply();
     }
