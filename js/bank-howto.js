@@ -49,6 +49,7 @@ const BANKS = [
   { bank: "Maybank", unit: "TREATS points (1 point ≈ 0.4 mi)", notes: [
     ["seen", "Spend in the last 2 business days of a month shows on the next month's points."],
     ["tc", "World Mastercard: no points at all on utilities (4900), insurance premiums, NETS, government, AXS/SAM and wallet top-ups (T&C 1 Dec 2025, Excluded Transactions). The import gives these lines 0 points."],
+    ["tc", "World Mastercard foreign spend: 7X (2.8 mpd) in a calendar month with S$800 of retail spend, 8X (3.2 mpd) from S$4,000, else 1X; the month counts lines posted by the 7th of the next month. The import uses the month's total from every file uploaded together plus your entries."],
     ["tc", "Horizon: air tickets earn the higher rate once S$800 is spent in the month (T&C 1 Dec 2025). World Mastercard: overseas rate in tiers at S$800 and S$4,000."]
   ] },
   { bank: "Trust", unit: "Trust miles", notes: [["app", "One flat rate, no bonus categories; S$27.25 per transfer to KrisFlyer."]] }

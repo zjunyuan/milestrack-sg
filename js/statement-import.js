@@ -87,6 +87,45 @@ function cycleBucket(card, ts) {
 }
 
 // Miles for an imported line are an estimate: bonus rate when the brand's MCC lists this card and the cycle's cap has room, else base.
+// Foreign-currency tiers by calendar month (v1.63.55): Maybank World pays 7X on foreign spend in a month with S$800 of retail spend,
+// 8X from S$4,000 (T&C 1 Dec 2025), else 1X. The tier needs the whole month, so applyLines fills this from the file's lines and the
+// entries already in the app before estimating: { cardId: { "YYYY-MM": spend } }.
+let MONTH_SPEND = {};
+const ymOf = (ts) => dayKey(ts).slice(0, 7);
+function fcyTierRate(card, line) {
+  const t = card.tierRule;
+  if (!(line.fx || line.fxGuess) || !t || !/foreign/i.test(t.scope || "")) return 0;
+  const spent = (MONTH_SPEND[card.id] || {})[ymOf(line.ts)] || 0;
+  let rate = 0;
+  for (const st of t.steps || []) if (spent >= st.at) rate = st.mpd;
+  return rate;
+}
+function fillMonthSpend() {
+  MONTH_SPEND = {};
+  const add = (cid, ts, amt) => { const m = (MONTH_SPEND[cid] = MONTH_SPEND[cid] || {}); const k = ymOf(ts); m[k] = (m[k] || 0) + amt; };
+  const inFile = new Set(), seen = new Set();
+  // Every file of the upload counts (a month's lines often sit on two statements), each line once.
+  const files = isBatch() ? B.files.filter(F => F.card && F.results) : [S];
+  for (const F of files) withFile(F, () => {
+    // A foreign line whose currency line fell on the next page: the same merchant elsewhere in the file shows a currency.
+    const fxNames = new Set(S.results.filter(r => r.line.fx).map(r => r.line.merchant || r.line.desc));
+    S.results.forEach((r, i) => {
+      const l = r.line; if (r.existing) inFile.add(r.existing.id);
+      if (!l.fx && fxNames.has(l.merchant || l.desc)) l.fxGuess = true;
+      if (r.status === "credit" || l.fee || !(l.amt > 0) || seen.has(r.key)) return;
+      seen.add(r.key);
+      const c = targetCard(l, i); if (!c || !c.tierRule) return;
+      if (noPointsReason(c.id, `${l.merchant || ""} ${l.desc || ""}`, (lookupBrand(l.merchant || l.desc) || {}).mcc)) return;   // excluded spend does not count
+      add(c.id, l.ts, l.amt);
+    });
+  });
+  for (const t of state.transactions || []) {
+    const c = ALL_MASTER_CARDS.find(x => x.id === t.cardId);
+    if (!c || !c.tierRule || inFile.has(t.id) || t.noPoints || t.refunded || t.fee || !(Number(t.amt) > 0)) continue;
+    add(c.id, t.timestamp, Number(t.amt));
+  }
+}
+
 function estimateTx(card, line, spentInBucket) {
   if (card.id === "dbs-yuu") { // fixed per-entry rate (partner / other); the 10 mpd bonus is added from the card sheet as one entry
     const y = yuuEntryMiles(card, line.amt, line.merchant || line.desc);
@@ -101,6 +140,8 @@ function estimateTx(card, line, spentInBucket) {
   // Lines the bank pays no points on at all (v1.63.54: Maybank World, utilities and insurance premiums).
   const nope = noPointsReason(card.id, `${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc);
   if (nope) return { miles: 0, earnedRawPoints: 0, bonusCategory: "base", noPoints: nope };
+  const tier = fcyTierRate(card, line);
+  if (tier) rate = Math.max(rate, tier);
   if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
     if (r > rate) rate = r;
@@ -461,6 +502,7 @@ async function applyLines(ctx) {
   const dateStr = ts => new Date(ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" });
   const prevOf = old => { const prev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) prev[f] = old[f]; return prev; };
   const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
+  fillMonthSpend();
   const refundOfLine = new Map((S.refunds || []).filter(x => x.lineIdx !== undefined).map(x => [x.lineIdx, x]));
   const save = async (id, rec) => { ctx.saved[id] = rec; await saveTxToFirestore(id, rec); };   // the latest copy, for the refund pass below
   for (const i of order) {
