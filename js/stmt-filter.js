@@ -8,7 +8,7 @@ import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, 
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { candidatesFor, findFixes, noPointsEntries } from "./bonus-finder.js";
-import { monthlyRule, rowForStatement, monthSpend, monthLabel } from "./monthly-bonus.js";
+import { monthlyRule, rowForStatement, monthSpend, monthLabel, monthlyCardFor } from "./monthly-bonus.js";
 import { feeRule, isFeeBonusEntry } from "./fee-bonus.js";
 
 // The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
@@ -109,20 +109,24 @@ export function stmtBannerHtml(s, rows) {
   const split = s.bankId === "hsbc" && s.status !== "baseline" && s.earned !== null && s.adjusted > 0;
   // Bonus paid by calendar month (v1.63.49, MONTHLY_BONUS: DBS Woman's World): this statement pays the bonus for the month that ended
   // before it, a known figure, so it is compared as one, not as a "could land here" range that hid a shortfall.
-  const mrow = !split && s.cardId && monthlyRule(s.cardId) && s.status !== "baseline" && !s.gap ? rowForStatement(s.cardId, statementPeriods(s.vk, s.cardId), s.recId) : null;
+  const mcid = !split && s.status !== "baseline" && !s.gap ? monthlyCardFor(s.vk, s.cardId) : null;
+  const mrow = mcid ? rowForStatement(mcid, statementPeriods(s.vk, s.cardId), s.recId) : null;
   const mName = mrow ? mrow.months.map(m => monthLabel(m.key).split(" ")[0]).join(" + ") : "";
   const diff = (app, bk) => { const d = bk - app; return Math.abs(d) <= 5 ? `<span class="ok">✓</span>` : `<span class="${d > 0 ? "over" : "bad"}">${d > 0 ? "+" : "−"}${n(Math.abs(d))} <span class="dim">(≈ ${mi(Math.abs(d))} mi)</span></span>`; };
   const line = (label, app, bk, cls = "") => `<tr class="${cls}"><td>${label}</td><td class="num">${app === null ? "—" : n(app)}</td><td class="num">${bk === null ? "—" : n(bk)}</td><td class="num">${app === null || bk === null ? "" : diff(app, bk)}</td></tr>`;
   let body;
   if (s.status === "baseline") body = line("<b>Bank credited</b> on this statement", null, bank, "strong");
   else if (mrow) {
-    const rule = monthlyRule(s.cardId), sp = mrow.months.reduce((a, m) => a + m.capped, 0), capHit = mrow.months.some(m => m.spend > m.capped);
+    const rule = monthlyRule(mcid), sp = mrow.months.reduce((a, m) => a + m.capped, 0), capHit = mrow.months.some(m => m.spend > m.capped);
+    const bonusWhat = rule.kind === "fcyTier"
+      ? `${escapeHtml(mName)} foreign spend <span class="dim">(${mrow.months.map(m => `${m.mult}X on S$${fmtNum(m.fcy, 2)}, month spend S$${fmtNum(m.spend, 2)}`).join("; ")})</span>`
+      : `${escapeHtml(mName)} spend <span class="dim">(${rule.rate} per S$${rule.per} on S$${fmtNum(sp, 2)}${capHit ? `, the first S$${fmtNum(rule.cap)}` : ""})</span>`;
     const toKey = (() => { const d = new Date(s.to); return d.getFullYear() * 100 + d.getMonth() + 1; })();
     const next = mrow.months.some(m => m.key === toKey) ? null : monthSpend(s.cardId).find(m => m.key === toKey);
     const range = (lbl, hi) => `<tr class="dim"><td>${lbl}</td><td class="num">0 – ${n(hi)}</td><td class="num">—</td><td class="num"></td></tr>`;
     body = [
       line("Base points on the entries below", mrow.base, null),
-      line(`Bonus for ${escapeHtml(mName)} spend <span class="dim">(${rule.rate} per S$${rule.per} on S$${fmtNum(sp, 2)}${capHit ? `, the first S$${fmtNum(rule.cap)}` : ""})</span>`, mrow.expected, null),
+      line(`Bonus for ${bonusWhat}`, mrow.expected, null),
       mrow.baseMaybe ? range("Could land here: base for entries posting near the cut-off", mrow.baseMaybe) : "",
       line("<b>Total on this statement</b>", mrow.base + mrow.expected + (mrow.status === "ok" ? Math.max(0, bank - mrow.base - mrow.expected) : mrow.status === "over" ? mrow.baseMaybe : 0), bank, "strong"),
       next && next.expected ? line(`Still to come: bonus for ${escapeHtml(monthLabel(next.key).split(" ")[0])} spend <span class="dim">(next statement)</span>`, next.expected, null, "dim") : ""
@@ -149,8 +153,8 @@ export function stmtBannerHtml(s, rows) {
   else if (mrow) {
     const d = mrow.diff, amt = `${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi)`;
     verdict = mrow.status === "ok" ? `<div class="stmt-verdict ok">✓ Matches: base for the entries below plus the bonus for ${escapeHtml(mName)} spend${mrow.baseMaybe ? ` (allowing up to ${n(mrow.baseMaybe)} for lines near the cut-off)` : ""}.</div>`
-      : mrow.status === "short" ? `<div class="stmt-verdict bad">⚠️ The bonus for ${escapeHtml(mName)} spend is about ${amt} short: the bank did not pay it on some of that month's entries (DBS only pays it on spend its system marks as online).</div>`
-      : `<div class="stmt-verdict over">➕ About ${amt} more than expected${mrow.months.every(m => m.spend >= monthlyRule(s.cardId).cap) ? "" : ": an entry on Base may have earned the bonus, or spend is not logged"}.</div>`;
+      : mrow.status === "short" ? `<div class="stmt-verdict bad">⚠️ The bonus for ${escapeHtml(mName)} spend is about ${amt} short: ${monthlyRule(mcid).kind === "fcyTier" ? "a line logged as foreign may be local, or an excluded line counted towards the month's spend" : "the bank did not pay it on some of that month's entries (DBS only pays it on spend its system marks as online)"}.</div>`
+      : `<div class="stmt-verdict over">➕ About ${amt} more than expected${mrow.months.every(m => m.spend >= monthlyRule(mcid).cap) ? "" : monthlyRule(mcid).kind === "fcyTier" ? ": a foreign line may be logged as local, or spend is not logged" : ": an entry on Base may have earned the bonus, or spend is not logged"}.</div>`;
   }
   else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
@@ -172,7 +176,8 @@ export function stmtBannerHtml(s, rows) {
       fGap = Math.round((lo + hi) / 2); fTol = Math.max(10, Math.ceil((hi - lo) / 2) + 5); fewest = true;
       fTxs = mrow.txs; what = `bonus for ${mName}`;
       // A month already at the cap earns no more bonus, so no entry moved to Bonus can explain a surplus (v1.63.50).
-      if (mrow.status === "over" && mrow.months.every(m => m.spend >= monthlyRule(s.cardId).cap)) { capNote = true; fGap = 0; }
+      if (mrow.status === "over" && mrow.months.every(m => m.spend >= monthlyRule(mcid).cap)) { capNote = true; fGap = 0; }
+      if (monthlyRule(mcid).kind === "fcyTier") fGap = 0;            // no rate switch explains a tier: the no-points check below may
     }
   }
   else if (split) { fGap = s.adjusted - prevBonus; fTxs = mine.filter(t => inWin(t, s.prevFrom || 0, s.prevTo || 0) || (skipEnd && inWin(t, s.from, skipEnd))); what = "bonus (“adjusted”)"; }
@@ -182,7 +187,7 @@ export function stmtBannerHtml(s, rows) {
     fTxs = mine.filter(t => inWin(t, s.from, s.to) || (s.prevTo && inWin(t, s.prevFrom || 0, s.prevTo)));
   }
   if (capNote) {
-    const rule = monthlyRule(s.cardId);
+    const rule = monthlyRule(mcid);
     fixBlock = `<div class="stmt-fix"><b>🔎 Where could the extra come from?</b> ${escapeHtml(mName)} spend already reached the S$${fmtNum(rule.cap)} cap, so its bonus can't be more than ${n(mrow.expected)} and no entry switched to Bonus would add any. The extra is usually DBS's 2X overseas bonus on foreign-currency lines (2 per S$5, credited the next working day with the base; the app counts it only on lines whose foreign amount the statement shows), or a promotion or goodwill credit.</div>`;
   }
   // A surplus the size of the card's annual fee bonus (v1.63.53): offer to add it as an entry, instead of looking for rate switches.
@@ -194,11 +199,11 @@ export function stmtBannerHtml(s, rows) {
   }
   // Entries the bank pays nothing on (v1.63.54: Maybank World utilities and insurance) explain a shortfall without any rate switch.
   shownNoPts = [];
-  if (!split && !mrow && s.status !== "baseline" && !s.gap && bank < sure - 5) {
+  if (!split && s.status !== "baseline" && !s.gap && bank < (mrow ? mrow.base + mrow.expected : sure) - 5) {
     const np = noPointsEntries(mine.filter(t => inWin(t, s.from, s.to)));
     if (np.length) {
       shownNoPts = np;
-      const tot = np.reduce((a, x) => a + x.pts, 0), short = sure - bank, all = Math.abs(tot - short) <= Math.max(10, np.length);
+      const tot = np.reduce((a, x) => a + x.pts, 0), short = (mrow ? mrow.base + mrow.expected : sure) - bank, all = Math.abs(tot - short) <= Math.max(10, np.length);
       fixBlock = `<div class="stmt-fix"><b>🚫 ${np.length} entr${np.length === 1 ? "y earns" : "ies earn"} no points with this card</b> (${n(tot)} ${escapeHtml(unit)} in the app${all ? ", the whole shortfall" : ""}): ${np.map(x => `${escapeHtml(String(x.tx.desc || "").slice(0, 28))} <span class="dim">(${escapeHtml(x.why.replace(/^Maybank gives no points /, ""))})</span>`).join(", ")}. <button type="button" class="btn-backup" data-zero-pts>Set ${np.length === 1 ? "it" : "them"} to no points</button></div>`;
       if (all) fGap = 0;
     }
@@ -207,7 +212,7 @@ export function stmtBannerHtml(s, rows) {
     let cands = candidatesFor(fTxs);
     if (mrow) {
       // Bonus by month: a switch changes the month's capped total, not just the line's own bonus.
-      const rule = monthlyRule(s.cardId), ex = (x) => Math.floor(Math.min(Math.max(0, x), rule.cap) / rule.per * rule.rate + 1e-9);
+      const rule = monthlyRule(mcid), ex = (x) => Math.floor(Math.min(Math.max(0, x), rule.cap) / rule.per * rule.rate + 1e-9);
       const monthOf = (t) => mrow.months.find(m => m.txs.includes(t));
       cands = cands.map(c => { const m = monthOf(c.tx), amt = Number(c.tx.amt) || 0; if (!m) return null;
         const v = c.dir === "up" ? ex(m.spend + amt) - ex(m.spend) : ex(m.spend - amt) - ex(m.spend);

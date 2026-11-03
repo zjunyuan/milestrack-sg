@@ -528,7 +528,7 @@ async function applyLines(ctx) {
         id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
-        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {}), ...(!l.fx && l.fxGuess ? { fxGuess: true } : {})
       });
       addDelta(vaultDeltas, tCard.vaultKey, est.earnedRawPoints); ctx.done++;
       r.savedId = id;

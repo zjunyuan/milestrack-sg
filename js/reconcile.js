@@ -70,7 +70,7 @@ export function expectedCredits(vk, cardIds = null) {
     const lag = card.bank === "Maybank" ? 3 * DAY : 0;               // Maybank: spend in the last 2 business days shows next month
     const base = basePoints(card, t, vk);
     if (base === null || pts <= base) { out.push({ lo: post, hi: post + slack + lag, pts, kind: "all", tx: t, card }); continue; }
-    out.push({ lo: post, hi: post + slack, pts: base, kind: "base", tx: t, card });
+    out.push({ lo: post, hi: post + slack + lag, pts: base, kind: "base", tx: t, card });
     const w = bonusWindow(card, t);
     out.push({ lo: w.lo, hi: w.hi, pts: pts - base, kind: "bonus", tx: t, card });
   }
