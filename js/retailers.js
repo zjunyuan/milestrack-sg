@@ -232,7 +232,7 @@ export const RETAILERS = [
   r("TikTok Shop", "5999", "low", ["tiktok"], { promo: "OCBC 6 mpd promo" }),
 
   // ---- Ride-hailing / taxis (4121) ----
-  r("Grab", "4121", "medium", ["grab ride", "grabcar", "grab car", "grabtaxi"], { alt: ["5814"], note: "GrabFood orders are usually 5814; wallet top-ups may not earn bonus miles." }),
+  r("Grab", "4121", "medium", ["grab ride", "grabcar", "grab car", "grabtaxi"], { alt: ["5814"], noLead: true, note: "GrabFood orders are usually 5814; wallet top-ups may not earn bonus miles." }),
   r("Gojek", "4121", "high", ["go-jek"]),
   r("SimplyGo", "4111", "high", ["bus/mrt", "bus mrt", "simply go"], { note: "Bank statements print bus and MRT taps as BUS/MRT." }),
   r("ComfortDelGro", "4121", "high", ["cdg", "comfort", "comfort taxi", "cab", "taxi"]),
@@ -436,14 +436,38 @@ export const RETAILERS = [
   r("M1", "4814", "high"),
   r("Simba", "4814", "high", ["simba telecom"]),
   r("Circles.Life", "4814", "high", ["circles life", "circles"]),
-  r("SP Services", "4900", "high", ["sp group", "sp utilities", "electricity", "water bill"]),
+  // Statement spellings (v1.63.61): "SP DIGITAL PL-UTILITIE", "SENOKO ENERGY SUPPLY P", "ETIQA INSURANCE (EC)", "AIA PZEC2026...".
+  r("SP Services", "4900", "high", ["sp group", "sp utilities", "sp digital", "sp digital pl utilitie", "electricity", "water bill"]),
+  r("Senoko Energy", "4900", "high", ["senoko", "senoko energy supply", "senoko energy supply p"]),
+  r("Geneco", "4900", "high", ["seraya energy"]),
+  r("Tuas Power", "4900", "high", ["tuas power supply"]),
+  r("Keppel Electric", "4900", "high", ["keppel energy"]),
+  r("PacificLight", "4900", "high", ["pacific light", "pacificlight energy"]),
+  r("Sembcorp Power", "4900", "high", ["sembcorp energy"]),
+  r("Union Power", "4900", "high"),
+  r("City Energy", "4900", "high", ["city gas", "citygas"]),
   r("Prudential", "6300", "high", ["pru"]),
-  r("AIA", "6300", "high"),
-  r("Great Eastern", "6300", "high", ["ge", "great eastern life"]),
+  r("AIA", "6300", "high", ["aia singapore"]),
+  r("Great Eastern", "6300", "high", ["ge", "great eastern life", "great eastern general"]),
   r("NTUC Income", "6300", "high", ["income", "income insurance"]),
-  r("Manulife", "6300", "high"),
-  r("FWD", "6300", "high", ["fwd insurance"]),
+  r("Manulife", "6300", "high", ["manulife singapore"]),
+  r("FWD", "6300", "high", ["fwd insurance", "fwd singapore"]),
   r("AXA", "6300", "high"),
+  r("Etiqa Insurance", "6300", "high", ["etiqa", "etiqa insurance ec"]),
+  r("Singlife", "6300", "high", ["singapore life", "singlife with aviva", "aviva singapore"]),
+  r("Tokio Marine", "6300", "high", ["tokio marine life", "tokio marine insurance"]),
+  r("HSBC Life", "6300", "high", ["hsbc insurance", "hsbc life singapore"]),
+  r("China Taiping", "6300", "high", ["china taiping insurance"]),
+  r("MSIG Insurance", "6300", "high", ["msig"]),
+  r("Allianz Insurance", "6300", "high", ["allianz"]),
+  r("Chubb Insurance", "6300", "high", ["chubb"]),
+  r("Sompo Insurance", "6300", "high", ["sompo"]),
+  r("Liberty Insurance", "6300", "high", ["liberty insurance singapore"]),
+  r("QBE Insurance", "6300", "high", ["qbe insurance"]),
+  r("DirectAsia", "6300", "high", ["direct asia", "directasia insurance"]),
+  r("Raffles Health Insurance", "6300", "high", ["raffles health"]),
+  r("AIG Insurance", "6300", "high", ["aig insurance"]),
+  r("Zurich Insurance", "6300", "high", ["zurich insurance"]),
   r("IRAS", "9311", "high", ["income tax", "property tax", "tax"]),
   r("HDB", "9399", "high", ["hdb payment"]),
   r("CPF", "9399", "high", ["cpf board"]),
@@ -559,6 +583,9 @@ function scoreRetailer(q, retailer) {
     if (n === q) s = 100;
     else if (n.startsWith(q)) s = 80;
     else if (n.split(" ").some(w => w.startsWith(q))) s = 70;
+    // A statement line that starts with a known name and goes on ("SENOKO ENERGY SUPPLY P", "AIA PZEC2026...", "STARBUCKS ORCHARD"),
+    // v1.63.61. Names of 3+ characters only, ending at a word break; two different brands at this score still resolve to nothing.
+    else if (n.length >= 3 && !retailer.noLead && q.startsWith(n + " ")) s = 72;   // noLead: "GRAB* A-xxxx" is a ride or food, so Grab stays unmatched
     else if (q.length >= 3 && n.includes(q)) s = 55;
     else if (q.length >= 4) {
       // Typo tolerance: compare against the whole name and each word.
