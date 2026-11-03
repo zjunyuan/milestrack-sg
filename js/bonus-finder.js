@@ -49,7 +49,8 @@ export function candidatesFor(txs) {
 
 // Every set of candidates whose values add up to the gap (within tol), fewest changes and closest first. Capped so a long list
 // of entries cannot freeze the page: past ~22 candidates only the largest are tried and `partial` says so.
-export function findFixes(cands, gap, tol) {
+// opts.fewest: smallest sets first (one entry that explains the gap is likelier than three that happen to add up).
+export function findFixes(cands, gap, tol, opts = {}) {
   const MAX = 22;
   let list = [...cands].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
   const partial = list.length > MAX;
@@ -68,8 +69,10 @@ export function findFixes(cands, gap, tol) {
     pick.push(i); walk(i + 1, sum + list[i].value, true); pick.pop();
     walk(i + 1, sum, false);
   })(0, 0, false);
-  sets.sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff) || a.items.length - b.items.length);
-  return { sets: sets.slice(0, 3), count: sets.length, candidates: cands.length, partial };
+  sets.sort(opts.fewest ? (a, b) => a.items.length - b.items.length || Math.abs(a.diff) - Math.abs(b.diff) : (a, b) => Math.abs(a.diff) - Math.abs(b.diff) || a.items.length - b.items.length);
+  // Two sets that differ only by which of several same-looking entries (same merchant, same points) they use read the same: keep one.
+  const seen = new Set(), uniq = sets.filter(st => { const k = st.items.map(it => `${it.dir}|${String(it.tx.desc || "").toLowerCase()}|${it.value}`).sort().join("~"); if (seen.has(k)) return false; seen.add(k); return true; });
+  return { sets: uniq.slice(0, 3), count: uniq.length, candidates: cands.length, partial };
 }
 
 // Switch the entries of one set to Bonus / Base: points and miles recomputed at the new rate, the Vault moved by the difference

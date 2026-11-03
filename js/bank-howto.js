@@ -39,7 +39,8 @@ const BANKS = [
     ["tc", "Woman's World Card: 1 point per S$5 on each transaction, the next working day. Online bonus: 9 more per S$5 (7 for overseas online) on the calendar month's total online spend, first S$1,000 a month, credited by the end of the next month (T&C 27 Jul 2026, s.16-19)."],
     ["tc", "DBS decides what counts as online from the merchant's own indicator, so a taxi or ride paid in an app is online and a tap in the car is not."],
     ["app", "Woman's World is treated as online only: every line earns the bonus unless DBS excludes it by MCC or by name (AXS, EZ-Link, ShopeePay, YouTrip, bill payments ...). Grab bookings, rides or food, count as online."],
-    ["seen", "DBS prints points per card (Vantage, Woman's World, yuu ...): filter History to one card to check it on its own. Vantage: points on the same statement."]
+    ["seen", "DBS prints points per card (Vantage, Woman's World, yuu ...): filter History to one card to check it on its own. Vantage: points on the same statement."],
+    ["app", "Woman's World: Check with banks shows the bonus month by month (expected on the month's total, paid on the next statement), so a month DBS paid short stands out."]
   ] },
   { bank: "yuu", unit: "yuu points (3.6 points = 1 mi)", notes: [
     ["app", "Each entry earns its fixed rate; the monthly 10 mpd bonus (S$800 spend and 4 partner brands) is added as one “yuu bonus” entry from the card sheet."]

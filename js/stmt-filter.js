@@ -8,6 +8,7 @@ import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, 
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { candidatesFor, findFixes } from "./bonus-finder.js";
+import { monthlyRule, rowForStatement, monthSpend, monthLabel } from "./monthly-bonus.js";
 
 // The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
 let shownFixes = [];
@@ -103,10 +104,27 @@ export function stmtBannerHtml(s, rows) {
   // Only HSBC is known to work this way (seen on its statements). UOB's "adjusted" holds fee reversals and other items, Maybank and OCBC
   // credit late bonuses differently, so for them the plain "could land here" layout is kept rather than a line-by-line match that would mislead.
   const split = s.bankId === "hsbc" && s.status !== "baseline" && s.earned !== null && s.adjusted > 0;
+  // Bonus paid by calendar month (v1.63.49, MONTHLY_BONUS: DBS Woman's World): this statement pays the bonus for the month that ended
+  // before it, a known figure, so it is compared as one, not as a "could land here" range that hid a shortfall.
+  const mrow = !split && s.cardId && monthlyRule(s.cardId) && s.status !== "baseline" && !s.gap ? rowForStatement(s.cardId, statementPeriods(s.vk, s.cardId), s.recId) : null;
+  const mName = mrow ? mrow.months.map(m => monthLabel(m.key).split(" ")[0]).join(" + ") : "";
   const diff = (app, bk) => { const d = bk - app; return Math.abs(d) <= 5 ? `<span class="ok">✓</span>` : `<span class="${d > 0 ? "over" : "bad"}">${d > 0 ? "+" : "−"}${n(Math.abs(d))} <span class="dim">(≈ ${mi(Math.abs(d))} mi)</span></span>`; };
   const line = (label, app, bk, cls = "") => `<tr class="${cls}"><td>${label}</td><td class="num">${app === null ? "—" : n(app)}</td><td class="num">${bk === null ? "—" : n(bk)}</td><td class="num">${app === null || bk === null ? "" : diff(app, bk)}</td></tr>`;
   let body;
   if (s.status === "baseline") body = line("<b>Bank credited</b> on this statement", null, bank, "strong");
+  else if (mrow) {
+    const rule = monthlyRule(s.cardId), sp = mrow.months.reduce((a, m) => a + m.capped, 0), capHit = mrow.months.some(m => m.spend > m.capped);
+    const toKey = (() => { const d = new Date(s.to); return d.getFullYear() * 100 + d.getMonth() + 1; })();
+    const next = mrow.months.some(m => m.key === toKey) ? null : monthSpend(s.cardId).find(m => m.key === toKey);
+    const range = (lbl, hi) => `<tr class="dim"><td>${lbl}</td><td class="num">0 – ${n(hi)}</td><td class="num">—</td><td class="num"></td></tr>`;
+    body = [
+      line("Base points on the entries below", mrow.base, null),
+      line(`Bonus for ${escapeHtml(mName)} spend <span class="dim">(${rule.rate} per S$${rule.per} on S$${fmtNum(sp, 2)}${capHit ? `, the first S$${fmtNum(rule.cap)}` : ""})</span>`, mrow.expected, null),
+      mrow.baseMaybe ? range("Could land here: base for entries posting near the cut-off", mrow.baseMaybe) : "",
+      line("<b>Total on this statement</b>", mrow.base + mrow.expected + (mrow.status === "ok" ? Math.max(0, bank - mrow.base - mrow.expected) : mrow.status === "over" ? mrow.baseMaybe : 0), bank, "strong"),
+      next && next.expected ? line(`Still to come: bonus for ${escapeHtml(monthLabel(next.key).split(" ")[0])} spend <span class="dim">(next statement)</span>`, next.expected, null, "dim") : ""
+    ].join("");
+  }
   else if (split) body = [
     line(`Base points on the entries below <span class="dim">(bank: “earned”)</span>`, sureBase, s.earned),
     line(`Bonus for ${escapeHtml(prevLbl)} <span class="dim">(bank: “adjusted”)</span>`, prevBonus, s.adjusted),
@@ -125,6 +143,12 @@ export function stmtBannerHtml(s, rows) {
   const gapNote = s.gap ? `<div class="hm-note">⚠️ No points figures for the statement of ${fmtDate(s.gapFrom + 86400000)} – ${s.gapTo ? fmtDate(s.gapTo - 86400000) : "?"}. ${split ? "If it printed no points summary (HSBC sometimes leaves it out), this statement carries its points too, as compared above; if it did, upload it and this check splits in two." : "Upload it (with its points summary) and this check will split in two."}</div>` : "";
   if (s.gap && !split) verdict = `<div class="stmt-verdict bad">⚠️ A statement is missing: the app has none between ${fmtDate(s.gapFrom)} and ${s.gapTo ? fmtDate(s.gapTo) : "this one"}, so the entries below cover two statements while the bank's figures are this statement's only. Upload the missing statement (with its points summary) and this check will split in two.</div>`;
   else if (s.status === "baseline") verdict = `<div class="hm-note">Your earliest statement, so it is the starting point and not checked: it includes the bonus for spend before your first entries.</div>`;
+  else if (mrow) {
+    const d = mrow.diff, amt = `${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi)`;
+    verdict = mrow.status === "ok" ? `<div class="stmt-verdict ok">✓ Matches: base for the entries below plus the bonus for ${escapeHtml(mName)} spend${mrow.baseMaybe ? ` (allowing up to ${n(mrow.baseMaybe)} for lines near the cut-off)` : ""}.</div>`
+      : mrow.status === "short" ? `<div class="stmt-verdict bad">⚠️ The bonus for ${escapeHtml(mName)} spend is about ${amt} short: the bank did not pay it on some of that month's entries (DBS only pays it on spend its system marks as online).</div>`
+      : `<div class="stmt-verdict over">➕ About ${amt} more than expected: an entry on Base may have earned the bonus, or spend is not logged.</div>`;
+  }
   else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
   else if (bank > sure + maybe + 5) verdict = `<div class="stmt-verdict over">➕ ${n(bank - sure - maybe)} ${escapeHtml(unit)} (≈ ${mi(bank - sure - maybe)} mi) more than the app can explain: usually entries on Base that the bank paid a bonus on, or spend not logged.</div>`;
@@ -136,7 +160,16 @@ export function stmtBannerHtml(s, rows) {
   const inWin = (t, a, b) => { const d = Number(t.postTs) || Number(t.timestamp) || 0; return d > a && d <= b; };
   const fam = cardsOf(s), mine = (state.transactions || []).filter(t => fam.includes(t.cardId));
   let fGap = 0, fTxs = [], what = "";
-  if (split) { fGap = s.adjusted - prevBonus; fTxs = mine.filter(t => inWin(t, s.prevFrom || 0, s.prevTo || 0) || (skipEnd && inWin(t, s.from, skipEnd))); what = "bonus (“adjusted”)"; }
+  let fTol = null, fewest = false;
+  if (mrow) {
+    // The gap is known within the base of lines near the cut-off: aim at the middle. Only that month's entries can change its bonus.
+    if (mrow.status === "short" || mrow.status === "over") {
+      const lo = mrow.paidLo - mrow.expected, hi = mrow.paidHi - mrow.expected;
+      fGap = Math.round((lo + hi) / 2); fTol = Math.max(10, Math.ceil((hi - lo) / 2) + 5); fewest = true;
+      fTxs = mrow.txs; what = `bonus for ${mName}`;
+    }
+  }
+  else if (split) { fGap = s.adjusted - prevBonus; fTxs = mine.filter(t => inWin(t, s.prevFrom || 0, s.prevTo || 0) || (skipEnd && inWin(t, s.from, skipEnd))); what = "bonus (“adjusted”)"; }
   else if (s.status !== "baseline" && !s.gap) {
     if (bank > sure + maybe + 5) { fGap = bank - sure - maybe; what = "points"; }
     else if (bank < sure - 5) { fGap = bank - sure; what = "points"; }
@@ -144,8 +177,8 @@ export function stmtBannerHtml(s, rows) {
   }
   if (Math.abs(fGap) > 5 && fTxs.length) {
     const cands = candidatesFor(fTxs);
-    const tol = Math.max(10, Math.ceil(Math.abs(split ? s.adjusted : bank) * 0.005), cands.length);
-    const r = findFixes(cands, fGap, tol);
+    const tol = fTol !== null ? fTol : Math.max(10, Math.ceil(Math.abs(split ? s.adjusted : bank) * 0.005), cands.length);
+    const r = findFixes(cands, fGap, tol, { fewest });
     shownFixes = r.sets;
     const nm = (t) => escapeHtml(String(t.desc || "").slice(0, 28));
     const head = `<b>🔎 Which entries would explain the ${fGap > 0 ? "+" : "−"}${n(Math.abs(fGap))} ${what}?</b>`;
