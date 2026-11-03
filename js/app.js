@@ -114,6 +114,7 @@ window.addEventListener('settings-updated', () => {
 });
 
 window.addEventListener('txns-updated', () => {
+  renderVault();     // the tiles' bank checks need the entries: drawn before they arrived, they showed huge "More than expected" (v1.63.51)
   renderCards();
   renderCategoryTracker();
   refreshHistory();
