@@ -614,6 +614,31 @@ export function renderTransactions() {
       if (e.target.closest('[data-stmt-clear]')) { state.txView.stmt = null; renderTransactions(); return; }
       const delBtn = e.target.closest('[data-stmt-del]');
       if (delBtn) { deleteStatementRecord(delBtn.dataset.stmtDel); return; }
+      const zeroBtn = e.target.closest('[data-zero-pts]');
+      if (zeroBtn) {
+        import('./stmt-filter.js').then(async ({ noPtsShown }) => {
+          const list = noPtsShown(); if (!list.length) return;
+          if (!confirm(`Set these to no points?\n\n${list.map(x => `${x.tx.desc}: ${x.why}`).join('\n')}\n\nTheir points and miles go to 0 and the Vault drops by what they carried.`)) return;
+          zeroBtn.disabled = true;
+          try { const { applyNoPoints } = await import('./bonus-finder.js'); const k = await applyNoPoints(list); showToast(`Set ${k} entr${k === 1 ? 'y' : 'ies'} to no points`); }
+          catch (err) { showToast(`Couldn't change them: ${err.message || err}`, { kind: 'error' }); zeroBtn.disabled = false; }
+          renderTransactions();
+        });
+        return;
+      }
+      const feeBtn = e.target.closest('[data-fee-bonus]');
+      if (feeBtn) {
+        // The annual fee bonus for a statement imported before v1.63.53: one entry inside that statement, the Vault left as it is.
+        feeBtn.disabled = true;
+        import('./fee-bonus.js').then(async ({ feeBonusRecord }) => {
+          const cid = feeBtn.dataset.feeBonus, card = ALL_MASTER_CARDS.find(c => c.id === cid);
+          const rec = feeBonusRecord(cid, Number(feeBtn.dataset.feeTo) - 3 * 86400000, state.myVault?.[card?.vaultKey]?.ratio || 1, { source: 'manual' });
+          try { await saveTxToFirestore(rec.id, rec); showToast('Added the annual fee bonus'); }
+          catch (err) { showToast(`Couldn't add it: ${err.message || err}`, { kind: 'error' }); feeBtn.disabled = false; }
+          renderTransactions();
+        });
+        return;
+      }
       const fixBtn = e.target.closest('[data-bonus-fix]');
       if (fixBtn) {
         import('./stmt-filter.js').then(async ({ fixAt }) => {

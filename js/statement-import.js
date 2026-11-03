@@ -14,8 +14,9 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate, wwmcOnlineRate } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
+import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -86,6 +87,45 @@ function cycleBucket(card, ts) {
 }
 
 // Miles for an imported line are an estimate: bonus rate when the brand's MCC lists this card and the cycle's cap has room, else base.
+// Foreign-currency tiers by calendar month (v1.63.55): Maybank World pays 7X on foreign spend in a month with S$800 of retail spend,
+// 8X from S$4,000 (T&C 1 Dec 2025), else 1X. The tier needs the whole month, so applyLines fills this from the file's lines and the
+// entries already in the app before estimating: { cardId: { "YYYY-MM": spend } }.
+let MONTH_SPEND = {};
+const ymOf = (ts) => dayKey(ts).slice(0, 7);
+function fcyTierRate(card, line) {
+  const t = card.tierRule;
+  if (!(line.fx || line.fxGuess) || !t || !/foreign/i.test(t.scope || "")) return 0;
+  const spent = (MONTH_SPEND[card.id] || {})[ymOf(line.ts)] || 0;
+  let rate = 0;
+  for (const st of t.steps || []) if (spent >= st.at) rate = st.mpd;
+  return rate;
+}
+function fillMonthSpend() {
+  MONTH_SPEND = {};
+  const add = (cid, ts, amt) => { const m = (MONTH_SPEND[cid] = MONTH_SPEND[cid] || {}); const k = ymOf(ts); m[k] = (m[k] || 0) + amt; };
+  const inFile = new Set(), seen = new Set();
+  // Every file of the upload counts (a month's lines often sit on two statements), each line once.
+  const files = isBatch() ? B.files.filter(F => F.card && F.results) : [S];
+  for (const F of files) withFile(F, () => {
+    // A foreign line whose currency line fell on the next page: the same merchant elsewhere in the file shows a currency.
+    const fxNames = new Set(S.results.filter(r => r.line.fx).map(r => r.line.merchant || r.line.desc));
+    S.results.forEach((r, i) => {
+      const l = r.line; if (r.existing) inFile.add(r.existing.id);
+      if (!l.fx && fxNames.has(l.merchant || l.desc)) l.fxGuess = true;
+      if (r.status === "credit" || l.fee || !(l.amt > 0) || seen.has(r.key)) return;
+      seen.add(r.key);
+      const c = targetCard(l, i); if (!c || !c.tierRule) return;
+      if (noPointsReason(c.id, `${l.merchant || ""} ${l.desc || ""}`, (lookupBrand(l.merchant || l.desc) || {}).mcc)) return;   // excluded spend does not count
+      add(c.id, l.ts, l.amt);
+    });
+  });
+  for (const t of state.transactions || []) {
+    const c = ALL_MASTER_CARDS.find(x => x.id === t.cardId);
+    if (!c || !c.tierRule || inFile.has(t.id) || t.noPoints || t.refunded || t.fee || !(Number(t.amt) > 0)) continue;
+    add(c.id, t.timestamp, Number(t.amt));
+  }
+}
+
 function estimateTx(card, line, spentInBucket) {
   if (card.id === "dbs-yuu") { // fixed per-entry rate (partner / other); the 10 mpd bonus is added from the card sheet as one entry
     const y = yuuEntryMiles(card, line.amt, line.merchant || line.desc);
@@ -97,6 +137,11 @@ function estimateTx(card, line, spentInBucket) {
   const entry = retailer && getMccEntry(retailer.mcc);
   const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
   if (cand) rate = cand.baseRate;
+  // Lines the bank pays no points on at all (v1.63.54: Maybank World, utilities and insurance premiums).
+  const nope = noPointsReason(card.id, `${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc);
+  if (nope) return { miles: 0, earnedRawPoints: 0, bonusCategory: "base", noPoints: nope };
+  const tier = fcyTierRate(card, line);
+  if (tier) rate = Math.max(rate, tier);
   if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
     if (r > rate) rate = r;
@@ -279,6 +324,7 @@ function rowHtml(r, i) {
   if (r.status === "new") {
     return `<div class="st-line st-new">${head}${timingHtml(r, i)}
       ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
+      ${l.fee && S.card && isFeeBonusLine(targetCard(l, i).id, l) ? `<div class="st-sub">🎁 The bank credits ${fmtNum(feeRule(targetCard(l, i).id).pts)} points for this fee: added as a “${escapeHtml(feeRule(targetCard(l, i).id).label)}” entry</div>` : ""}
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
@@ -456,6 +502,7 @@ async function applyLines(ctx) {
   const dateStr = ts => new Date(ts).toLocaleDateString("en-SG", { month: "short", day: "numeric" });
   const prevOf = old => { const prev = {}; for (const f of UNDO_FIELDS) if (old[f] !== undefined) prev[f] = old[f]; return prev; };
   const order = S.results.map((r, i) => i).sort((a, b) => S.results[a].line.ts - S.results[b].line.ts);
+  fillMonthSpend();
   const refundOfLine = new Map((S.refunds || []).filter(x => x.lineIdx !== undefined).map(x => [x.lineIdx, x]));
   const save = async (id, rec) => { ctx.saved[id] = rec; await saveTxToFirestore(id, rec); };   // the latest copy, for the refund pass below
   for (const i of order) {
@@ -477,10 +524,11 @@ async function applyLines(ctx) {
       if (rfl) { ctx.refunded.add(id); ctx.refundsDone = (ctx.refundsDone || 0) + 1; }
       await save(id, {
         ...(rfl ? { refunded: true, refundTs: rfl.ts, stmtNote: `Refunded S$${rfl.amt.toFixed(2)} (${scrub(rfl.desc)})` } : {}),
+        ...(est.noPoints && !rfl ? { noPoints: true, stmtNote: est.noPoints } : {}),
         id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
-        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {})
+        source: "statement", stmtConfirmed: true, estimatedMiles: true, ...(postTs ? { postTs } : {}), ...stamp, ...(addVault ? { vaultCounted: true } : {}), stmtKey: r.key, ...(l.pending ? { pending: true } : {}), ...(l.fee ? { fee: true } : {}), ...(l.ref ? { stmtRef: scrub(l.ref) } : {}), ...(l.fx ? { fx: `${l.fx.cur} ${l.fx.amount}` } : {}), ...(!l.fx && l.fxGuess ? { fxGuess: true } : {})
       });
       addDelta(vaultDeltas, tCard.vaultKey, est.earnedRawPoints); ctx.done++;
       r.savedId = id;
@@ -522,6 +570,19 @@ async function applyLines(ctx) {
       });
       ctx.done++;
     }
+  }
+  // Annual fee bonus (v1.63.53): the fee line earns nothing, but the bank credits points for it (DBS Vantage 12,500). One zero-amount
+  // entry carries them, so the statement check expects them; a re-import or an overlapping file adds it once.
+  for (const i of order) {
+    const r = S.results[i], l = r.line;
+    if (!l.fee) continue;
+    const tCard = targetCard(l, i);
+    if (!tCard || !isFeeBonusLine(tCard.id, l) || feeBonusNear(tCard.id, l.ts + 86400000) || ctx.seenKeys.has("fee:" + tCard.id + dayKey(l.ts))) continue;
+    ctx.seenKeys.add("fee:" + tCard.id + dayKey(l.ts));
+    const rec = feeBonusRecord(tCard.id, l.ts, state.myVault[tCard.vaultKey]?.ratio || 1, { source: "statement", stmtConfirmed: true, estimatedMiles: false, ...stamp, ...(addVault ? { vaultCounted: true } : {}) });
+    await save(rec.id, rec);
+    if (addVault) addDelta(vaultDeltas, tCard.vaultKey, rec.earnedRawPoints);
+    ctx.done++;
   }
   // Refunds of entries already in the app (or matched just above): that purchase earns nothing now. Undo puts its points back.
   for (const rf of S.refunds || []) {

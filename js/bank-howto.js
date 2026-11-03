@@ -40,6 +40,7 @@ const BANKS = [
     ["tc", "DBS decides what counts as online from the merchant's own indicator, so a taxi or ride paid in an app is online and a tap in the car is not."],
     ["app", "Woman's World is treated as online only: every line earns the bonus unless DBS excludes it by MCC or by name (AXS, EZ-Link, ShopeePay, YouTrip, bill payments ...). Grab bookings, rides or food, count as online."],
     ["seen", "DBS prints points per card (Vantage, Woman's World, yuu ...): filter History to one card to check it on its own. Vantage: points on the same statement."],
+    ["sec", "Vantage: 25,000 miles (12,500 DBS Points) the next working day after the annual fee is charged; the fee is no longer waivable from 1 Aug 2026, and a waived fee claws them back. The import adds them as an entry when it sees the fee line."],
     ["app", "Woman's World: Check with banks shows the bonus month by month (expected on the month's total, paid on the next statement), so a month DBS paid short stands out."]
   ] },
   { bank: "yuu", unit: "yuu points (3.6 points = 1 mi)", notes: [
@@ -47,6 +48,9 @@ const BANKS = [
   ] },
   { bank: "Maybank", unit: "TREATS points (1 point ≈ 0.4 mi)", notes: [
     ["seen", "Spend in the last 2 business days of a month shows on the next month's points."],
+    ["seen", "World Mastercard: each statement holds 1X on its own lines plus the previous month's foreign-spend tier (7X / 8X) as one lump. Check with banks checks it month by month."],
+    ["tc", "World Mastercard: no points at all on utilities (4900), insurance premiums, NETS, government, AXS/SAM and wallet top-ups (T&C 1 Dec 2025, Excluded Transactions). The import gives these lines 0 points."],
+    ["tc", "World Mastercard foreign spend: 7X (2.8 mpd) in a calendar month with S$800 of retail spend, 8X (3.2 mpd) from S$4,000, else 1X; the month counts lines posted by the 7th of the next month. The import uses the month's total from every file uploaded together plus your entries."],
     ["tc", "Horizon: air tickets earn the higher rate once S$800 is spent in the month (T&C 1 Dec 2025). World Mastercard: overseas rate in tiers at S$800 and S$4,000."]
   ] },
   { bank: "Trust", unit: "Trust miles", notes: [["app", "One flat rate, no bonus categories; S$27.25 per transfer to KrisFlyer."]] }

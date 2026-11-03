@@ -157,23 +157,25 @@ const MB_STATUS = { ok: ["✓", "pc-ok"], short: ["⚠️ Short", "pc-bad"], ove
 function monthlyHtml(vk, unit) {
   const ids = Object.keys(MONTHLY_BONUS).filter(id => (ALL_MASTER_CARDS.find(c => c.id === id) || {}).vaultKey === vk);
   const blocks = ids.map(id => {
-    const perCard = (state.pointsLog || []).some(r => r.kind === "statement" && (r.byCard || []).some(c => c.cardId === id));
+    const wide = MONTHLY_BONUS[id].vaultWide;
+    const perCard = wide || (state.pointsLog || []).some(r => r.kind === "statement" && (r.byCard || []).some(c => c.cardId === id));
     if (!perCard) return "";
-    const rows = monthlyRows(id, statementPeriods(vk, id));
+    const rows = monthlyRows(id, statementPeriods(vk, wide ? null : id));
     if (!rows.length) return "";
     const tr = (r) => {
       const [label, cls] = MB_STATUS[r.status];
       const name = r.months.map(m => monthLabel(m.key)).join(" + ");
       const spend = r.months.reduce((a, m) => a + m.spend, 0), capped = r.months.some(m => m.spend > m.capped);
+      const tierTxt = MONTHLY_BONUS[id].kind === "fcyTier" ? ` <span class="dim">(${r.months.map(m => `${m.mult}X on S$${fmtNum(m.fcy, 2)} foreign`).join(", ")})</span>` : "";
       const paid = r.period ? (r.baseMaybe ? `${n(r.paidLo)}–${n(r.paidHi)}` : n(r.paidHi)) : "—";
       const chip = `<span class="pc-chip ${cls}">${label}${r.status === "short" || r.status === "over" ? ` ${n(Math.abs(r.diff))}` : ""}</span>`;
       const links = `<button type="button" class="pc-link" data-mb-card="${escapeHtml(id)}" data-mb-month="${monthIso(r.months[0].key)}">Entries →</button>`
-        + (r.period ? ` <button type="button" class="pc-link" data-stmt-vk="${escapeHtml(vk)}" data-stmt-card="${escapeHtml(id)}" data-stmt-to="${r.period.to}">Statement →</button>` : "");
-      return `<tr><td>${escapeHtml(name)}</td><td class="num">S$${fmtNum(spend, 2)}${capped ? ` <span class="dim">(cap)</span>` : ""}</td><td class="num">${n(r.expected)}</td><td>${r.period ? fmtDate(r.period.recDate) : "—"}</td><td class="num">${paid}</td><td>${chip}</td><td>${links}</td></tr>`;
+        + (r.period ? ` <button type="button" class="pc-link" data-stmt-vk="${escapeHtml(vk)}" data-stmt-card="${wide ? "" : escapeHtml(id)}" data-stmt-to="${r.period.to}">Statement →</button>` : "");
+      return `<tr><td>${escapeHtml(name)}</td><td class="num">S$${fmtNum(spend, 2)}${capped ? ` <span class="dim">(cap)</span>` : ""}${tierTxt}</td><td class="num">${n(r.expected)}</td><td>${r.period ? fmtDate(r.period.recDate) : "—"}</td><td class="num">${paid}</td><td>${chip}</td><td>${links}</td></tr>`;
     };
     return `<div class="pc-cardrow"><b>${escapeHtml(cardName(id))}</b>
       <div class="stmt-scroll"><table class="stmt-tbl pc-mb"><thead><tr><th>Month</th><th class="num">Bonus spend</th><th class="num">Expected</th><th>Paid on</th><th class="num">Paid</th><th></th><th></th></tr></thead><tbody>${rows.slice(0, 12).map(tr).join("")}</tbody></table></div>
-      <div class="hm-note">${escapeHtml(MONTHLY_BONUS[id].source)}: ${MONTHLY_BONUS[id].rate} ${escapeHtml(unit)} per S$${MONTHLY_BONUS[id].per} on the month's bonus spend (by transaction date), the first S$${fmtNum(MONTHLY_BONUS[id].cap)}, paid on the next statement. Paid = what the bank credited less the base for that statement's own lines (a range when lines post near the cut-off). Open the statement on a short month to see which entries would explain it.</div></div>`;
+      <div class="hm-note">${escapeHtml(MONTHLY_BONUS[id].source)}: ${MONTHLY_BONUS[id].kind === "fcyTier" ? `1X when each line posts; the foreign-spend tier (${MONTHLY_BONUS[id].steps.map(st => `${st.mult}X from S$${fmtNum(st.at)}`).join(", ")} of retail spend in the month) is paid on that month's foreign lines on the next statement.` : `${MONTHLY_BONUS[id].rate} ${escapeHtml(unit)} per S$${MONTHLY_BONUS[id].per} on the month's bonus spend (by transaction date), the first S$${fmtNum(MONTHLY_BONUS[id].cap)}, paid on the next statement.`} Paid = what the bank credited less the base for that statement's own lines (a range when lines post near the cut-off). Open the statement on a short month to see which entries would explain it.</div></div>`;
   }).filter(Boolean);
   return blocks.length ? `<details class="pc-sec" data-sec="monthly" open><summary>📅 Bonus by month</summary>${blocks.join("")}</details>` : "";
 }

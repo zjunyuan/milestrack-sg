@@ -9,7 +9,12 @@ import { state } from "./state.js";
 import { MONTHLY_BONUS } from "./config.js";
 import { familyIds, expectedCredits } from "./reconcile.js";
 
+import { ALL_MASTER_CARDS } from "./config.js";
 export const monthlyRule = (cardId) => MONTHLY_BONUS[cardId] || null;
+// The card a statement check is about: the filtered card, or for a currency the bank keeps as one balance, its monthly-bonus card.
+export const monthlyCardFor = (vk, cardId) => cardId ? (monthlyRule(cardId) ? cardId : null)
+  : (Object.keys(MONTHLY_BONUS).find(id => MONTHLY_BONUS[id].vaultWide && (ALL_MASTER_CARDS.find(c => c.id === id) || {}).vaultKey === vk) || null);
+const tierOf = (rule, spend) => (rule.steps || []).reduce((m, st) => spend >= st.at ? st.mult : m, rule.base);
 const DAY = 86400000;
 const keyOf = (ts) => { const d = new Date(ts); return d.getFullYear() * 100 + d.getMonth() + 1; };
 export const monthEnd = (key) => new Date(Math.floor(key / 100), key % 100, 0, 23, 59, 59, 999).getTime();
@@ -23,25 +28,49 @@ export function monthSpend(cardId) {
   const fam = familyIds(cardId);
   const months = new Map();
   const txs = (state.transactions || []).filter(t => fam.includes(t.cardId) && Number(t.timestamp)).sort((a, b) => a.timestamp - b.timestamp);
+  if (rule.kind === "fcyTier") {
+    // The month's retail spend sets the tier; the extra over base is paid on every foreign line, per S$1.
+    for (const t of txs) {
+      const k = keyOf(t.timestamp);
+      if (!months.has(k)) months.set(k, { key: k, txs: [], spend: 0, fcy: 0, fcyPts: 0 });
+      const m = months.get(k); m.txs.push(t);
+      const amt = Number(t.amt) || 0;
+      if (!(amt > 0) || t.refunded || t.noPoints || t.fee || t.feeBonus) continue;
+      m.spend += amt;
+      if (t.fx || t.fxGuess) { m.fcy += amt; m.fcyPts += Math.floor(amt); }
+    }
+    for (const m of months.values()) {
+      m.spend = Math.round(m.spend * 100) / 100; m.fcy = Math.round(m.fcy * 100) / 100; m.capped = m.spend;
+      m.mult = tierOf(rule, m.spend); m.expected = m.fcyPts * (m.mult - rule.base);
+    }
+    return [...months.values()].sort((a, b) => a.key - b.key);
+  }
   for (const t of txs) {
     const k = keyOf(t.timestamp);
-    if (!months.has(k)) months.set(k, { key: k, txs: [], spend: 0 });
+    if (!months.has(k)) months.set(k, { key: k, txs: [], spend: 0, local: 0, fcy: 0 });
     const m = months.get(k); m.txs.push(t);
     const amt = Number(t.amt) || 0;
-    if (amt > 0 && !t.refunded && !t.yuuBonus && t.bonusCategory !== "base") m.spend += amt;
+    if (amt > 0 && !t.refunded && !t.yuuBonus && !t.feeBonus && t.bonusCategory !== "base") {
+      // The cap is the first S$1,000 in date order; foreign-currency lines (fx, from the statement) earn the lower online rate.
+      const fits = Math.max(0, Math.min(amt, rule.cap - m.spend));
+      if (t.fx && rule.fcyRate) m.fcy += fits; else m.local += fits;
+      m.spend += amt;
+    }
   }
   for (const m of months.values()) {
     m.spend = Math.round(m.spend * 100) / 100;
     m.capped = Math.min(m.spend, rule.cap);
-    m.expected = Math.floor(m.capped / rule.per * rule.rate + 1e-9);
+    m.expected = Math.floor(m.local / rule.per * rule.rate + 1e-9) + Math.floor(m.fcy / rule.per * (rule.fcyRate || rule.rate) + 1e-9);
   }
   return [...months.values()].sort((a, b) => a.key - b.key);
 }
 
 // Base points a statement holds for its own lines: sure (posted inside it) and up to `maybe` more (lines posting near the cut-off).
-export function baseOn(p, credits) {
+export function baseOn(p, credits, rule = null) {
   const inside = (c) => c.lo > p.from && c.hi <= p.to, overlaps = (c) => c.hi > p.from && c.lo <= p.to && !inside(c);
-  const add = (l) => l.reduce((a, c) => a + c.pts, 0);
+  // The overseas bonus on foreign-currency lines (2 per S$5) lands with the base, the next working day.
+  const extra = (c) => rule && rule.fcyBase && c.tx && c.tx.fx && !c.tx.refunded ? Math.floor((Number(c.tx.amt) || 0) / rule.per) * rule.fcyBase : 0;
+  const add = (l) => l.reduce((a, c) => a + c.pts + extra(c), 0);
   const base = credits.filter(c => c.kind !== "bonus");
   return { sure: add(base.filter(inside)), maybe: add(base.filter(overlaps)) };
 }
@@ -52,7 +81,7 @@ export function monthlyRows(cardId, periods) {
   const rule = monthlyRule(cardId); if (!rule) return [];
   const months = monthSpend(cardId); if (!months.length) return [];
   const vk = periods[0]?.vk;
-  const credits = vk ? expectedCredits(vk, familyIds(cardId)) : [];
+  const credits = vk ? expectedCredits(vk, rule.vaultWide ? null : familyIds(cardId)) : [];
   const asc = [...periods].sort((a, b) => a.recDate - b.recDate);
   const groups = new Map();                                          // landing statement id → row
   const out = [];
@@ -69,7 +98,7 @@ export function monthlyRows(cardId, periods) {
     const g = groups.get(p.recId); g.months.push(m); g.expected += m.expected; g.txs.push(...m.txs);
   }
   for (const g of groups.values()) {
-    const p = g.period, b = baseOn(p, credits), bank = Number(p.bank) || 0;
+    const p = g.period, b = baseOn(p, credits, rule), bank = Number(p.bank) || 0;
     g.base = b.sure; g.baseMaybe = b.maybe;
     g.paidHi = bank - b.sure; g.paidLo = g.paidHi - b.maybe;
     const tol = 5;

@@ -9,7 +9,7 @@ import { ALL_MASTER_CARDS } from "./config.js";
 import { calcEarnedMiles } from "./recommender.js";
 import { getMccEntry } from "./mcc.js";
 import { mccOf } from "./summary.js";
-import { ocbcMerchantRate, wwmcOnlineRate } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason } from "./cardrules.js";
 
 const cardById = (id) => ALL_MASTER_CARDS.find(c => c.id === id);
 const ratioOf = (vk) => Number((state.myVault && state.myVault[vk] && state.myVault[vk].ratio) || 1);
@@ -94,4 +94,33 @@ export async function applyFix(set) {
   for (const [vk, d] of Object.entries(deltas)) if (d && state.myVault[vk]) { state.myVault[vk].points = Math.max(0, (Number(state.myVault[vk].points) || 0) + d); moved = true; }
   if (moved) await updateVaultDoc(state.myVaultKey, state.myVault);
   return set.items.length;
+}
+
+// Entries the bank pays no points on (v1.63.54, `noPointsReason`) that still carry points in the app: [{ tx, card, pts, why }].
+export function noPointsEntries(txs) {
+  const out = [];
+  for (const tx of txs) {
+    const card = cardById(tx.cardId), pts = Number(tx.earnedRawPoints) || 0;
+    if (!card || pts <= 0 || tx.noPoints || tx.refunded) continue;
+    const why = noPointsReason(card.id, `${tx.desc || ""} ${tx.stmtDesc || ""}`, mccOf(tx.desc, tx.mcc) || "");
+    if (why) out.push({ tx, card, pts, why });
+  }
+  return out;
+}
+// Set them to no points and miles; the Vault drops by what they carried where it counted them.
+export async function applyNoPoints(list) {
+  const { saveTxToFirestore, updateVaultDoc } = await import("./firebase.js");
+  const deltas = {};
+  for (const it of list) {
+    const cur = state.transactions.find(t => t.id === it.tx.id) || it.tx;
+    const rec = { ...cur }; delete rec.firestoreId;
+    const had = Number(rec.earnedRawPoints) || 0;
+    Object.assign(rec, { miles: 0, earnedRawPoints: 0, bonusCategory: "base", noPoints: true, stmtNote: it.why, rateSetBy: "no-points" });
+    await saveTxToFirestore(rec.id, rec);
+    if (rec.vaultCounted || rec.source !== "statement") deltas[it.card.vaultKey] = (deltas[it.card.vaultKey] || 0) - had;
+  }
+  let moved = false;
+  for (const [vk, d] of Object.entries(deltas)) if (d && state.myVault[vk]) { state.myVault[vk].points = Math.max(0, (Number(state.myVault[vk].points) || 0) + d); moved = true; }
+  if (moved) await updateVaultDoc(state.myVaultKey, state.myVault);
+  return list.length;
 }
