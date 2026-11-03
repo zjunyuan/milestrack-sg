@@ -659,6 +659,12 @@ export function renderTransactions() {
   const view = state.txView;
   const queryClean = state.txSearchQuery.toLowerCase().trim();
   if (view.stmt && vaultOfCardFilter(view.cards) !== view.stmt.vk) view.stmt = null;   // the card filter moved off that statement's card
+  // Same bank, another card (v1.63.52): DBS prints a row per card, so switching Woman's World to Vantage moves the view to Vantage's own
+  // row of the same statement instead of keeping the previous card's (or every DBS card's) figures.
+  if (view.stmt) {
+    const ps = periodsForFilter(view.cards), want = ps.length ? (ps[0].cardId || null) : null;
+    if ((view.stmt.cardId || null) !== want) view.stmt = ps.find(p => Number(p.recDate) === Number(view.stmt.recDate)) || null;
+  }
   renderStmtSelect(view);
   const inPeriodRows = state.transactions.filter(inHistoryPeriod);
 
