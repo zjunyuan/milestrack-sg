@@ -68,6 +68,8 @@ const B = { files: [], open: -1 };         // batch mode: several files in one g
 const isBatch = () => B.files.length > 0;   // every upload is a list of cards, even when it holds just one
 function withFile(F, fn) { const prev = S; S = F; try { return fn(); } finally { S = prev; } }
 
+// Wording that means a payment TO the card (v1.63.47). "STARHUB EPAYMENT" and "REDMART SG PAYMENT" are purchases.
+const CARD_PAYMENT = /visa direct|money ?send|\bgiro\b|fund transfer|fast payment|bill payment|payment\s*[-–]|payment\s+(received|thank)|^\s*payment\b|paymt thru/i;
 const $ = id => document.getElementById(id);
 const money = n => "S$" + fmtNum(n, 2);
 const dateLabel = ts => new Date(ts).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
@@ -165,6 +167,9 @@ function postFor(card, line) {
 function keyCardId() { return familyOf(S.card.id)[0]; }   // one key per physical card, whichever entry the lines go to
 function computeCore() {
   let lines = buildLines(S.rows, S.headerRow, S.cols, { order: S.order, flip: S.flip });
+  // A payment to the card is a credit whatever sign the file gave it, so it can never be added as spend (v1.63.48: a flipped DBS section
+  // once imported "BILL PAYMENT - DBS INTERNET/WIRELESS" as a S$473 purchase with miles).
+  lines = lines.map(l => (CARD_PAYMENT.test(l.desc || "") && l.amt > 0 ? { ...l, amt: -l.amt } : l));
   // A file whose only date column is a posting date: that date is the posting date.
   const dateHdr = S.headerRow >= 0 && S.cols.date >= 0 ? String(S.rows[S.headerRow][S.cols.date] || "") : "";
   // OCBC labels its only date "transaction date" but it is the posting date, so it is recorded as such and never replaces my transaction date.
@@ -183,7 +188,9 @@ function computeCore() {
   // except the last GRACE_DAYS, which may post on the next statement.
   const hiTs = lines.length ? Math.max(...lines.map(l => l.ts)) : 0;
   const graceCut = hiTs - GRACE_DAYS * 86400000;
-  S.stale = m.missing.filter(t => !t.stmtConfirmed && t.source !== "statement" && (t.timestamp || 0) <= graceCut);
+  // A payment to the card saved as spend (an earlier import read a file's signs the wrong way) goes too, even with a statement mark (v1.63.48).
+  const paidAsSpend = (t) => (Number(t.amt) || 0) > 0 && CARD_PAYMENT.test(`${t.stmtDesc || ""} ${t.desc || ""}`);
+  S.stale = m.missing.filter(t => paidAsSpend(t) || (!t.stmtConfirmed && t.source !== "statement" && (t.timestamp || 0) <= graceCut));
   S.recent = m.missing.filter(t => !S.stale.includes(t));
   S.remove = {}; S.stale.forEach(t => { S.remove[t.id] = true; });
   if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs" || r.status === "moved") S.chan[i] = guessEntry(r.line); });
@@ -653,7 +660,6 @@ function prepareCore(rows, fileName = "") {
   // (A month of nine small refunds and one purchase fooled the count below: HSBC March 2026.)
   // Only wording that means a payment TO the card (v1.63.47): "STARHUB EPAYMENT" and "REDMART SG PAYMENT" are purchases, and two of them
   // once outvoted the real "BILL PAYMENT" and flipped a whole DBS Woman's World section (48 purchases read as credits).
-  const CARD_PAYMENT = /visa direct|money ?send|\bgiro\b|fund transfer|fast payment|bill payment|payment\s*[-–]|payment\s+(received|thank)|^\s*payment\b|paymt thru/i;
   const pays = probe.filter(l => CARD_PAYMENT.test(l.desc) && Math.abs(l.amt) >= 1);
   S.flip = pays.length ? pays.filter(l => l.amt > 0).length > pays.length / 2
     : spendish.length >= 1 && spendish.filter(l => l.amt < 0).length > spendish.length * 0.6;   // spend shown as negative numbers
