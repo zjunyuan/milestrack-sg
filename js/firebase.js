@@ -252,9 +252,8 @@ export function subscribeToCloudData() {
 
   const txQuery = query(
     collection(db, "milestrack_txns"), 
-    where("owner", "==", state.myVaultKey),
-    limit(1000)
-  );
+    where("owner", "==", state.myVaultKey)
+  );   // no limit (v1.63.58): limit(1000) without an order loaded an arbitrary 1,000 entries once a vault had more
   
   onSnapshot(txQuery, (querySnapshot) => {
     state.transactions = [];
