@@ -1276,3 +1276,33 @@ body:has(#demoBar) { padding-top: 28px; }
 .bh-app { color: #cbd5e1; background: rgba(148,163,184,0.16); }
 .dupes-box { display: block; border: 1px solid rgba(251,191,36,0.5); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; line-height: 1.5; }
 .dupes-box .btn-backup { display: inline-flex; width: auto; margin: 6px 0 4px; padding: 6px 12px; }
+
+/* Trends (v1.63.60) */
+.tr-box { background: var(--surface); border: 1px solid var(--outline); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; position: relative; }
+.tr-box > summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.tr-box > summary .dim { font-weight: 400; margin-left: 6px; }
+.tr-sec { margin-top: 14px; }
+.tr-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; margin-bottom: 6px; }
+.tr-toggle { display: inline-flex; border: 1px solid var(--outline); border-radius: 8px; overflow: hidden; }
+.tr-toggle button { background: transparent; color: var(--on-surface); border: 0; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; }
+.tr-toggle button.on { background: var(--surface-variant); font-weight: 600; }
+.tr-svg { display: block; max-width: 100%; }
+.tr-svg .tr-grid { stroke: rgba(148,163,184,0.18); stroke-width: 1; }
+.tr-svg .tr-axis { fill: #94a3b8; font-size: 10px; }
+.tr-svg [data-tip] { cursor: default; }
+.tr-svg .tr-hit[data-month] { cursor: pointer; }
+.tr-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 0.75rem; color: #c3c2b7; margin-top: 6px; }
+.tr-leg { display: inline-flex; align-items: center; gap: 5px; }
+.tr-leg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.tr-table { margin-top: 6px; font-size: 0.78rem; }
+.tr-table table { border-collapse: collapse; margin-top: 4px; }
+.tr-table td, .tr-table th { padding: 2px 10px 2px 0; text-align: left; }
+.tr-table .num { text-align: right; }
+.tr-misslist { font-size: 0.78rem; margin: 6px 0; padding: 8px 10px; background: var(--surface-variant); border-radius: 8px; display: flex; flex-direction: column; gap: 3px; }
+.tr-misslist[hidden] { display: none; }
+.tr-gap { color: var(--gold); font-weight: 600; }
+.tr-cap { border-collapse: separate; border-spacing: 2px; font-size: 0.72rem; }
+.tr-cap th { font-weight: 500; color: #94a3b8; text-align: left; white-space: nowrap; padding-right: 6px; }
+.tr-cap td { width: 34px; min-width: 32px; height: 24px; text-align: center; border-radius: 4px; background: rgba(148,163,184,0.06); color: #e2e2e6; }
+.tr-cap td.tr-cap-hi { color: #0d1117; font-weight: 600; }
+.tr-tip { position: absolute; z-index: 5; max-width: 230px; pointer-events: none; background: #0d1117; border: 1px solid var(--outline); color: var(--on-surface); font-size: 0.75rem; padding: 5px 8px; border-radius: 6px; }

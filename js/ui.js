@@ -31,6 +31,7 @@ import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
 import { duplicateExtras, dupesHtml } from "./dupes.js";
+import { renderTrends, trendsWidthChanged } from "./trends.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
 import { statementPeriods, periodsForFilter, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
@@ -706,6 +707,24 @@ export function renderTransactions() {
   const cardOf = (tx) => ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
   const view = state.txView;
   const queryClean = state.txSearchQuery.toLowerCase().trim();
+  // Trends for the History year (v1.63.60), following the card filter.
+  const trendsEl = document.getElementById('txTrends');
+  if (trendsEl) {
+    const key = document.getElementById('archiveMonthSelect')?.value || '';
+    const yr = key.startsWith('YEAR-') ? parseInt(key.slice(5), 10) : (parseInt(key, 10) || new Date().getFullYear());
+    try { renderTrends(trendsEl, yr, view.cards && view.cards.length ? view.cards : null); } catch (err) { console.error('Trends failed', err); trendsEl.innerHTML = ''; }
+    if (!trendsEl.clientWidth) requestAnimationFrame(() => { if (trendsEl.clientWidth && trendsWidthChanged(trendsEl)) renderTrends(trendsEl, yr, view.cards && view.cards.length ? view.cards : null); });
+    if (!trendsEl.dataset.bound) {
+      trendsEl.dataset.bound = '1';
+      // Only the chart needs the new width (a phone's toolbar showing or hiding fires resize too).
+      let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => {
+        if (!trendsWidthChanged(trendsEl)) return;
+        const k = document.getElementById('archiveMonthSelect')?.value || '';
+        const y2 = k.startsWith('YEAR-') ? parseInt(k.slice(5), 10) : (parseInt(k, 10) || new Date().getFullYear());
+        renderTrends(trendsEl, y2, state.txView.cards && state.txView.cards.length ? state.txView.cards : null);
+      }, 250); });
+    }
+  }
   const dupBox = document.getElementById('txDupes');
   if (dupBox) {
     dupBox.innerHTML = dupesHtml(duplicateExtras());
@@ -2023,6 +2042,8 @@ export function updateReconcileDelta(appSpend) {
 }
 
 export function switchTab(tabName) {
+  // Trends are drawn at the list's width, which is 0 while History is hidden: redraw once it shows (v1.63.60).
+  if (tabName === 'history') requestAnimationFrame(() => { const el = document.getElementById('txTrends'); if (el && el.clientWidth && trendsWidthChanged(el)) renderTransactions(); });
   if (window.innerWidth >= 900) {
     // Desktop: History is its own page, shown only on request.
     const on = tabName === 'history';
