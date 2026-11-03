@@ -147,7 +147,7 @@ export function stmtBannerHtml(s, rows) {
     const d = mrow.diff, amt = `${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi)`;
     verdict = mrow.status === "ok" ? `<div class="stmt-verdict ok">✓ Matches: base for the entries below plus the bonus for ${escapeHtml(mName)} spend${mrow.baseMaybe ? ` (allowing up to ${n(mrow.baseMaybe)} for lines near the cut-off)` : ""}.</div>`
       : mrow.status === "short" ? `<div class="stmt-verdict bad">⚠️ The bonus for ${escapeHtml(mName)} spend is about ${amt} short: the bank did not pay it on some of that month's entries (DBS only pays it on spend its system marks as online).</div>`
-      : `<div class="stmt-verdict over">➕ About ${amt} more than expected: an entry on Base may have earned the bonus, or spend is not logged.</div>`;
+      : `<div class="stmt-verdict over">➕ About ${amt} more than expected${mrow.months.every(m => m.spend >= monthlyRule(s.cardId).cap) ? "" : ": an entry on Base may have earned the bonus, or spend is not logged"}.</div>`;
   }
   else if (split) { const d = bank - (sureBase + prevBonus); verdict = Math.abs(d) <= 5 ? `<div class="stmt-verdict ok">✓ Matches: the bank paid what the app expects.</div>` : `<div class="stmt-verdict ${d > 0 ? "over" : "bad"}">${d > 0 ? "➕ The bank paid" : "⚠️ The bank paid"} ${n(Math.abs(d))} ${escapeHtml(unit)} (≈ ${mi(Math.abs(d))} mi) ${d > 0 ? "more" : "less"} than the app expects${d > 0 ? ": usually an entry on Base that earned a bonus, or spend not logged" : ": an entry may be on Bonus that the bank paid at base"}.</div>`; }
   else if (bank < sure - 5) verdict = `<div class="stmt-verdict bad">⚠️ Short: the bank credited ${n(sure - bank)} ${escapeHtml(unit)} (≈ ${mi(sure - bank)} mi) less than the app is sure of.</div>`;
@@ -160,13 +160,15 @@ export function stmtBannerHtml(s, rows) {
   const inWin = (t, a, b) => { const d = Number(t.postTs) || Number(t.timestamp) || 0; return d > a && d <= b; };
   const fam = cardsOf(s), mine = (state.transactions || []).filter(t => fam.includes(t.cardId));
   let fGap = 0, fTxs = [], what = "";
-  let fTol = null, fewest = false;
+  let fTol = null, fewest = false, capNote = false;
   if (mrow) {
     // The gap is known within the base of lines near the cut-off: aim at the middle. Only that month's entries can change its bonus.
     if (mrow.status === "short" || mrow.status === "over") {
       const lo = mrow.paidLo - mrow.expected, hi = mrow.paidHi - mrow.expected;
       fGap = Math.round((lo + hi) / 2); fTol = Math.max(10, Math.ceil((hi - lo) / 2) + 5); fewest = true;
       fTxs = mrow.txs; what = `bonus for ${mName}`;
+      // A month already at the cap earns no more bonus, so no entry moved to Bonus can explain a surplus (v1.63.50).
+      if (mrow.status === "over" && mrow.months.every(m => m.spend >= monthlyRule(s.cardId).cap)) { capNote = true; fGap = 0; }
     }
   }
   else if (split) { fGap = s.adjusted - prevBonus; fTxs = mine.filter(t => inWin(t, s.prevFrom || 0, s.prevTo || 0) || (skipEnd && inWin(t, s.from, skipEnd))); what = "bonus (“adjusted”)"; }
@@ -175,8 +177,20 @@ export function stmtBannerHtml(s, rows) {
     else if (bank < sure - 5) { fGap = bank - sure; what = "points"; }
     fTxs = mine.filter(t => inWin(t, s.from, s.to) || (s.prevTo && inWin(t, s.prevFrom || 0, s.prevTo)));
   }
+  if (capNote) {
+    const rule = monthlyRule(s.cardId);
+    fixBlock = `<div class="stmt-fix"><b>🔎 Where could the extra come from?</b> ${escapeHtml(mName)} spend already reached the S$${fmtNum(rule.cap)} cap, so its bonus can't be more than ${n(mrow.expected)} and no entry switched to Bonus would add any. The extra is usually DBS's 2X overseas bonus on foreign-currency lines (2 per S$5, credited the next working day with the base; the app doesn't count it yet), or a promotion or goodwill credit.</div>`;
+  }
   if (Math.abs(fGap) > 5 && fTxs.length) {
-    const cands = candidatesFor(fTxs);
+    let cands = candidatesFor(fTxs);
+    if (mrow) {
+      // Bonus by month: a switch changes the month's capped total, not just the line's own bonus.
+      const rule = monthlyRule(s.cardId), ex = (x) => Math.floor(Math.min(Math.max(0, x), rule.cap) / rule.per * rule.rate + 1e-9);
+      const monthOf = (t) => mrow.months.find(m => m.txs.includes(t));
+      cands = cands.map(c => { const m = monthOf(c.tx), amt = Number(c.tx.amt) || 0; if (!m) return null;
+        const v = c.dir === "up" ? ex(m.spend + amt) - ex(m.spend) : ex(m.spend - amt) - ex(m.spend);
+        return v ? { ...c, value: v } : null; }).filter(Boolean);
+    }
     const tol = fTol !== null ? fTol : Math.max(10, Math.ceil(Math.abs(split ? s.adjusted : bank) * 0.005), cands.length);
     const r = findFixes(cands, fGap, tol, { fewest });
     shownFixes = r.sets;

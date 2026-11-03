@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.49";
+export const APP_VERSION = "v1.63.50";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -1061,7 +1061,7 @@ export const BONUS_SPLIT = {
   'dbs-wwmc':           { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next calendar month' }   // T&C 27 Jul 2026 s.19: online spend totalled per calendar month (v1.63.45)
 };
 
-// Cards whose bank pays each calendar month's bonus as one credit on the next statement, checked month by month (v1.63.49,
+// Cards whose bank pays each calendar month's bonus as one credit on the next statement, checked month by month (v1.63.50,
 // js/monthly-bonus.js): bonus points = the month's bonus spend (up to `cap`) ÷ `per` × `rate`, rounded down once on the total.
 // Switched on one card at a time, after its real statements line up. Next: OCBC, HSBC Revolution, then UOB (one UNI$ total for every card).
 export const MONTHLY_BONUS = {
