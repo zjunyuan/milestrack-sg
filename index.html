@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css?v=1.63.57">
+  <link rel="stylesheet" href="css/style.css?v=1.63.58">
 </head>
 <body>
 
@@ -280,6 +280,7 @@
         </div>
 
         <div class="tx-listhead"><span id="txCountBadge">0 recorded</span><span class="tx-listhead-btns"><button type="button" class="history-select" id="btnTxCopy" title="Copy the entries shown (and the statement check) as text to paste into a Claude chat">Copy for Claude</button><button type="button" class="history-select" id="btnTxSelect">Select</button></span></div>
+        <div id="txDupes"></div>
         <div id="txList"></div>
 
         <div style="display:flex; gap:8px;">
@@ -761,6 +762,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.63.57"></script>
+  <script type="module" src="js/app.js?v=1.63.58"></script>
 </body>
 </html>

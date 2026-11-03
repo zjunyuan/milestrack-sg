@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.57";
+export const APP_VERSION = "v1.63.58";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -1059,24 +1059,24 @@ export const BONUS_SPLIT = {
   'ocbc-rewards':       { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
   'mb-horizon-vs':      { bonusRound: 'txn',   block: 5, baseRound: 'block', timing: 'next calendar month' },
   'dbs-wwmc':           { bonusRound: 'month', block: 5, baseRound: 'block', timing: 'next calendar month' },   // T&C 27 Jul 2026 s.19: online spend totalled per calendar month (v1.63.45)
-  'mb-world-mc':        { bonusRound: 'txn',   block: 1, baseRound: 'block', timing: 'next statement' }   // 1X when it posts, the foreign tier a statement later (v1.63.57)
+  'mb-world-mc':        { bonusRound: 'txn',   block: 1, baseRound: 'block', timing: 'next statement' }   // 1X when it posts, the foreign tier a statement later (v1.63.58)
 };
 
-// Cards whose bank pays each calendar month's bonus as one credit on the next statement, checked month by month (v1.63.57,
+// Cards whose bank pays each calendar month's bonus as one credit on the next statement, checked month by month (v1.63.58,
 // js/monthly-bonus.js): bonus points = the month's bonus spend (up to `cap`) ÷ `per` × `rate`, rounded down once on the total.
 // Switched on one card at a time, after its real statements line up. Next: OCBC, HSBC Revolution, then UOB (one UNI$ total for every card).
 export const MONTHLY_BONUS = {
   // Foreign-currency lines (entries with `fx`, read from the statement): online bonus 7 per S$5 instead of 9, plus 2 per S$5 the next working
-  // day with the base (s.18), v1.63.57.
+  // day with the base (s.18), v1.63.58.
   'dbs-wwmc': { rate: 9, fcyRate: 7, fcyBase: 2, per: 5, cap: 1000, source: "DBS Woman's World T&C 27 Jul 2026 s.18-19" },
-  // Maybank World (v1.63.57): 1X on every line when it posts; the foreign-spend tier (7X from S$800 of retail spend in the calendar month,
+  // Maybank World (v1.63.58): 1X on every line when it posts; the foreign-spend tier (7X from S$800 of retail spend in the calendar month,
   // 8X from S$4,000) is set once the month is known and the extra 6X / 7X on that month's foreign lines arrives on the next statement
   // (seen on three statements: June 5,240 = 1X only, July 87,770 = 1X + June's 8X lump). Points per S$1 per line. One TREATS balance for
   // every Maybank card, so the check runs on the whole currency (`vaultWide`).
   'mb-world-mc': { kind: 'fcyTier', base: 1, steps: [{ at: 800, mult: 7 }, { at: 4000, mult: 8 }], vaultWide: true, source: 'Maybank World Mastercard T&C 1 Dec 2025' }
 };
 
-// Points a bank credits for charging a card's annual fee (v1.63.57, js/fee-bonus.js). Statement import adds one zero-amount entry carrying
+// Points a bank credits for charging a card's annual fee (v1.63.58, js/fee-bonus.js). Statement import adds one zero-amount entry carrying
 // them when it sees the fee line, so the statement check expects them. DBS Vantage: 25,000 miles = 12,500 DBS Points the next working day
 // after the fee is charged; the fee is no longer waivable from 1 Aug 2026, and a waived fee claws the points back (MainlyMiles, Feb 2026).
 export const FEE_BONUS = {

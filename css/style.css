@@ -1274,3 +1274,4 @@ body:has(#demoBar) { padding-top: 28px; }
 .bh-sec { color: #93c5fd; background: rgba(147,197,253,0.12); }
 .bh-seen { color: #ffd27a; background: rgba(255,210,122,0.12); }
 .bh-app { color: #cbd5e1; background: rgba(148,163,184,0.16); }
+.dupes-box { border: 1px solid rgba(251,191,36,0.5); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; }

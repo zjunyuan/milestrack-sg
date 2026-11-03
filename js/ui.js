@@ -30,6 +30,7 @@ import { hasSplit, splitForCycle, entryBonusMiles } from "./bonus-split.js";
 import { yuuMonthStatus, yuuEntryMiles, addYuuBonus } from "./yuu.js";
 import { renderTxChips } from "./history-chips.js";
 import { deleteTransactionsBulk, restoreTransactions, pointsHeld } from "./bulk-delete.js";
+import { duplicateExtras, dupesHtml } from "./dupes.js";
 import { setLogContext, getLogContext, showToast, markSplitLogged, unmarkSplitByTx, splitTotal } from "./log-feedback.js";
 import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js";
 import { statementPeriods, periodsForFilter, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
@@ -705,6 +706,25 @@ export function renderTransactions() {
   const cardOf = (tx) => ALL_MASTER_CARDS.find(c => c.id === tx.cardId) || { name: 'Card' };
   const view = state.txView;
   const queryClean = state.txSearchQuery.toLowerCase().trim();
+  const dupBox = document.getElementById('txDupes');
+  if (dupBox) {
+    dupBox.innerHTML = dupesHtml(duplicateExtras());
+    if (!dupBox.dataset.bound) {
+      dupBox.dataset.bound = '1';
+      dupBox.addEventListener('click', async (e) => {
+        if (!e.target.closest('[data-dupes-del]')) return;
+        const extras = duplicateExtras(); if (!extras.length) return;
+        if (!confirm(`Remove ${extras.length} duplicate entr${extras.length === 1 ? 'y' : 'ies'}?\n\nEach is a second copy of a statement line; the latest import of each line stays. You can undo straight after.`)) return;
+        e.target.disabled = true;
+        const { deleted, failed } = await deleteTransactionsBulk(extras);
+        renderTransactions();
+        showToast(`Removed ${deleted.length} cop${deleted.length === 1 ? 'y' : 'ies'}${failed.length ? `, ${failed.length} failed` : ''}`, {
+          kind: failed.length ? 'error' : 'ok', actionLabel: 'Undo', ms: 12000,
+          onAction: async () => { try { await restoreTransactions(deleted); showToast(`Restored ${deleted.length}`); } catch (err) { showToast('Could not restore: ' + (err.message || err), { kind: 'error' }); } }
+        });
+      });
+    }
+  }
   if (view.stmt && vaultOfCardFilter(view.cards) !== view.stmt.vk) view.stmt = null;   // the card filter moved off that statement's card
   // Same bank, another card (v1.63.52): DBS prints a row per card, so switching Woman's World to Vantage moves the view to Vantage's own
   // row of the same statement instead of keeping the previous card's (or every DBS card's) figures.
