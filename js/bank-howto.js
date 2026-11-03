@@ -40,6 +40,7 @@ const BANKS = [
     ["tc", "DBS decides what counts as online from the merchant's own indicator, so a taxi or ride paid in an app is online and a tap in the car is not."],
     ["app", "Woman's World is treated as online only: every line earns the bonus unless DBS excludes it by MCC or by name (AXS, EZ-Link, ShopeePay, YouTrip, bill payments ...). Grab bookings, rides or food, count as online."],
     ["seen", "DBS prints points per card (Vantage, Woman's World, yuu ...): filter History to one card to check it on its own. Vantage: points on the same statement."],
+    ["sec", "Vantage: 25,000 miles (12,500 DBS Points) the next working day after the annual fee is charged; the fee is no longer waivable from 1 Aug 2026, and a waived fee claws them back. The import adds them as an entry when it sees the fee line."],
     ["app", "Woman's World: Check with banks shows the bonus month by month (expected on the month's total, paid on the next statement), so a month DBS paid short stands out."]
   ] },
   { bank: "yuu", unit: "yuu points (3.6 points = 1 mi)", notes: [

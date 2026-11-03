@@ -614,6 +614,19 @@ export function renderTransactions() {
       if (e.target.closest('[data-stmt-clear]')) { state.txView.stmt = null; renderTransactions(); return; }
       const delBtn = e.target.closest('[data-stmt-del]');
       if (delBtn) { deleteStatementRecord(delBtn.dataset.stmtDel); return; }
+      const feeBtn = e.target.closest('[data-fee-bonus]');
+      if (feeBtn) {
+        // The annual fee bonus for a statement imported before v1.63.53: one entry inside that statement, the Vault left as it is.
+        feeBtn.disabled = true;
+        import('./fee-bonus.js').then(async ({ feeBonusRecord }) => {
+          const cid = feeBtn.dataset.feeBonus, card = ALL_MASTER_CARDS.find(c => c.id === cid);
+          const rec = feeBonusRecord(cid, Number(feeBtn.dataset.feeTo) - 3 * 86400000, state.myVault?.[card?.vaultKey]?.ratio || 1, { source: 'manual' });
+          try { await saveTxToFirestore(rec.id, rec); showToast('Added the annual fee bonus'); }
+          catch (err) { showToast(`Couldn't add it: ${err.message || err}`, { kind: 'error' }); feeBtn.disabled = false; }
+          renderTransactions();
+        });
+        return;
+      }
       const fixBtn = e.target.closest('[data-bonus-fix]');
       if (fixBtn) {
         import('./stmt-filter.js').then(async ({ fixAt }) => {

@@ -16,6 +16,7 @@ import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
 import { ocbcMerchantRate, wwmcOnlineRate } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
+import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
 const REMEMBER_KEY = "milestrack_stmt_cards";   // last four digits -> card id, this device only
 const loadRemembered = () => { try { return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "{}"); } catch { return {}; } };
@@ -279,6 +280,7 @@ function rowHtml(r, i) {
   if (r.status === "new") {
     return `<div class="st-line st-new">${head}${timingHtml(r, i)}
       ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
+      ${l.fee && S.card && isFeeBonusLine(targetCard(l, i).id, l) ? `<div class="st-sub">🎁 The bank credits ${fmtNum(feeRule(targetCard(l, i).id).pts)} points for this fee: added as a “${escapeHtml(feeRule(targetCard(l, i).id).label)}” entry</div>` : ""}
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
       <label class="st-sub"><input type="checkbox" class="st-add" data-i="${i}" ${S.choice[i] === "add" ? "checked" : ""}> Add to my list</label></div>`;
   }
@@ -522,6 +524,19 @@ async function applyLines(ctx) {
       });
       ctx.done++;
     }
+  }
+  // Annual fee bonus (v1.63.53): the fee line earns nothing, but the bank credits points for it (DBS Vantage 12,500). One zero-amount
+  // entry carries them, so the statement check expects them; a re-import or an overlapping file adds it once.
+  for (const i of order) {
+    const r = S.results[i], l = r.line;
+    if (!l.fee) continue;
+    const tCard = targetCard(l, i);
+    if (!tCard || !isFeeBonusLine(tCard.id, l) || feeBonusNear(tCard.id, l.ts + 86400000) || ctx.seenKeys.has("fee:" + tCard.id + dayKey(l.ts))) continue;
+    ctx.seenKeys.add("fee:" + tCard.id + dayKey(l.ts));
+    const rec = feeBonusRecord(tCard.id, l.ts, state.myVault[tCard.vaultKey]?.ratio || 1, { source: "statement", stmtConfirmed: true, estimatedMiles: false, ...stamp, ...(addVault ? { vaultCounted: true } : {}) });
+    await save(rec.id, rec);
+    if (addVault) addDelta(vaultDeltas, tCard.vaultKey, rec.earnedRawPoints);
+    ctx.done++;
   }
   // Refunds of entries already in the app (or matched just above): that purchase earns nothing now. Undo puts its points back.
   for (const rf of S.refunds || []) {

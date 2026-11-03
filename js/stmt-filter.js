@@ -9,6 +9,7 @@ import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { candidatesFor, findFixes } from "./bonus-finder.js";
 import { monthlyRule, rowForStatement, monthSpend, monthLabel } from "./monthly-bonus.js";
+import { feeRule, isFeeBonusEntry } from "./fee-bonus.js";
 
 // The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
 let shownFixes = [];
@@ -180,7 +181,14 @@ export function stmtBannerHtml(s, rows) {
   }
   if (capNote) {
     const rule = monthlyRule(s.cardId);
-    fixBlock = `<div class="stmt-fix"><b>🔎 Where could the extra come from?</b> ${escapeHtml(mName)} spend already reached the S$${fmtNum(rule.cap)} cap, so its bonus can't be more than ${n(mrow.expected)} and no entry switched to Bonus would add any. The extra is usually DBS's 2X overseas bonus on foreign-currency lines (2 per S$5, credited the next working day with the base; the app doesn't count it yet), or a promotion or goodwill credit.</div>`;
+    fixBlock = `<div class="stmt-fix"><b>🔎 Where could the extra come from?</b> ${escapeHtml(mName)} spend already reached the S$${fmtNum(rule.cap)} cap, so its bonus can't be more than ${n(mrow.expected)} and no entry switched to Bonus would add any. The extra is usually DBS's 2X overseas bonus on foreign-currency lines (2 per S$5, credited the next working day with the base; the app counts it only on lines whose foreign amount the statement shows), or a promotion or goodwill credit.</div>`;
+  }
+  // A surplus the size of the card's annual fee bonus (v1.63.53): offer to add it as an entry, instead of looking for rate switches.
+  const fr = s.cardId && !mrow && !split ? feeRule(s.cardId) : null;
+  if (fr && s.status !== "baseline" && !s.gap && bank - sure >= fr.pts - 10 && bank - sure - maybe <= fr.pts + 10 && !mine.some(t => isFeeBonusEntry(t) && inWin(t, s.from, s.to))) {
+    fGap = 0;
+    fixBlock = `<div class="stmt-fix"><b>🎁 This looks like the annual fee bonus.</b> The bank credits ${n(fr.pts)} ${escapeHtml(unit)} (≈ ${mi(fr.pts)} mi) the day after it charges the annual fee, and the fee line earns nothing, so the app could not expect them. <button type="button" class="btn-backup" data-fee-bonus="${escapeHtml(s.cardId)}" data-fee-to="${s.to}">Add it as an entry</button>
+      <div class="hm-note">Adds a “${escapeHtml(fr.label)}” entry (S$0, ${n(fr.pts)} ${escapeHtml(unit)}) on this statement. Your Vault balance is not changed. Importing a statement that shows the fee does this by itself.</div></div>`;
   }
   if (Math.abs(fGap) > 5 && fTxs.length) {
     let cands = candidatesFor(fTxs);
