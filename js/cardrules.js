@@ -163,3 +163,17 @@ export function applyCardRules(entry) {
     candidatesOverseas: rewrite(entry.candidatesOverseas, "overseas")
   };
 }
+
+// Maybank World Mastercard: lines that earn no TREATS Points at all (v1.63.54). T&C 1 Dec 2025, "Excluded Transactions" a)-l): NETS and
+// eNETS, government, betting, brokerage, charities, payments to insurance companies, utilities (4900), cleaning (7349), AXS / SAM, and the
+// financial / stored-value / money-transfer / cash / quasi-cash MCCs listed there. Seen on real statements: utilities and insurance
+// premiums earned 0. Horizon is not covered: it pays 2 per S$5 on insurance (its own "Selected Categories") and its general list is not here.
+const MB_WORLD_NO_PTS_MCC = set("4900", "7349", "6012", "6050", "6051", "6529", "6530", "6540", "4829", "6534", "6010", "6011", "7511",
+  "6300", "6381", "6399", "6211", "7995", "7800", "7801", "7802", "8398", "8651", "8661", "9211", "9222", "9223", "9311", "9399", "9402", "9405");
+const MB_WORLD_NO_PTS_NAME = /\b(axs|sam payments|e?nets)\b|insurance|assurance|ntuc income|\bincome ins|prudential|great eastern|\baia\b|manulife|tokio marine|singlife|etiqa|aviva|\bfwd\b|sp digital|sp services|sp group|senoko|geneco|tuas power|keppel electric|pacific light|sembcorp power|city energy|union power|bagus|razer ?pay|\bgov\b|iras|inland revenue/i;
+export function noPointsReason(cardId, text, mcc = "") {
+  if (cardId !== "mb-world-mc") return "";
+  if (mcc && MB_WORLD_NO_PTS_MCC.has(String(mcc))) return `Maybank gives no points for MCC ${mcc}`;
+  const m = String(text || "").match(MB_WORLD_NO_PTS_NAME);
+  return m ? `Maybank gives no points here (${m[0].trim()})` : "";
+}

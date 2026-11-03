@@ -7,13 +7,15 @@ import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
 import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, expectedCredits } from "./reconcile.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
-import { candidatesFor, findFixes } from "./bonus-finder.js";
+import { candidatesFor, findFixes, noPointsEntries } from "./bonus-finder.js";
 import { monthlyRule, rowForStatement, monthSpend, monthLabel } from "./monthly-bonus.js";
 import { feeRule, isFeeBonusEntry } from "./fee-bonus.js";
 
 // The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
 let shownFixes = [];
 export const fixAt = (i) => shownFixes[i] || null;
+let shownNoPts = [];
+export const noPtsShown = () => shownNoPts;
 
 const n = (x) => fmtNum(Math.round(Number(x) || 0));
 
@@ -189,6 +191,17 @@ export function stmtBannerHtml(s, rows) {
     fGap = 0;
     fixBlock = `<div class="stmt-fix"><b>🎁 This looks like the annual fee bonus.</b> The bank credits ${n(fr.pts)} ${escapeHtml(unit)} (≈ ${mi(fr.pts)} mi) the day after it charges the annual fee, and the fee line earns nothing, so the app could not expect them. <button type="button" class="btn-backup" data-fee-bonus="${escapeHtml(s.cardId)}" data-fee-to="${s.to}">Add it as an entry</button>
       <div class="hm-note">Adds a “${escapeHtml(fr.label)}” entry (S$0, ${n(fr.pts)} ${escapeHtml(unit)}) on this statement. Your Vault balance is not changed. Importing a statement that shows the fee does this by itself.</div></div>`;
+  }
+  // Entries the bank pays nothing on (v1.63.54: Maybank World utilities and insurance) explain a shortfall without any rate switch.
+  shownNoPts = [];
+  if (!split && !mrow && s.status !== "baseline" && !s.gap && bank < sure - 5) {
+    const np = noPointsEntries(mine.filter(t => inWin(t, s.from, s.to)));
+    if (np.length) {
+      shownNoPts = np;
+      const tot = np.reduce((a, x) => a + x.pts, 0), short = sure - bank, all = Math.abs(tot - short) <= Math.max(10, np.length);
+      fixBlock = `<div class="stmt-fix"><b>🚫 ${np.length} entr${np.length === 1 ? "y earns" : "ies earn"} no points with this card</b> (${n(tot)} ${escapeHtml(unit)} in the app${all ? ", the whole shortfall" : ""}): ${np.map(x => `${escapeHtml(String(x.tx.desc || "").slice(0, 28))} <span class="dim">(${escapeHtml(x.why.replace(/^Maybank gives no points /, ""))})</span>`).join(", ")}. <button type="button" class="btn-backup" data-zero-pts>Set ${np.length === 1 ? "it" : "them"} to no points</button></div>`;
+      if (all) fGap = 0;
+    }
   }
   if (Math.abs(fGap) > 5 && fTxs.length) {
     let cands = candidatesFor(fTxs);

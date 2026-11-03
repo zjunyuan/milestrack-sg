@@ -14,7 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate, wwmcOnlineRate } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
@@ -98,6 +98,9 @@ function estimateTx(card, line, spentInBucket) {
   const entry = retailer && getMccEntry(retailer.mcc);
   const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
   if (cand) rate = cand.baseRate;
+  // Lines the bank pays no points on at all (v1.63.54: Maybank World, utilities and insurance premiums).
+  const nope = noPointsReason(card.id, `${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc);
+  if (nope) return { miles: 0, earnedRawPoints: 0, bonusCategory: "base", noPoints: nope };
   if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
     if (r > rate) rate = r;
@@ -479,6 +482,7 @@ async function applyLines(ctx) {
       if (rfl) { ctx.refunded.add(id); ctx.refundsDone = (ctx.refundsDone || 0) + 1; }
       await save(id, {
         ...(rfl ? { refunded: true, refundTs: rfl.ts, stmtNote: `Refunded S$${rfl.amt.toFixed(2)} (${scrub(rfl.desc)})` } : {}),
+        ...(est.noPoints && !rfl ? { noPoints: true, stmtNote: est.noPoints } : {}),
         id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
