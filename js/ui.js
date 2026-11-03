@@ -506,6 +506,27 @@ function selectBarHtml(rows) {
     <button type="button" class="btn-backup tx-del-btn" data-sel="delete" ${n ? '' : 'disabled'}>Delete ${n || ''}</button></div>`;
 }
 
+// After a delete (v1.63.57): statement ticks in the coverage grid for card-months that now have no entries at all. Only months the
+// deleted entries were in are offered, so a statement of an unused card (ticked with no entries) is never touched.
+async function offerUntick(deleted) {
+  const { familyOf, dayKey } = await import('./statements.js');
+  const cov = state.stmtCoverage || {}, which = {};
+  for (const t of deleted) {
+    const k = familyOf(t.cardId)[0], ym = dayKey(t.timestamp || 0).slice(0, 7);
+    if (!cov[k] || !cov[k][ym]) continue;
+    const fam = familyOf(t.cardId);
+    if (state.transactions.some(x => fam.includes(x.cardId) && dayKey(x.timestamp || 0).slice(0, 7) === ym)) continue;
+    (which[k] = which[k] || new Set()).add(ym);
+  }
+  const keys = Object.keys(which); if (!keys.length) return;
+  const mon = (ym) => new Date(`${ym}-15T12:00:00`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  const list = keys.map(k => `${cardShort(ALL_MASTER_CARDS.find(c => c.id === k) || { name: k })}: ${[...which[k]].sort().map(mon).join(', ')}`).join('\n');
+  if (!confirm(`Those months have no entries now. Also clear their statement ticks?\n\n${list}\n\nThe statements' points figures stay; importing the statements again ticks them again.`)) return;
+  const { untickCoverage } = await import('./statement-import.js');
+  await untickCoverage(Object.fromEntries(keys.map(k => [k, [...which[k]]])));
+  showToast('Cleared the statement ticks');
+}
+
 async function handleSelectAction(action) {
   const sel = state.txSelect;
   if (action === 'none') { sel.ids = new Set(); renderTransactions(); return; }
@@ -523,6 +544,7 @@ async function handleSelectAction(action) {
   const { deleted, failed } = await deleteTransactionsBulk(txs);
   sel.ids = new Set(); sel.on = false;
   renderTransactions();
+  if (deleted.length) await offerUntick(deleted);
   if (deleted.length) {
     showToast(`Deleted ${deleted.length} transaction${deleted.length === 1 ? '' : 's'}${failed.length ? `, ${failed.length} failed` : ''}`, {
       kind: failed.length ? 'error' : 'ok', actionLabel: 'Undo', ms: 12000,

@@ -48,7 +48,7 @@ const COVER_KEY = "milestrack_last_cover";       // coverage months the last imp
 const loadCoverAdded = () => { try { return JSON.parse(localStorage.getItem(COVER_KEY) || "null"); } catch { return null; } };
 const saveCoverAdded = (v) => { try { if (v && Object.keys(v).length) localStorage.setItem(COVER_KEY, JSON.stringify(v)); else localStorage.removeItem(COVER_KEY); } catch { /* storage unavailable */ } };
 // Takes months out of the coverage record ({ cardKey: ["YYYY-MM", ...] }, or { cardKey: true } for the whole row) and saves the result.
-async function untickCoverage(which) {
+export async function untickCoverage(which) {
   if (!which || !Object.keys(which).length) return;
   const next = { ...(state.stmtCoverage || {}) };
   for (const [k, ms] of Object.entries(which)) {
