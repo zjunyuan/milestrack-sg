@@ -5,7 +5,7 @@
 // Keep it current: if you add a Firestore collection, a transaction field or a setting that a screen depends on,
 // give this file matching sample data or a matching `demo*` handler (unknown writes are harmless no-ops).
 import { state } from "./state.js";
-import { ALL_MASTER_CARDS, ALL_VAULT_KEYS, VAULT_LABELS, DEFAULT_VAULT, normalizeVault } from "./config.js";
+import { ALL_MASTER_CARDS, ALL_VAULT_KEYS, VAULT_LABELS, DEFAULT_VAULT, normalizeVault, applyUobStatementDay } from "./config.js";
 
 export const isDemo = () => {
   try { return new URLSearchParams(location.search).has("demo"); } catch (e) { return false; }
@@ -144,7 +144,7 @@ export function demoUpdateVault(key, payload) {
 }
 export function demoSettings(key, partial) {
   if (partial.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...partial.uobRenewals };
-  if (Number.isFinite(Number(partial.uobStatementDay))) state.uobStatementDay = Number(partial.uobStatementDay);
+  if (Number.isFinite(Number(partial.uobStatementDay))) { state.uobStatementDay = Number(partial.uobStatementDay); applyUobStatementDay(state.uobStatementDay); }
   if (partial.stmtCoverage && typeof partial.stmtCoverage === "object") { const next = { ...state.stmtCoverage }; for (const [k, v] of Object.entries(partial.stmtCoverage)) next[k] = { ...(next[k] || {}), ...v }; state.stmtCoverage = next; }
   if ("lastRemoved" in partial) state.lastRemoved = partial.lastRemoved || null;
   if (partial.feeCards && typeof partial.feeCards === "object") state.feeCards = { ...partial.feeCards };

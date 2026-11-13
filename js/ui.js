@@ -14,7 +14,8 @@ import {
   DEFAULT_VAULT,
   MCC_DATABASE,
   normalizeVault,
-  cardShort
+  cardShort,
+  uobCycleStart
 } from "./config.js";
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { escapeHtml } from "./retailers.js";
@@ -1608,9 +1609,7 @@ export function openSettingsModal() {
   setVal('kfUobRenewalInput', state.uobRenewals.kf);
   setVal('citiApprovalInput', state.citiApprovalDate);
   setVal('uobStatementDayInput', state.uobStatementDay);
-  const vs = ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'));
   const citi = ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards');
-  setVal('uobVsCutoff', vs?.cutoffDay ?? 18);
   setVal('citiCutoff', citi?.cutoffDay ?? 15);
   setVal('citiVisaCutoff', ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29);
   for (const f of feeCardFamilies()) {
@@ -1664,7 +1663,7 @@ export async function saveSettings() {
       kf: val('kfUobRenewalInput') || state.uobRenewals.kf || ''
     },
     cutoffDays: {
-      uobVs: clampDay(val('uobVsCutoff'), 18),
+      uobVs: uobCycleStart(clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23)),   // follows the statement day (v1.63.69)
       citi: clampDay(val('citiCutoff'), 15),
       citiVisa: clampDay(val('citiVisaCutoff'), 29)
     }
@@ -1711,7 +1710,7 @@ export function exportJSONBackup() {
       stmtCoverage: state.stmtCoverage || {},      // card-months imported from statements (v1.59.5)
       bigCheck: Number(state.bigCheck) || 250,
       cutoffDays: {
-        uobVs: ALL_MASTER_CARDS.find(c => c.id.startsWith('uob-vs'))?.cutoffDay ?? 18,
+        uobVs: uobCycleStart(state.uobStatementDay),
         citi: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards')?.cutoffDay ?? 15,
         citiVisa: ALL_MASTER_CARDS.find(c => c.id === 'citi-rewards-visa')?.cutoffDay ?? 29
       }
@@ -1855,7 +1854,7 @@ export async function importJSONBackup(file) {
       stmtCoverage: mergeCoverage(state.stmtCoverage, settings.stmtCoverage),
       bigCheck: settings.bigCheck || Number(state.bigCheck) || 250,
       cutoffDays: {
-        uobVs: Number(settings.cutoffDays?.uobVs) || 18,
+        uobVs: uobCycleStart(settings.uobStatementDay || state.uobStatementDay),
         citi: Number(settings.cutoffDays?.citi) || 15,
         citiVisa: Number(settings.cutoffDays?.citiVisa) || 29
       }

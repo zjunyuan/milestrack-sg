@@ -1,5 +1,5 @@
 // Settings & Card Wallet sheet: icon tabs, one row per physical card grouped by bank, per-card settings inside each row, and a dates overview.
-// The inputs keep their original ids (uobLsRenewalInput, uobVsCutoff, citiApprovalInput, ...), so saveSettings() in ui.js reads them unchanged.
+// The inputs keep their original ids (uobLsRenewalInput, citiApprovalInput, ...), so saveSettings() in ui.js reads them unchanged.
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS, APP_VERSION, cardShort } from "./config.js";
 import { familyOf } from "./statements.js";
@@ -15,10 +15,8 @@ const bankOf = id => (id.startsWith("kf-uob") || id.startsWith("uob-")) ? "uob" 
 // Per-card settings, keyed by the first entry of each card family. kind "month" = a renewal / start month, "day" = statement cycle start day.
 const CARD_FIELDS = {
   "uob-ls-dining": [{ id: "uobLsRenewalInput", kind: "month", yearly: true, label: "Annual fee renewal month", short: "Renews" }],
-  "uob-vs-contactless": [
-    { id: "uobVsRenewalInput", kind: "month", yearly: true, label: "Annual fee renewal month", short: "Renews" },
-    { id: "uobVsCutoff", kind: "day", label: "Statement cycle starts on day", short: "Cycle from", hint: "The day after your statement date. Statement date 24th means enter 25." }
-  ],
+  // No cycle-day field: the Visa Signature's cycle starts the day after the UOB statement day (Dates tab), v1.63.69.
+  "uob-vs-contactless": [{ id: "uobVsRenewalInput", kind: "month", yearly: true, label: "Annual fee renewal month", short: "Renews" }],
   "uob-ppv-contactless": [{ id: "uobPpvRenewalInput", kind: "month", yearly: true, label: "Annual fee renewal month", short: "Renews" }],
   "uob-prvi": [{ id: "uobPrviRenewalInput", kind: "month", yearly: true, label: "Annual fee renewal month", short: "Renews" }],
   "kf-uob": [{ id: "kfUobRenewalInput", kind: "month", yearly: true, label: "Membership year starts (month)", short: "Year starts" }],

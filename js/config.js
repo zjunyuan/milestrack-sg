@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.68";
+export const APP_VERSION = "v1.63.69";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -266,7 +266,8 @@ export const ALL_MASTER_CARDS = [
     baseMpd: 0.4, 
     engine: 'uob-5', 
     cycleType: 'statement', 
-    cutoffDay: 18, 
+    cutoffDay: 24,   // set from the UOB statement day (uobCycleStart)
+
     strategyType: 'blacklist',
     badgeClass: '', 
     hint: 'Physical NFC terminal tap required (min S$1k/cycle). 14% instant off at Shell.', 
@@ -289,7 +290,8 @@ export const ALL_MASTER_CARDS = [
     baseMpd: 0.4, 
     engine: 'uob-5', 
     cycleType: 'statement', 
-    cutoffDay: 18, 
+    cutoffDay: 24,   // set from the UOB statement day (uobCycleStart)
+
     strategyType: 'blacklist',
     badgeClass: '', 
     hint: '4.0 mpd on ANY MCC in FCY! Min S$1,000 FCY in statement cycle.', 
@@ -1043,6 +1045,15 @@ export function applyRateSchedule(today = new Date().toLocaleDateString("en-CA")
 }
 
 /** Short label for lists, pills and filters; falls back to the full name. */
+// UOB prints one statement for every UOB card, so the Visa Signature's statement cycle starts the day after the UOB statement day
+// (Settings > Dates). v1.63.69: it used to be a separate setting that defaulted to the 18th, while the user's statements run 24th to
+// 23rd, so a charge posted on the 24th was put in the previous cycle and its bonus expected a statement early.
+export const uobCycleStart = statementDay => { const d = Number(statementDay) || 23; return d >= 31 ? 1 : d + 1; };
+export function applyUobStatementDay(statementDay) {
+  const start = uobCycleStart(statementDay);
+  for (const c of ALL_MASTER_CARDS) if (c.id.startsWith('uob-vs')) c.cutoffDay = start;
+}
+
 export function cardShort(card) {
   return (card && (card.shortName || card.name)) || 'Card';
 }

@@ -27,7 +27,8 @@ import {
   VAULT_LABELS,
   DEFAULT_VAULT, 
   ALL_MASTER_CARDS,
-  normalizeVault
+  normalizeVault,
+  applyUobStatementDay
 } from "./config.js";
 import { isKnownMcc, normalizeRule } from "./mcc.js";
 import { state } from "./state.js";
@@ -209,11 +210,11 @@ export function subscribeToCloudData() {
       }
       if (data.cutoffDays) {
         ALL_MASTER_CARDS.forEach(c => {
-          if (c.id.startsWith('uob-vs')) c.cutoffDay = data.cutoffDays.uobVs || 18;
           if (c.id === 'citi-rewards') c.cutoffDay = data.cutoffDays.citi || 15;
           if (c.id === 'citi-rewards-visa') c.cutoffDay = data.cutoffDays.citiVisa || 29;
         });
       }
+      applyUobStatementDay(state.uobStatementDay);   // the VS cycle follows the UOB statement day (v1.63.69)
       state.cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));
       window.dispatchEvent(new CustomEvent('settings-updated'));
     }
