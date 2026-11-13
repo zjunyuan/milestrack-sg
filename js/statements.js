@@ -403,7 +403,11 @@ function looksYuu(rows = []) {
 }
 export function suggestCardId(hint, enabledIds = [], remembered = {}, rows = null) {
   if (!hint) return "";
-  const mem = hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4]) ? remembered[hint.last4] : "";
+  let mem = hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4]) ? remembered[hint.last4] : "";
+  // A file is never the FCY entry (v1.63.66): foreign lines move there by themselves (FX_SIBLING), so a remembered "UOB VS FCY"
+  // pick put every SGD line of a Visa Signature file on FCY at base rate.
+  const fxMain = Object.keys(FX_SIBLING).find(k => FX_SIBLING[k] === mem);
+  if (fxMain && enabledIds.includes(fxMain)) mem = fxMain;
   const n = (hint.name || "").toLowerCase();
   if (/visa platinum/.test(n) && !/vantage|yuu/.test(n)) {
     const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";

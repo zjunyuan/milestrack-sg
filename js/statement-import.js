@@ -302,8 +302,12 @@ function guessEntry(line) {
 // Foreign-currency lines on a card with a separate FCY entry go to that entry; channel-split cards use the per-line choice.
 function targetCard(line, i) {
   if (i !== undefined && S.chan[i]) { const c = ALL_MASTER_CARDS.find(x => x.id === S.chan[i]); if (c) return c; }
-  const sib = FX_SIBLING[S.card.id];
-  return line.fx && sib && state.enabledCardIds.includes(sib) ? ALL_MASTER_CARDS.find(c => c.id === sib) : S.card;
+  // v1.63.66: and the other way round, a file put on the FCY entry still sends its SGD lines to the main entry (the FCY entry only
+  // earns its bonus on foreign-currency spend, so a local line there was always wrong).
+  const main = Object.keys(FX_SIBLING).find(k => FX_SIBLING[k] === S.card.id) || S.card.id;
+  const sib = FX_SIBLING[main];
+  const want = line.fx && sib && state.enabledCardIds.includes(sib) ? sib : (state.enabledCardIds.includes(main) ? main : S.card.id);
+  return want === S.card.id ? S.card : ALL_MASTER_CARDS.find(c => c.id === want) || S.card;
 }
 
 const dShort = ts => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
