@@ -146,6 +146,7 @@ export function demoSettings(key, partial) {
   if (partial.uobRenewals) state.uobRenewals = { ...state.uobRenewals, ...partial.uobRenewals };
   if (Number.isFinite(Number(partial.uobStatementDay))) state.uobStatementDay = Number(partial.uobStatementDay);
   if (partial.stmtCoverage && typeof partial.stmtCoverage === "object") { const next = { ...state.stmtCoverage }; for (const [k, v] of Object.entries(partial.stmtCoverage)) next[k] = { ...(next[k] || {}), ...v }; state.stmtCoverage = next; }
+  if ("lastRemoved" in partial) state.lastRemoved = partial.lastRemoved || null;
   if (partial.feeCards && typeof partial.feeCards === "object") state.feeCards = { ...partial.feeCards };
   if (partial.feeAlerts && typeof partial.feeAlerts === "object") state.feeAlerts = { ...state.feeAlerts, ...partial.feeAlerts };
   if (Array.isArray(partial.enabledCards)) {

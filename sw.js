@@ -1,4 +1,4 @@
-const CACHE_NAME = 'milestrack-cache-v1.63.63';
+const CACHE_NAME = 'milestrack-cache-v1.63.64';
 
 const CORE_ASSETS = [
   './',

@@ -200,6 +200,7 @@ export function subscribeToCloudData() {
       if (Number.isFinite(Number(data.uobStatementDay)) && Number(data.uobStatementDay) >= 1) state.uobStatementDay = Math.min(31, Number(data.uobStatementDay));
       if (Number(data.bigCheck) > 0) state.bigCheck = Number(data.bigCheck);
       state.stmtCoverage = (data.stmtCoverage && typeof data.stmtCoverage === 'object') ? data.stmtCoverage : {};
+      state.lastRemoved = (data.lastRemoved && typeof data.lastRemoved === 'object' && Array.isArray(data.lastRemoved.txs)) ? data.lastRemoved : null;
       state.feeCards = (data.feeCards && typeof data.feeCards === 'object') ? data.feeCards : {};
       state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
       if (data.enabledCards && Array.isArray(data.enabledCards)) {

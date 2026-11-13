@@ -31,7 +31,8 @@ export const state = {
     kf: ""
   },
   uobStatementDay: 23,   // day of the month UOB statements come out (annual fee alert starts then)
-  stmtCoverage: {},      // statement months imported: { [cardKey]: { "YYYY-MM": { n, at } } }
+  stmtCoverage: {},      // statement months imported: { [cardKey]: { "YYYY-MM": { n, at, first? } } } (first = ID of the import that ticked it)
+  lastRemoved: null,     // entries the last statement import removed, for its Undo: { importId, at, txs } (settings doc `lastRemoved`)
   feeCards: {},          // fee alert dates for non-UOB cards: { [cardKey]: { renewal: "YYYY-MM", day: 1-31 } }
   pointsLog: [],         // what the banks say about points: statement summaries, balances you typed, transfers/redemptions (Firestore milestrack_points)
   bigCheck: 250,         // S$: entries this big on cards whose bank app lists points per transaction are put on the "check in the bank app" list

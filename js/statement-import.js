@@ -41,9 +41,25 @@ function lookupBrand(merchant) {
 }
 const friendlyName = line => { const r = lookupBrand(line.merchant); return r ? r.name : titleCase(line.merchant); };
 
-const REMOVED_KEY = "milestrack_last_removed";   // entries the last import removed, kept on this device so Undo can put them back
-const loadRemoved = () => { try { return JSON.parse(localStorage.getItem(REMOVED_KEY) || "null"); } catch { return null; } };
-const saveRemoved = (v) => { try { if (v) localStorage.setItem(REMOVED_KEY, JSON.stringify(v)); else localStorage.removeItem(REMOVED_KEY); } catch { /* storage unavailable */ } };
+const REMOVED_KEY = "milestrack_last_removed";   // entries the last import removed, so Undo can put them back (this device's copy)
+// v1.63.64: the same backup is also saved in the settings doc (`lastRemoved`), so Undo can restore them from any device or browser.
+// The newer of the two copies wins. Very large backups (over ~400 KB) stay on this device only, to keep the settings doc small.
+const loadRemoved = () => {
+  let local = null; try { local = JSON.parse(localStorage.getItem(REMOVED_KEY) || "null"); } catch { /* storage unavailable */ }
+  const cloud = state.lastRemoved && Array.isArray(state.lastRemoved.txs) ? state.lastRemoved : null;
+  if (!local) return cloud; if (!cloud) return local;
+  if ((cloud.at || 0) >= (local.at || 0)) { if (!cloud.txs.length) { try { localStorage.removeItem(REMOVED_KEY); } catch { /* storage unavailable */ } } return cloud; }
+  return local;
+};
+const saveRemoved = (v) => {
+  try { if (v) localStorage.setItem(REMOVED_KEY, JSON.stringify(v)); else localStorage.removeItem(REMOVED_KEY); } catch { /* storage unavailable */ }
+  // Cleared after an Undo: an empty, dated copy rather than nothing, so another device's older local copy loses to it (and is not
+  // offered for a second restore).
+  let doc = { at: Date.now(), txs: [] };
+  if (v) { const json = JSON.stringify(v); doc = json.length < 400000 ? JSON.parse(json) : null; }   // the JSON round trip drops undefined fields Firestore refuses
+  state.lastRemoved = doc;
+  return mergeSettingsDoc(state.myVaultKey, { lastRemoved: doc }).catch(e => console.error("Removed-entries backup save failed", e));
+};
 const COVER_KEY = "milestrack_last_cover";       // coverage months the last import added, kept on this device for Undo
 const loadCoverAdded = () => { try { return JSON.parse(localStorage.getItem(COVER_KEY) || "null"); } catch { return null; } };
 const saveCoverAdded = (v) => { try { if (v && Object.keys(v).length) localStorage.setItem(COVER_KEY, JSON.stringify(v)); else localStorage.removeItem(COVER_KEY); } catch { /* storage unavailable */ } };
@@ -484,7 +500,7 @@ async function undoLastImport() {
     let touched = false;
     for (const [k, raw] of Object.entries(vaultMinus)) if (state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) - raw); touched = true; }
     if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
-    if (li.removed && li.removed.length) { await restoreTransactions(li.removed); saveRemoved(null); }
+    if (li.removed && li.removed.length) { await restoreTransactions(li.removed); await saveRemoved(null); }
     await untickCoverage(coverAddedBy(li.id)); saveCoverAdded(null);
     alert("Import undone.");
   } catch (err) {
@@ -638,7 +654,7 @@ async function finishApply(ctx, files) {
   for (const F of files) for (const t of F.stale) if (F.remove[t.id] && !ctx.touched.has(t.id) && !seen.has(t.id)) { seen.add(t.id); toRemove.push(t); }
   if (toRemove.length) {
     const { deleted, failed } = await deleteTransactionsBulk(toRemove);
-    if (deleted.length) { saveRemoved({ importId: ctx.importId, at: ctx.base, txs: deleted }); ctx.done += deleted.length; }
+    if (deleted.length) { await saveRemoved({ importId: ctx.importId, at: ctx.base, txs: deleted }); ctx.done += deleted.length; }
     if (failed.length) alert(`${failed.length} entr${failed.length === 1 ? "y" : "ies"} could not be removed. Re-run the import to try again.`);
   }
   if (ctx.addVault) {
