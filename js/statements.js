@@ -4,6 +4,8 @@
 const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
 const DAY_MS = 86400000;
 
+import { detectYuuMerchant } from "./config.js";
+
 // ---------- CSV ----------
 export function parseCsv(text) {
   let s = String(text || "").replace(/^﻿/, "");
@@ -387,10 +389,29 @@ export function detectCardHint(rows) {
   return name || last4 ? { name, last4 } : null;
 }
 // Suggests one of the app's card ids from a statement card name, or "" when unsure.
-export function suggestCardId(hint, enabledIds = [], remembered = {}) {
+// DBS labels both the yuu Visa and (on the owner's exports) Vantage as "VISA Platinum" (v1.63.62), so that name alone is not
+// enough: a file whose lines are mostly yuu partners is yuu, else the card remembered for these last 4 digits, else Vantage.
+const DBS_VISA_PLATINUM = ["dbs-yuu", "dbs-vantage"];
+function looksYuu(rows = []) {
+  let lines = 0, yuu = 0;
+  for (const r of rows) {
+    const text = r.join(" ");
+    if (!/\b\d{1,2}[ \/-](\w{3}|\d{1,2})[ \/-]\d{2,4}\b/.test(text) || /payment|giro/i.test(text)) continue;
+    lines++; if (detectYuuMerchant(text)) yuu++;
+  }
+  return lines > 0 && yuu / lines >= 0.5;
+}
+export function suggestCardId(hint, enabledIds = [], remembered = {}, rows = null) {
   if (!hint) return "";
-  const byName = cardFromName(hint, enabledIds);
   const mem = hint.last4 && remembered[hint.last4] && enabledIds.includes(remembered[hint.last4]) ? remembered[hint.last4] : "";
+  const n = (hint.name || "").toLowerCase();
+  if (/visa platinum/.test(n) && !/vantage|yuu/.test(n)) {
+    const pick = (...ids) => ids.find(id => enabledIds.includes(id)) || "";
+    if (rows && looksYuu(rows)) return pick("dbs-yuu", "dbs-vantage");   // beats memory: a past wrong pick must not stick
+    if (DBS_VISA_PLATINUM.includes(mem)) return mem;
+    return pick("dbs-vantage", "dbs-yuu");
+  }
+  const byName = cardFromName(hint, enabledIds);
   // The remembered card for these last 4 digits wins only when the statement's own name agrees with it (or names nothing):
   // a wrong pick once saved (HSBC remembered as OCBC, Citi Visa as Mastercard) must not stick for good.
   if (mem && (!byName || familyOf(mem).includes(byName))) return mem;

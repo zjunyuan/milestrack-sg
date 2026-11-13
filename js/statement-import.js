@@ -710,7 +710,7 @@ function prepareCore(rows, fileName = "") {
   S.hint = detectCardHint(S.rows);
   const fn = nameFromFile(fileName);
   if (fn && (!S.hint || !S.hint.name)) S.hint = { name: fn, last4: S.hint ? S.hint.last4 : "" };
-  const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered());
+  const guess = suggestCardId(S.hint, state.enabledCardIds, loadRemembered(), S.rows);
   if (guess) S.card = ALL_MASTER_CARDS.find(c => c.id === guess);
   const found = detectLayout(S.rows) || guessLayoutByContent(S.rows);
   S.headerRow = found.headerRow; S.cols = found.cols; S.order = "dmy"; S.since = ""; S.flip = false;
