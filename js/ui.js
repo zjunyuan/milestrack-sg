@@ -1224,6 +1224,8 @@ export async function saveTransaction() {
       ...(postTs ? { postTs } : {}),
       ...(mccTyped ? { mcc: mccTyped } : {})
     };
+    // Merchant memory (v1.63.70): changing an entry's card or rate is a choice the next statement import repeats for this merchant.
+    if (oldTx && (oldTx.cardId !== payload.cardId || (oldTx.bonusCategory || 'bonus') !== payload.bonusCategory)) payload.rateSetBy = 'user';
     await saveTxToFirestore(txRecordId, payload);
 
     closeModal();

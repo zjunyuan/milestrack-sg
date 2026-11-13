@@ -183,6 +183,8 @@ function bonusRate(card, line) {
     if (r > rate) rate = r;
   }
   if (card.id === "dbs-wwmc") rate = wwmcOnlineRate(`${line.merchant || ""} ${line.desc || ""}`, mcc) || card.baseMpd;   // online only (v1.63.47)
+  // Merchant memory (v1.63.70): your last choice for this merchant on this slot beats the MCC guess (caps and minimums still apply).
+  if (line.memo && line.memo.cardId === card.id) rate = line.memo.rate === "base" ? card.baseMpd : Math.max(rate, card.bonusMpd);
   return rate;
 }
 
@@ -297,7 +299,10 @@ function computeCore() {
   S.stale = m.missing.filter(t => paidAsSpend(t) || (!t.stmtConfirmed && t.source !== "statement" && (t.timestamp || 0) <= graceCut));
   S.recent = m.missing.filter(t => !S.stale.includes(t));
   S.remove = {}; S.stale.forEach(t => { S.remove[t.id] = true; });
-  if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs" || r.status === "moved") S.chan[i] = guessEntry(r.line); });
+  // Merchant memory (v1.63.70): what you last chose for this merchant on this card family.
+  const enabledFam = fam.filter(id => state.enabledCardIds.includes(id));
+  m.results.forEach(r => { if (r.status === "new" || r.status === "moved") { const mem = rememberFor(r.line, fam); if (mem && enabledFam.includes(mem.cardId)) r.line.memo = mem; else delete r.line.memo; } });
+  if (isChannelSplit(S.card.id)) m.results.forEach((r, i) => { if (r.status === "new" || r.status === "differs" || r.status === "moved") S.chan[i] = (r.status !== "differs" && r.line.memo) ? r.line.memo.cardId : guessEntry(r.line); });
   // What the statement changes on a matched entry: its date, and the "confirmed by a statement" mark.
   m.results.forEach(r => {
     if (!r.existing) return;
@@ -335,6 +340,35 @@ function matchRefunds(results, existing) {
   }
   return out;
 }
+// Merchant memory (v1.63.70): a new line takes the card slot (PPV Tap / Online, Lady's Dining / Travel) and the rate (Bonus / Base) you
+// last gave the same merchant on this card family, so a fix made once (Storhub → PPV Online, Bonus) carries to the next statement instead
+// of being guessed again. Only your own choices count: entries you logged yourself, and imported entries whose card or rate you changed
+// in the edit form (`rateSetBy: "user"`). Bonus-finder switches and the import's own guesses do not teach it. The newest such entry wins.
+const MEM_SKIP = new Set(["SINGAPORE", "PTE", "LTD", "SGP", "THE", "AND", "COM", "WWW", "HOLDING", "HOLDINGS", "PRIVATE", "LIMITED"]);
+const memWords = (text) => String(text || "").toUpperCase().replace(/[^A-Z ]/g, " ").split(/\s+/).filter(w => w.length >= 3 && !MEM_SKIP.has(w));
+// Same merchant: the first word agrees and, when both names have a second word, that agrees too ("STORHUB HOLDING PTE LT" = "Storhub").
+function sameMemName(a, b) {
+  const A = memWords(a), B = memWords(b);
+  if (!A.length || !B.length || A[0] !== B[0]) return false;
+  if (A.length >= 2 && B.length >= 2) return A[1] === B[1];
+  return A[0].length >= 4;                                           // a short lone word ("EDO") is too vague on its own
+}
+const userChose = (t) => t.rateSetBy === "user" || (t.source !== "statement" && !t.feeBonus && !t.yuuBonus);
+function rememberFor(line, fam) {
+  const names = [line.desc, line.merchant].filter(Boolean);
+  let best = null;
+  for (const t of state.transactions || []) {
+    if (!fam.includes(t.cardId) || !userChose(t) || t.refunded || t.noPoints) continue;
+    if (!names.some(n => sameMemName(n, t.stmtDesc) || sameMemName(n, t.desc))) continue;
+    if (!best || (Number(t.timestamp) || 0) > (Number(best.timestamp) || 0)) best = t;
+  }
+  return best ? { cardId: best.cardId, rate: best.bonusCategory === "base" ? "base" : "bonus", ts: Number(best.timestamp) || 0 } : null;
+}
+function memoNote(l) {
+  const m = l.memo; if (!m) return "";
+  return `<div class="st-sub">↺ As you set it last time (${dateLabel(m.ts)}): ${escapeHtml(cardShort(ALL_MASTER_CARDS.find(c => c.id === m.cardId) || { name: m.cardId }))}, ${m.rate === "base" ? "Base" : "Bonus"}</div>`;
+}
+
 // Online-vs-tap (PPV) or dining-vs-travel (Lady's) cannot be read from a statement: a per-line choice, guessed for PPV.
 function entryLabel(id) { return ALL_MASTER_CARDS.find(c => c.id === id)?.name || id; }
 function guessEntry(line) {
@@ -384,7 +418,7 @@ function rowHtml(r, i) {
       </select></div>`;
   }
   if (r.status === "moved") {
-    return `<div class="st-line st-differs">${head}${timingHtml(r, i)}
+    return `<div class="st-line st-differs">${head}${timingHtml(r, i)}${memoNote(l)}
       <div class="st-sub st-warn">🔀 You logged this on ${escapeHtml(entryLabel(r.existing.cardId))} ("${escapeHtml(r.existing.desc)}", ${dateLabel(r.existing.timestamp)}). The statement says it was on this card.</div>
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : ""}
       <select class="form-control st-choice" data-i="${i}">
@@ -393,7 +427,7 @@ function rowHtml(r, i) {
       </select></div>`;
   }
   if (r.status === "new") {
-    return `<div class="st-line st-new">${head}${timingHtml(r, i)}
+    return `<div class="st-line st-new">${head}${timingHtml(r, i)}${memoNote(l)}
       ${l.fee ? `<div class="st-sub st-warn">Fee or charge, not spend: left out by default (no miles)</div>` : ""}
       ${l.fee && S.card && isFeeBonusLine(targetCard(l, i).id, l) ? `<div class="st-sub">🎁 The bank credits ${fmtNum(feeRule(targetCard(l, i).id).pts)} points for this fee: added as a “${escapeHtml(feeRule(targetCard(l, i).id).label)}” entry</div>` : ""}
       ${isChannelSplit(S.card.id) ? `<select class="form-control st-chan" data-i="${i}">${familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id)).map(id => `<option value="${id}" ${S.chan[i] === id ? "selected" : ""}>Count as: ${escapeHtml(entryLabel(id))}</option>`).join("")}</select>` : (targetCard(l, i).id !== S.card.id ? `<div class="st-sub">→ goes to ${escapeHtml(targetCard(l, i).name)}</div>` : "")}
