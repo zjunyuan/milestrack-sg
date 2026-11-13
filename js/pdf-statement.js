@@ -353,8 +353,63 @@ export function splitCardSections(lines) {
 const MON = { JAN: "Jan", FEB: "Feb", MAR: "Mar", APR: "Apr", MAY: "May", JUN: "Jun", JUL: "Jul", AUG: "Aug", SEP: "Sep", SEPT: "Sep", OCT: "Oct", NOV: "Nov", DEC: "Dec" };
 const MONTH_NO = { JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6, JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12 };
 
+// UOB transaction history export (v1.63.65; "CC_TXN_History_….pdf" from the UOB app, one card per file). Each page starts with
+// "Account Statement Details", "Account Number : <16 digits>", "Account Type : PREFERRED VISA", "Statement Period : 26 Jul 2026 To 08 Nov 2026".
+// Lines are "08 November  11 November  DESC  SGD  71.58" (transaction date first) with the years on the next line ("2026  2026  Ref No: …"),
+// or "30 July 2026  31 July 2026  DESC  SGD  676.24" when the month name is short enough; a foreign line adds "JPY  77,390.00" before
+// "SGD". The export repeats whole blocks of lines across pages, so a line is kept once per Ref No. "Previous Balance" lines mark the
+// statement cycles and are not transactions.
+export const isUobHistory = (text) => /Account Statement Details/i.test(text) && /^\s*Account Type\s*:/im.test(text) && /Statement Period\s*:/i.test(text);
+const MONTH_RE = "(JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|MAY|JUNE?|JULY?|AUG(?:UST)?|SEPT?(?:EMBER)?|OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?)";
+export function uobHistoryRows(lines) {
+  const text = lines.join("\n");
+  const type = (/^\s*Account Type\s*:\s*(.+?)\s*$/im.exec(text) || [])[1] || "";
+  const num = /^\s*Account Number\s*:\s*[\d\s-]*?(\d{4})\s*$/im.exec(text);
+  const end = /Statement Period\s*:.*?\bTo\s+\d{1,2}\s+([A-Za-z]{3})\w*\s+(\d{4})/i.exec(text);
+  const endMo = end ? MONTH_NO[end[1].toUpperCase()] || 12 : 12, endYr = end ? +end[2] : new Date().getFullYear();
+  const bank = /United Overseas|\bUOB\b/i.test(text) ? "UOB " : "";
+  const rows = [];
+  if (type) rows.push(["Account Type:", (bank + type).trim()]);
+  if (num) rows.push(["Card Number:", "•••• " + num[1]]);
+  rows.push(["Transaction Date", "Posting Date", "Description", "Amount"]);
+  const D = String.raw`(\d{1,2})\s+${MONTH_RE}(?:\s+(\d{4}))?`;
+  const txRe = new RegExp(String.raw`^\s*${D}\s+${D}\s+(.+?)\s+(?:([A-Z]{3})\s+([\d,]+\.\d{2})\s+)?SGD\s+(-?[\d,]+\.\d{2})\s*$`, "i");
+  const SKIP = /^\s*(Account Statement Details|Account (Number|Type)\s*:|Statement (Period|Balance)\s*:|TRANSACTION\s+POSTING|DATE\s+DATE|TYPE\s+\(FOREIGN\)|Copyright|Reg No\.)/i;
+  const fmt = (d, mon, y) => {
+    const m3 = mon.toUpperCase().slice(0, 3);
+    return `${String(d).padStart(2, "0")} ${MON[m3]} ${y || (MONTH_NO[m3] > endMo ? endYr - 1 : endYr)}`;
+  };
+  const txs = [], seen = new Set();
+  let cur = null;                                                  // the line whose years, wrapped text and Ref No are still to come
+  for (const raw of lines) {
+    const m = txRe.exec(raw);
+    if (m) {
+      let amt = m[10].replace(/,/g, "");
+      if (!(Math.abs(parseFloat(amt)) > 0)) { cur = null; continue; }
+      cur = { d1: [m[1], m[2], m[3]], d2: [m[4], m[5], m[6]], desc: m[7].replace(/\s{2,}/g, " ").trim(), fx: m[8] && m[8].toUpperCase() !== "SGD" ? ` ${m[8].toUpperCase()} ${m[9]}` : "", amt, ref: "" };
+      txs.push(cur);
+      continue;
+    }
+    if (SKIP.test(raw)) continue;                                  // page header and footer: a line's years can sit on the next page
+    if (/Previous Balance/i.test(raw)) { cur = null; continue; }
+    if (!cur) continue;
+    let rest = raw;
+    const yrs = /^\s*(\d{4})\s+(\d{4})\b\s*(.*)$/.exec(rest);
+    if (yrs && !cur.d1[2]) { cur.d1[2] = yrs[1]; cur.d2[2] = yrs[2]; rest = yrs[3]; }
+    const ref = /Ref No:\s*(\d+)/i.exec(rest);
+    if (ref) { cur.ref = ref[1]; cur = null; continue; }
+    if (rest.trim()) cur.desc += " " + rest.replace(/\s{2,}/g, " ").trim();   // "PAYPAL *PATREON MEMBERSH" + "35314369001 GB"
+  }
+  for (const t of txs) {
+    if (t.ref) { if (seen.has(t.ref)) continue; seen.add(t.ref); }
+    rows.push([fmt(...t.d1), fmt(...t.d2), t.desc + t.fx, t.amt]);
+  }
+  return rows;
+}
+
 // lines: array of text lines. Returns rows: preamble rows for card detection, a header row, then one row per transaction.
 export function pdfTextToRows(lines, ctx = {}) {
+  if (!ctx.lenient && isUobHistory(lines.join("\n"))) return uobHistoryRows(lines);
   const text = lines.join("\n");
   const whole = ctx.dateText || text;
   // statement date, e.g. "25/10/2026": year for lines that print only "23SEP"
