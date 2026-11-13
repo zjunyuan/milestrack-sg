@@ -14,7 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason, CARD_RULES } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
@@ -116,8 +116,23 @@ function fcyTierRate(card, line) {
   for (const st of t.steps || []) if (spent >= st.at) rate = st.mpd;
   return rate;
 }
+// UOB Visa Signature (v1.63.67): the 4 mpd needs S$1,000 of eligible spend in the statement cycle, counted per category (contactless /
+// petrol on the Tap entry, foreign currency on the FCY entry; T&C v2.1). Below it the whole category earns base. Filled with
+// MONTH_SPEND from the upload and the entries already in the app: { cardId: { cycle: eligible spend } }.
+const CYCLE_MIN_CARDS = new Set(["uob-vs-contactless", "uob-vs-fcy"]);
+let CYCLE_SPEND = {};
+function lineCountTs(card, line) { const postTs = postFor(card, line); return postTs ? countsTs({ timestamp: line.ts, postTs }, card) : line.ts; }
+function lineBucket(card, line) { return cycleBucket(card, lineCountTs(card, line)); }
+// Only a cycle that has ended is held to the minimum: an open one may still reach it, and an imported entry keeps its rate, so it is
+// estimated at the bonus rate (the cap bar shows how far the cycle is from the minimum).
+function cycleClosed(card, ts) {
+  const d = new Date(ts), cut = card.cutoffDay || 15;
+  const end = d.getDate() >= cut ? new Date(d.getFullYear(), d.getMonth() + 1, cut) : new Date(d.getFullYear(), d.getMonth(), cut);
+  return end.getTime() <= Date.now();
+}
 function fillMonthSpend() {
-  MONTH_SPEND = {};
+  MONTH_SPEND = {}; CYCLE_SPEND = {};
+  const addCycle = (cid, b, amt) => { const m = (CYCLE_SPEND[cid] = CYCLE_SPEND[cid] || {}); m[b] = (m[b] || 0) + amt; };
   const add = (cid, ts, amt) => { const m = (MONTH_SPEND[cid] = MONTH_SPEND[cid] || {}); const k = ymOf(ts); m[k] = (m[k] || 0) + amt; };
   const inFile = new Set(), seen = new Set();
   // Every file of the upload counts (a month's lines often sit on two statements), each line once.
@@ -130,42 +145,70 @@ function fillMonthSpend() {
       if (!l.fx && fxNames.has(l.merchant || l.desc)) l.fxGuess = true;
       if (r.status === "credit" || l.fee || !(l.amt > 0) || seen.has(r.key)) return;
       seen.add(r.key);
-      const c = targetCard(l, i); if (!c || !c.tierRule) return;
+      const c = targetCard(l, i); if (!c) return;
+      if (CYCLE_MIN_CARDS.has(c.id) && bonusRate(c, l) > c.baseMpd) addCycle(c.id, lineBucket(c, l), l.amt);
+      if (!c.tierRule) return;
       if (noPointsReason(c.id, `${l.merchant || ""} ${l.desc || ""}`, (lookupBrand(l.merchant || l.desc) || {}).mcc)) return;   // excluded spend does not count
       add(c.id, l.ts, l.amt);
     });
   });
   for (const t of state.transactions || []) {
     const c = ALL_MASTER_CARDS.find(x => x.id === t.cardId);
-    if (!c || !c.tierRule || inFile.has(t.id) || t.noPoints || t.refunded || t.fee || !(Number(t.amt) > 0)) continue;
+    if (!c || inFile.has(t.id) || t.noPoints || t.refunded || t.fee || !(Number(t.amt) > 0)) continue;
+    if (CYCLE_MIN_CARDS.has(c.id)) {                                   // an entry on the FCY entry is foreign spend whether or not it says so
+      const text = t.stmtDesc || t.desc || "";
+      if (bonusRate(c, { merchant: text, desc: text, mcc: t.mcc, fx: t.fx || c.id === "uob-vs-fcy", ts: t.timestamp }) > c.baseMpd)
+        addCycle(c.id, cycleBucket(c, countsTs(t, c)), Number(t.amt));
+    }
+    if (!c.tierRule) continue;
     add(c.id, t.timestamp, Number(t.amt));
   }
 }
 
-function estimateTx(card, line, spentInBucket) {
+// The rate a line would earn on this card before caps and minimums (MCC lists, bank rules, tiers). line.mcc beats the name lookup.
+function bonusRate(card, line) {
+  let rate = card.baseMpd;
+  const retailer = lookupBrand(line.merchant || line.desc);
+  const mcc = line.mcc || (retailer && retailer.mcc) || "";
+  const entry = mcc && getMccEntry(mcc);
+  const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
+  if (cand) rate = cand.baseRate;
+  // An overseas-only entry (UOB VS FCY, v1.63.67): foreign-currency spend at any MCC but UOB's excluded ones; a merchant the app
+  // cannot place (a Japanese car rental) counts as retail. Before this every foreign line on VS FCY was saved at base.
+  if (card.id === "uob-vs-fcy" && (line.fx || line.fxGuess)) rate = Math.max(rate, CARD_RULES["uob-vs-fcy"].overseas(mcc) || 0);
+  const tier = fcyTierRate(card, line);
+  if (tier) rate = Math.max(rate, tier);
+  if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
+    const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, mcc);
+    if (r > rate) rate = r;
+  }
+  if (card.id === "dbs-wwmc") rate = wwmcOnlineRate(`${line.merchant || ""} ${line.desc || ""}`, mcc) || card.baseMpd;   // online only (v1.63.47)
+  return rate;
+}
+
+function estimateTx(card, line, spentInBucket, bucket) {
   if (card.id === "dbs-yuu") { // fixed per-entry rate (partner / other); the 10 mpd bonus is added from the card sheet as one entry
     const y = yuuEntryMiles(card, line.amt, line.merchant || line.desc);
     const ratio = state.myVault[card.vaultKey]?.ratio || 1;
     return { miles: y.miles, earnedRawPoints: Math.round(y.miles / ratio), bonusCategory: y.partner ? "bonus" : "base" };
   }
-  let rate = card.baseMpd;
   const retailer = lookupBrand(line.merchant || line.desc);
-  const entry = retailer && getMccEntry(retailer.mcc);
-  const cand = entry && (entry.candidatesLocal || []).find(c => c.id === card.id);
-  if (cand) rate = cand.baseRate;
   // Lines the bank pays no points on at all (v1.63.54: Maybank World, utilities and insurance premiums).
   const nope = noPointsReason(card.id, `${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc);
   if (nope) return { miles: 0, earnedRawPoints: 0, bonusCategory: "base", noPoints: nope };
-  const tier = fcyTierRate(card, line);
-  if (tier) rate = Math.max(rate, tier);
-  if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
-    const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, retailer && retailer.mcc);
-    if (r > rate) rate = r;
+  let rate = bonusRate(card, line);
+  let short = 0;                                                     // UOB VS: the cycle's eligible spend is below the S$1,000 minimum
+  if (rate > card.baseMpd && CYCLE_MIN_CARDS.has(card.id) && bucket !== undefined && cycleClosed(card, lineCountTs(card, line))) {
+    const got = (CYCLE_SPEND[card.id] || {})[bucket] || 0;
+    if (got + 0.005 < (card.minSpend || 0)) { rate = card.baseMpd; short = got; }
   }
-  if (card.id === "dbs-wwmc") rate = wwmcOnlineRate(`${line.merchant || ""} ${line.desc || ""}`, retailer && retailer.mcc) || card.baseMpd;   // online only (v1.63.47)
   const ratio = state.myVault[card.vaultKey]?.ratio || 1;
   const amt = line.amt, base = card.baseMpd;
-  if (!(rate > base)) { const miles = calcEarnedMiles(card, amt, base); return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: "base" }; }
+  if (!(rate > base)) {
+    const miles = calcEarnedMiles(card, amt, base);
+    return { miles, earnedRawPoints: Math.round(miles / ratio), bonusCategory: "base",
+      ...(short ? { minNote: `Base: the cycle's eligible spend was S$${fmtNum(short, 2)}, under the S$${fmtNum(card.minSpend, 0)} minimum` } : {}) };
+  }
   // A line that crosses the monthly cap earns the bonus on the part that fits and base on the rest (v1.63.44: the whole line used to go
   // to base). OCBC's promo rate only covers the first S$1,000, then the regular bonus runs to the S$1,110 cap.
   if (card.id === "ocbc-rewards") {
@@ -556,7 +599,7 @@ async function applyLines(ctx) {
       const postTs = postFor(tCard, l);
       const bucket = tCard.id + cycleBucket(tCard, postTs ? countsTs({ timestamp: l.ts, postTs }, tCard) : l.ts);
       const rfl = refundOfLine.get(r.idx);
-      let est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0);
+      let est = l.fee ? { miles: 0, earnedRawPoints: 0, bonusCategory: "base" } : estimateTx(tCard, l, bucketSpend[bucket] || 0, lineBucket(tCard, l));
       if (rfl) est = { ...est, miles: 0, earnedRawPoints: 0 };              // refunded later on this statement: no points
       bucketSpend[bucket] = (bucketSpend[bucket] || 0) + (est.capSpend || 0);
       const id = String(base + (ctx.seq++));
@@ -564,6 +607,7 @@ async function applyLines(ctx) {
       await save(id, {
         ...(rfl ? { refunded: true, refundTs: rfl.ts, stmtNote: `Refunded S$${rfl.amt.toFixed(2)} (${scrub(rfl.desc)})` } : {}),
         ...(est.noPoints && !rfl ? { noPoints: true, stmtNote: est.noPoints } : {}),
+        ...(est.minNote && !rfl && !est.noPoints ? { stmtNote: est.minNote } : {}),
         id, owner: state.myVaultKey, timestamp: l.ts, desc: scrub(friendlyName(l)), stmtDesc: scrub(l.desc), amt: l.amt, cardId: tCard.id,
         bonusCategory: est.bonusCategory, miles: est.miles, earnedRawPoints: est.earnedRawPoints,
         date: dateStr(l.ts),
@@ -590,7 +634,7 @@ async function applyLines(ctx) {
       let bonusCategory = old.bonusCategory, miles, raw;
       if (r.status === "moved") {
         const bucket = nc.id + cycleBucket(nc, pt ? countsTs({ timestamp: l.ts, postTs: pt }, nc) : l.ts);
-        const est = estimateTx(nc, l, bucketSpend[bucket] || 0);
+        const est = estimateTx(nc, l, bucketSpend[bucket] || 0, lineBucket(nc, l));
         bucketSpend[bucket] = (bucketSpend[bucket] || 0) + (est.capSpend || 0);
         bonusCategory = est.bonusCategory; miles = est.miles; raw = est.earnedRawPoints;
       } else {

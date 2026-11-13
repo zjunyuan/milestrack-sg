@@ -261,6 +261,7 @@ export function renderCards() {
     let statusNotice = '';
     let markerHtml = '';
     let tierInfo = null;
+    let capNote = '';                                                  // room left before the bonus cap, beside the spend (v1.63.67)
 
     if (card.id.startsWith('uob-vs')) {
       const minDeficit = Math.max(0, 1000 - currentSpend);
@@ -268,6 +269,9 @@ export function renderCards() {
       markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;"></div>`;
       barColor = currentSpend < 1000 ? 'var(--warning)' : 'var(--accent)';
       statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${fmtNum(minDeficit, 0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met!</span>`;
+      // The unlock notice takes the place of "Cap: $1,200", so the room to the cap goes beside the spend instead.
+      const room = card.monthlyCap - currentSpend;
+      capNote = room > 0.005 ? ` · $${fmtNum(room, 2)} to $${fmtAuto(card.monthlyCap)} cap` : ` · <span style="color:var(--danger);">cap reached</span>`;
     } else if (card.tierRule) {
       const ts = tierStatus(card, { spend: currentSpend, txns: state.transactions, renewalYm: state.uobRenewals.kf });
       tierInfo = ts;
@@ -310,7 +314,7 @@ export function renderCards() {
       </div>
       ${card.id === 'dbs-yuu' ? yuuChipsHtml(card) : ''}
       <div class="card-stats">
-        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent'}</span>
+        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent' + capNote}</span>
         <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${fmtAuto(card.monthlyCap)} (${pct}%)`)}</span>
       </div>
     `;

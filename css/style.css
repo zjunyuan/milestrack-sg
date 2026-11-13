@@ -391,7 +391,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
 .min-spend-marker { position: absolute; top: -3px; width: 2px; height: 13px; background: #cbd5e1; z-index: 2; border-radius: 1px; }
 
-.card-stats { display: flex; justify-content: space-between; font-size: 0.78rem; color: #94a3b8; }
+.card-stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: 0.78rem; color: #94a3b8; }
 
 .tx-item { background-color: var(--surface); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .tx-desc { font-weight: 500; font-size: 0.9rem; }
