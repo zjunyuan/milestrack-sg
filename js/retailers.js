@@ -260,6 +260,18 @@ export const RETAILERS = [
   r("ANA", "4511", "high", ["all nippon airways"]),
   r("Japan Airlines", "4511", "high", ["jal"]),
   r("Qatar Airways", "4511", "high", ["qatar"]),
+  // v1.63.67: regional airlines seen on Singapore statements ("CEBU AIR,0000000…" is Cebu Pacific).
+  r("Cebu Pacific", "4511", "high", ["cebu air", "cebu pacific air"]),
+  r("Philippine Airlines", "4511", "high", ["philippine air", "phil airlines"]),
+  r("Thai Airways", "4511", "high", ["thai airways intl"]),
+  r("Malaysia Airlines", "4511", "high", ["malaysia air"]),
+  r("Vietnam Airlines", "4511", "high"),
+  r("VietJet Air", "4511", "high", ["vietjet"]),
+  r("EVA Air", "4511", "high", ["eva airways"]),
+  r("Korean Air", "4511", "high", ["korean air lines"]),
+  r("Batik Air", "4511", "high"),
+  r("British Airways", "4511", "high"),
+  r("Turkish Airlines", "4511", "high"),
 
   // ---- Travel agencies / OTAs (4722) ----
   r("Agoda", "4722", "high"),

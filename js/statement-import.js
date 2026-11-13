@@ -297,6 +297,14 @@ function entryLabel(id) { return ALL_MASTER_CARDS.find(c => c.id === id)?.name |
 function guessEntry(line) {
   const fam = familyOf(S.card.id).filter(id => state.enabledCardIds.includes(id));
   if (S.card.id.startsWith("uob-ppv")) { const want = looksOnline(line.desc) ? "uob-ppv-online" : "uob-ppv-contactless"; return fam.includes(want) ? want : S.card.id; }
+  // Other split cards (UOB Lady's: Dining / Travel, v1.63.67): the entry whose bonus list holds the merchant's MCC. Before this every
+  // Lady's line went to the first entry, so an airline landed on Dining at base rate.
+  const r = lookupBrand(line.merchant || line.desc), entry = r && getMccEntry(r.mcc);
+  if (entry) {
+    const cands = (line.fx ? entry.candidatesOverseas : entry.candidatesLocal) || entry.candidatesLocal || [];
+    const hit = fam.find(id => cands.some(c => c.id === id));
+    if (hit) return hit;
+  }
   return S.card.id;
 }
 // Foreign-currency lines on a card with a separate FCY entry go to that entry; channel-split cards use the per-line choice.
