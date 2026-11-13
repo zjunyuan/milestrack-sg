@@ -441,6 +441,17 @@ export function lastImport() {
   return { id: latest.importId, at: latest.importedAt || 0, added: rows.filter(t => !t.importUpdated), updated: rows.filter(t => t.importUpdated), removed: bk && bk.importId === latest.importId ? removedTxs : [] };
 }
 
+// The months an import ticked for the first time: those saved with its ID (`first`, v1.63.63), plus this device's localStorage note
+// (imports from before v1.63.63, or a coverage save that failed).
+function coverAddedBy(importId) {
+  const out = {};
+  const add = (k, m) => { const s = (out[k] = out[k] || new Set()); s.add(m); };
+  for (const [k, ms] of Object.entries(state.stmtCoverage || {})) for (const [m, v] of Object.entries(ms || {})) if (v && v.first === importId) add(k, m);
+  const local = loadCoverAdded();
+  if (local && typeof local === "object") for (const [k, ms] of Object.entries(local)) if (Array.isArray(ms)) for (const m of ms) add(k, m);
+  return Object.fromEntries(Object.entries(out).map(([k, s]) => [k, [...s]]));
+}
+
 function refreshUndo() {
   const box = $("stmtUndo"); if (!box) return;
   const li = lastImport();
@@ -474,7 +485,7 @@ async function undoLastImport() {
     for (const [k, raw] of Object.entries(vaultMinus)) if (state.myVault[k]) { state.myVault[k].points = Math.max(0, (Number(state.myVault[k].points) || 0) - raw); touched = true; }
     if (touched) await updateVaultDoc(state.myVaultKey, state.myVault);
     if (li.removed && li.removed.length) { await restoreTransactions(li.removed); saveRemoved(null); }
-    await untickCoverage(loadCoverAdded()); saveCoverAdded(null);
+    await untickCoverage(coverAddedBy(li.id)); saveCoverAdded(null);
     alert("Import undone.");
   } catch (err) {
     console.error("Undo import failed", err);
@@ -648,10 +659,12 @@ async function finishApply(ctx, files) {
   }
   if (Object.keys(cover).length) {
     const prev = state.stmtCoverage || {};
-    const next = { ...prev };
-    for (const [k, ms] of Object.entries(cover)) next[k] = { ...(prev[k] || {}), ...ms };
     const added = {};                                 // months this import ticked for the first time, so Undo can take them back
-    for (const [k, ms] of Object.entries(cover)) for (const m of Object.keys(ms)) if (!(prev[k] && prev[k][m])) (added[k] = added[k] || []).push(m);
+    for (const [k, ms] of Object.entries(cover)) for (const [m, v] of Object.entries(ms)) if (!(prev[k] && prev[k][m])) { (added[k] = added[k] || []).push(m); v.first = ctx.importId; }
+    // v1.63.63: a month's `first` (the import that ticked it) is saved with the month, so Undo works from any device or browser;
+    // the localStorage copy is kept for months ticked before this. Months already ticked keep their own `first` (the merge keeps it).
+    const next = { ...prev };
+    for (const [k, ms] of Object.entries(cover)) { next[k] = { ...(prev[k] || {}) }; for (const [m, v] of Object.entries(ms)) next[k][m] = { ...(next[k][m] || {}), ...v }; }
     saveCoverAdded(added);
     state.stmtCoverage = next;
     try { await mergeSettingsDoc(state.myVaultKey, { stmtCoverage: cover }); } catch (e) { console.error("Coverage save failed", e); }
