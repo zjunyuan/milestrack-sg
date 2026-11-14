@@ -81,7 +81,7 @@ export function missedByMonth(year, cards) {
   on = enabled(); optMemo = new Map();
   const months = MON.map(() => ({ missed: 0, judged: 0, unjudged: 0, items: [] }));
   const byMonth = MON.map(() => []);
-  for (const t of yearTxs(year, cards)) if (counts(t) && !t.yuuBonus && !t.feeBonus) byMonth[new Date(Number(t.timestamp)).getMonth()].push(t);
+  for (const t of yearTxs(year, cards)) if (counts(t) && !t.yuuBonus && !t.feeBonus && !t.promoBonus) byMonth[new Date(Number(t.timestamp)).getMonth()].push(t);
   byMonth.forEach((list, m) => {
     const room = {};
     const prepared = list.map(t => ({ t, used: cardById(t.cardId), opts: null })).map(x => ({ ...x, opts: options(x.t, x.used) }));

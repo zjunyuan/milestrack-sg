@@ -543,7 +543,7 @@ async function offerUntick(deleted) {
 // counts; one Undo puts every entry and the Vault back.
 async function setRateBulk(rate) {
   const sel = state.txSelect;
-  const skip = (t) => t.refunded || t.noPoints || t.feeBonus || t.yuuBonus || t.cardId === 'dbs-yuu';
+  const skip = (t) => t.refunded || t.noPoints || t.feeBonus || t.promoBonus || t.yuuBonus || t.cardId === 'dbs-yuu';
   const chosen = state.transactions.filter(t => sel.ids.has(String(t.id)));
   const txs = chosen.filter(t => !skip(t) && ALL_MASTER_CARDS.some(c => c.id === t.cardId));
   if (!txs.length) { showToast('Nothing to change: refunded, no-points, bonus and yuu entries keep their own rate.', { kind: 'error' }); return; }
@@ -599,7 +599,7 @@ async function recalcCapOrder(cardId, y, m) {
   if (card.cycleType === 'statement') { const cut = card.cutoffDay || 15; start = new Date(y, m - 2, cut); next = new Date(y, m - 1, cut); }
   else { start = new Date(y, m - 1, 1); next = new Date(y, m, 1); }
   const inCycle = (t) => { const c = countsTs(t, card); return c >= start.getTime() && c < next.getTime(); };
-  const txs = state.transactions.filter(t => t.cardId === card.id && inCycle(t) && t.bonusCategory !== 'base' && !t.refunded && !t.noPoints && !t.feeBonus && !t.yuuBonus)
+  const txs = state.transactions.filter(t => t.cardId === card.id && inCycle(t) && t.bonusCategory !== 'base' && !t.refunded && !t.noPoints && !t.feeBonus && !t.promoBonus && !t.yuuBonus)
     .sort((a, b) => countsTs(a, card) - countsTs(b, card) || (a.timestamp || 0) - (b.timestamp || 0) || String(a.id).localeCompare(String(b.id)));
   const cap = Number(card.monthlyCap);
   let used = 0;
@@ -642,6 +642,41 @@ async function recalcCapOrder(cardId, y, m) {
       } catch (err) { console.error(err); showToast('Could not undo: ' + (err.message || err), { kind: 'error' }); }
     }
   });
+}
+
+// One-off bonus credited by a bank (v1.63.77): a promotion lump, a goodwill credit. No entry can explain it, so it is added as its own
+// zero-amount entry (`promoBonus: true`) dated inside the statement it landed on; the points check counts it on that statement, and
+// caps, trends, Bonus by month and Select's rate tools leave it alone. Offered from every statement banner, the amount defaulting to
+// what the bank paid beyond everything the app could explain.
+async function addPromoBonus(ds) {
+  const vk = ds.promoVk;
+  const cards = ALL_MASTER_CARDS.filter(c => c.vaultKey === vk && state.enabledCardIds.includes(c.id));
+  if (!cards.length) { showToast('Pick a statement for one bank first', { kind: 'error' }); return; }
+  const gap = Number(ds.promoGap) || 0;
+  const ptsTxt = prompt(`How many points did the bank credit as the bonus?${gap ? `\n\nThis statement has ${fmtNum(gap)} more than the app can explain.` : ''}`, gap ? String(gap) : '');
+  if (ptsTxt === null) return;
+  const pts = Math.round(Number(String(ptsTxt).replace(/[,\s]/g, '')));
+  if (!(pts > 0)) { showToast('Enter the points as a number, e.g. 2281', { kind: 'error' }); return; }
+  const label = (prompt('What was it? (shown in History)', 'Promotion bonus') || '').trim() || 'Promotion bonus';
+  let card = cards.find(c => c.id === ds.promoCard) || cards[0];
+  if (cards.length > 1 && !cards.some(c => c.id === ds.promoCard)) {
+    const names = cards.map((c, i) => `${i + 1}. ${cardShort(c)}`).join('\n');
+    const pick = prompt(`Which card was it for?\n\n${names}`, '1');
+    if (pick === null) return;
+    card = cards[(parseInt(pick, 10) || 1) - 1] || cards[0];
+  }
+  const addToVault = confirm(`Also add ${fmtNum(pts)} to your ${cardShort(card)} balance in the Vault?\n\nOK = yes. Cancel = no, if your balance already matches the bank's figure (for example you used "Use the bank's figure").`);
+  const ts = Number(ds.promoTo) - 12 * 3600000;                   // inside the statement it landed on
+  const ratio = state.myVault?.[card.vaultKey]?.ratio || 1;
+  const rec = { id: `promo_${card.id}_${Date.now()}`, owner: state.myVaultKey, timestamp: ts, postTs: ts, desc: label, amt: 0, cardId: card.id,
+    bonusCategory: 'bonus', miles: Math.round(pts * ratio), earnedRawPoints: pts, promoBonus: true, source: 'statement', vaultCounted: addToVault,
+    date: new Date(ts).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }), stmtNote: `${fmtNum(pts)} points credited by the bank as a one-off bonus` };
+  try {
+    await saveTxToFirestore(rec.id, rec);
+    if (addToVault && state.myVault[card.vaultKey]) { state.myVault[card.vaultKey].points = (Number(state.myVault[card.vaultKey].points) || 0) + pts; await updateVaultDoc(state.myVaultKey, state.myVault); }
+    showToast(`Added: ${label}, ${fmtNum(pts)} points`);
+  } catch (err) { console.error(err); showToast(`Couldn't add it: ${err.message || err}`, { kind: 'error' }); }
+  renderTransactions();
 }
 
 async function handleSelectAction(action) {
@@ -766,6 +801,8 @@ export function renderTransactions() {
         });
         return;
       }
+      const promoBtn = e.target.closest('[data-promo-add]');
+      if (promoBtn) { addPromoBonus(promoBtn.dataset); return; }
       const feeBtn = e.target.closest('[data-fee-bonus]');
       if (feeBtn) {
         // The annual fee bonus for a statement imported before v1.63.53: one entry inside that statement, the Vault left as it is.

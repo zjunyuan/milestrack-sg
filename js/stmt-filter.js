@@ -238,6 +238,7 @@ export function stmtBannerHtml(s, rows) {
     <div class="hm-note"><button type="button" class="pc-link" data-stmt-del="${escapeHtml(s.recId || "")}">Delete this statement's points record</button> <span class="dim">(only the points figures; entries and balances stay)</span></div>
     <div class="stmt-scroll"><table class="stmt-tbl"><thead><tr><th></th><th class="num">App expects</th><th class="num">Bank</th><th class="num">Difference</th></tr></thead><tbody>${body}</tbody></table></div>
     ${verdict}${gapNote}${fixBlock}
+    <div class="hm-note">🎁 Did the bank pay a one-off bonus here (a promotion, a goodwill credit)? <button type="button" class="pc-link" data-promo-add data-promo-vk="${escapeHtml(s.vk || "")}" data-promo-card="${escapeHtml(s.cardId || "")}" data-promo-to="${s.to}" data-promo-gap="${Math.max(0, Math.round(bank - sure - maybe))}">Add it as an entry</button></div>
     <div class="hm-note">All figures in ${escapeHtml(unit)} (1 ${escapeHtml(unit)} ≈ ${ratio} mi). The ${rows.length} entr${rows.length === 1 ? "y" : "ies"} below: S$${fmtNum(spent, 2)} · ${fmtNum(Math.round(miles))} mi in the app, base and bonus together.</div>
   </div>`;
 }

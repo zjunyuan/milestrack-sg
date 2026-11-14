@@ -35,7 +35,7 @@ export function monthSpend(cardId) {
       if (!months.has(k)) months.set(k, { key: k, txs: [], spend: 0, fcy: 0, fcyPts: 0 });
       const m = months.get(k); m.txs.push(t);
       const amt = Number(t.amt) || 0;
-      if (!(amt > 0) || t.refunded || t.noPoints || t.fee || t.feeBonus) continue;
+      if (!(amt > 0) || t.refunded || t.noPoints || t.fee || t.feeBonus || t.promoBonus) continue;
       m.spend += amt;
       if (t.fx || t.fxGuess) { m.fcy += amt; m.fcyPts += Math.floor(amt); }
     }
@@ -50,7 +50,7 @@ export function monthSpend(cardId) {
     if (!months.has(k)) months.set(k, { key: k, txs: [], spend: 0, local: 0, fcy: 0 });
     const m = months.get(k); m.txs.push(t);
     const amt = Number(t.amt) || 0;
-    if (amt > 0 && !t.refunded && !t.yuuBonus && !t.feeBonus && t.bonusCategory !== "base") {
+    if (amt > 0 && !t.refunded && !t.yuuBonus && !t.feeBonus && !t.promoBonus && t.bonusCategory !== "base") {
       // The cap is the first S$1,000 in date order; foreign-currency lines (fx, from the statement) earn the lower online rate.
       const fits = Math.max(0, Math.min(amt, rule.cap - m.spend));
       if (t.fx && rule.fcyRate) m.fcy += fits; else m.local += fits;
