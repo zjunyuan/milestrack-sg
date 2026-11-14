@@ -587,6 +587,63 @@ async function setRateBulk(rate) {
   });
 }
 
+// "Recalculate in posting order" (v1.63.76, from a capped card's row in the month summary). Banks fill a cap in the order charges post,
+// so the charges posted after it filled are the ones on base. The app gives cap room to whichever entries were saved or imported
+// first, which can put "after cap" on early charges and, when a month spans two statements, move bonus between them. This walks the
+// card's Bonus entries of that month (or statement cycle) by posting date and re-splits each into bonus and base; the month's total
+// stays the same. OCBC (block caps), yuu and tier cards keep their own rules and are not offered.
+async function recalcCapOrder(cardId, y, m) {
+  const card = ALL_MASTER_CARDS.find(c => c.id === cardId);
+  if (!card || card.id === 'dbs-yuu' || card.id === 'ocbc-rewards' || card.tierRule || !(card.monthlyCap < 999999) || !(card.bonusMpd > card.baseMpd)) return;
+  let start, next;
+  if (card.cycleType === 'statement') { const cut = card.cutoffDay || 15; start = new Date(y, m - 2, cut); next = new Date(y, m - 1, cut); }
+  else { start = new Date(y, m - 1, 1); next = new Date(y, m, 1); }
+  const inCycle = (t) => { const c = countsTs(t, card); return c >= start.getTime() && c < next.getTime(); };
+  const txs = state.transactions.filter(t => t.cardId === card.id && inCycle(t) && t.bonusCategory !== 'base' && !t.refunded && !t.noPoints && !t.feeBonus && !t.yuuBonus)
+    .sort((a, b) => countsTs(a, card) - countsTs(b, card) || (a.timestamp || 0) - (b.timestamp || 0) || String(a.id).localeCompare(String(b.id)));
+  const cap = Number(card.monthlyCap);
+  let used = 0;
+  const plan = [];
+  for (const t of txs) {
+    const amt = Number(t.amt) || 0, part = Math.max(0, Math.min(amt, cap - used));
+    used += part;
+    const wasFull = capSpendOf(t, card) >= amt - 0.005;
+    const miles = part >= amt - 0.005
+      ? (wasFull ? Number(t.miles) || 0 : calcEarnedMiles(card, amt, card.bonusMpd))     // keeps an FX entry's own full figure
+      : (part > 0 ? calcEarnedMiles(card, part, card.bonusMpd) : 0) + calcEarnedMiles(card, amt - part, card.baseMpd);
+    if (Math.round(miles) !== Math.round(Number(t.miles) || 0)) plan.push({ t, miles });
+  }
+  const label = card.cycleType === 'statement' ? 'that statement cycle' : new Date(y, m - 1, 15).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  if (!plan.length) { showToast(`${cardShort(card)}: ${label} is already in posting order`); return; }
+  const before = plan.map(p => JSON.parse(JSON.stringify(p.t)));
+  const deltas = {};
+  try {
+    for (const { t, miles } of plan) {
+      const pts = Math.round(miles / (state.myVault[card.vaultKey]?.ratio || 1));
+      const rec = { ...t, miles, earnedRawPoints: pts }; delete rec.firestoreId;
+      await saveTxToFirestore(rec.id, rec);
+      if (!(t.source === 'statement' && !t.vaultCounted)) deltas[card.vaultKey] = (deltas[card.vaultKey] || 0) + pts - (Number(t.earnedRawPoints) || 0);
+    }
+    if (Object.values(deltas).some(Boolean)) {
+      for (const [vk, d] of Object.entries(deltas)) if (state.myVault[vk]) state.myVault[vk].points = Math.max(0, (Number(state.myVault[vk].points) || 0) + d);
+      await updateVaultDoc(state.myVaultKey, state.myVault);
+    }
+  } catch (err) { console.error(err); showToast('Could not recalculate: ' + (err.message || err), { kind: 'error' }); return; }
+  showToast(`${cardShort(card)}, ${label}: ${plan.length} entr${plan.length === 1 ? 'y' : 'ies'} re-split in posting order`, {
+    actionLabel: 'Undo', ms: 12000,
+    onAction: async () => {
+      try {
+        for (const t of before) { const rec = { ...t }; delete rec.firestoreId; await saveTxToFirestore(rec.id, rec); }
+        if (Object.values(deltas).some(Boolean)) {
+          for (const [vk, d] of Object.entries(deltas)) if (state.myVault[vk]) state.myVault[vk].points = Math.max(0, (Number(state.myVault[vk].points) || 0) - d);
+          await updateVaultDoc(state.myVaultKey, state.myVault);
+        }
+        showToast('Put back');
+      } catch (err) { console.error(err); showToast('Could not undo: ' + (err.message || err), { kind: 'error' }); }
+    }
+  });
+}
+
 async function handleSelectAction(action) {
   const sel = state.txSelect;
   if (action === 'none') { sel.ids = new Set(); renderTransactions(); return; }
@@ -1508,6 +1565,10 @@ export function renderArchiveData() {
     const data = coverageData(targetYear);
     summaryEl.innerHTML = `<details class="st-cover" id="historyCoverage"><summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div></details>`
       + (isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m, kind) => { const r = getStatementCycleForMonth(c, y, m); return kind === 'bonus' ? r.bonusSpent : r.spent; }));
+    summaryEl.querySelectorAll('[data-recap]').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      recalcCapOrder(a.dataset.recap, Number(a.dataset.recapY), Number(a.dataset.recapM));
+    }));
     summaryEl.querySelectorAll('[data-ms-cat]').forEach(row => {
       if (!row.dataset.msCat) { row.removeAttribute('role'); row.style.cursor = 'default'; return; }
       const go = () => { state.txView.cats = [row.dataset.msCat]; renderTransactions(); document.getElementById('txList')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };

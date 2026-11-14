@@ -91,7 +91,7 @@ function capFamilies(stmtSpent, y, m, txns) {
     }
     if (spent <= 0) continue;
     const unused = Math.max(0, card.monthlyCap - spent);
-    rows.push({ name: cardShort(card), cap: card.monthlyCap, spent, unused,
+    rows.push({ id: card.id, name: cardShort(card), cap: card.monthlyCap, spent, unused,
       upTo: Math.round(unused * (card.bonusMpd - card.baseMpd)), cappedOn, mpd: card.bonusMpd });
   }
   return rows.sort((a, b) => b.unused - a.unused);
@@ -161,7 +161,7 @@ export function monthlySummaryHtml(y, m, stmtSpent, now = new Date()) {
   const capRows = fams.map(f => {
     const full = f.spent >= f.cap;
     const sub = full
-      ? `Capped${f.cappedOn ? ` on ${f.cappedOn.getDate()} ${MON[f.cappedOn.getMonth()]}` : ''}`
+      ? `Capped${f.cappedOn ? ` on ${f.cappedOn.getDate()} ${MON[f.cappedOn.getMonth()]}` : ''} · <a href="#" data-recap="${escapeHtml(f.id)}" data-recap-y="${y}" data-recap-m="${m}" title="Give the cap to the charges in the order the bank posted them, so the ones after the cap filled are the ones on base">↻ Recalculate in posting order</a>`
       : `<span class="ms-bad">S$${fmtNum(f.unused, 0)} unused</span>${f.upTo ? ` · up to ${fmtNum(f.upTo, 0)} mi` : ''}`;
     return `<div class="ms-row"><div class="ms-line"><span>${escapeHtml(f.name)}</span><span><b>S$${fmtNum(f.spent, 0)}</b> / ${fmtNum(f.cap, 0)}</span></div>
       <div class="ms-bar${full ? ' full' : ''}"><i style="width:${Math.min(100, (f.spent / f.cap) * 100).toFixed(0)}%"></i></div><div class="ms-sub">${sub}</div></div>`;
