@@ -44,7 +44,8 @@ const BANKS = [
     ["app", "Woman's World: Check with banks shows the bonus month by month (expected on the month's total, paid on the next statement), so a month DBS paid short stands out."]
   ] },
   { bank: "yuu", unit: "yuu points (3.6 points = 1 mi)", notes: [
-    ["app", "Each entry earns its fixed rate; the monthly 10 mpd bonus (S$800 spend and 4 partner brands) is added as one “yuu bonus” entry from the card sheet."]
+    ["app", "Each entry earns its fixed rate; the monthly 10 mpd bonus (S$800 spend and 4 partner brands) is added as one “yuu bonus” entry from the card sheet."],
+    ["sec", "Only 1 point per S$1 at a partner lands the day you scan your yuu ID. The other 9 per S$1, the monthly bonus, and all SimplyGo and non-partner points come within 60 days after the month ends, so a balance typed mid-month is well below the app's total."]
   ] },
   { bank: "Maybank", unit: "TREATS points (1 point ≈ 0.4 mi)", notes: [
     ["seen", "Spend in the last 2 business days of a month shows on the next month's points."],
