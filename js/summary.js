@@ -6,6 +6,8 @@ import { cardShort, detectYuuMerchant } from "./config.js";
 import { findRetailerForInput, escapeHtml } from "./retailers.js";
 import { getMccEntry, shortCategory } from "./mcc.js";
 import { fmtNum } from "./format.js";
+import { capSpendOf } from "./cap-use.js";
+import { countsTs } from "./posting.js";
 
 const NO_CATEGORY = '__none';   // same value as history-table.js: entries whose merchant the app cannot place
 
@@ -67,23 +69,27 @@ export function categoryOf(desc, own) {
 
 // One row per card entry: channel entries (e.g. UOB PPV Tap / Online) each have their own cap.
 function capFamilies(stmtSpent, y, m, txns) {
+  // v1.63.73: only spend that earned (or tried to earn) the bonus fills a cap (`capSpendOf`: Base entries, refunds and no-points lines
+  // do not; an entry that crossed the cap counts only its bonus part), and a calendar-month card counts by the date the bank counts it
+  // to (`countsTs`: UOB PPV by posting date), so "Capped on" names the charge the bank capped. Before, all spend by transaction date.
   const rows = [];
   for (const card of state.cards) {
     // yuu's 10 mpd is gated by a minimum spend and merchant count, so it has its own check below.
     if (card.id === 'dbs-yuu' || card.monthlyCap >= 999999 || !(card.bonusMpd > card.baseMpd)) continue;
-    const own = txns.filter(t => t.cardId === card.id);
-    const spent = card.cycleType === 'statement'
-      ? stmtSpent(card, y, m)
-      : own.reduce((s, t) => s + (Number(t.amt) || 0), 0);
-    if (spent <= 0) continue;
-    let cappedOn = null;
-    if (spent >= card.monthlyCap && card.cycleType !== 'statement' && own.length) {
-      let run = 0;
-      for (const t of own.slice().sort((a, b) => a.timestamp - b.timestamp)) {
-        run += Number(t.amt) || 0;
-        if (run >= card.monthlyCap) { cappedOn = new Date(t.timestamp); break; }
+    let spent = 0, cappedOn = null;
+    if (card.cycleType === 'statement') spent = stmtSpent(card, y, m, 'bonus');
+    else {
+      const own = state.transactions.filter(t => {
+        if (t.cardId !== card.id || !t.timestamp) return false;
+        const d = new Date(countsTs(t, card));
+        return d.getFullYear() === y && d.getMonth() + 1 === m;
+      }).sort((a, b) => countsTs(a, card) - countsTs(b, card) || a.timestamp - b.timestamp);
+      for (const t of own) {
+        spent += capSpendOf(t, card);
+        if (!cappedOn && spent >= card.monthlyCap - 0.005) cappedOn = new Date(countsTs(t, card));
       }
     }
+    if (spent <= 0) continue;
     const unused = Math.max(0, card.monthlyCap - spent);
     rows.push({ name: cardShort(card), cap: card.monthlyCap, spent, unused,
       upTo: Math.round(unused * (card.bonusMpd - card.baseMpd)), cappedOn, mpd: card.bonusMpd });

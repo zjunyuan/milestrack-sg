@@ -21,6 +21,7 @@ import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule, cycleBounds } from "./posting.js";
+import { capSpendOf } from "./cap-use.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
@@ -1136,15 +1137,6 @@ export async function removeTransaction(tx) {
   await deleteTxFromFirestore(tx.firestoreId || tx.id);
 }
 
-// Bonus spend an entry used up toward its card's cap: the whole amount on Bonus, except an entry that crossed the cap (its miles show
-// only part earned the bonus, e.g. one imported at the end of a full month), where it is worked out from the miles.
-function capSpendOf(t, card) {
-  if (t.bonusCategory === 'base' || t.refunded || t.noPoints || t.feeBonus || t.yuuBonus) return 0;
-  const amt = Number(t.amt) || 0, miles = Number(t.miles) || 0;
-  const full = calcEarnedMiles(card, amt, card.bonusMpd), base = calcEarnedMiles(card, amt, card.baseMpd);
-  if (miles >= full - 1 || !(card.bonusMpd > card.baseMpd)) return amt;
-  return Math.max(0, Math.min(amt, (miles - base) / (card.bonusMpd - card.baseMpd)));
-}
 // Miles for an entry on Bonus, within the cap of the entry's OWN cycle (v1.63.71). The form used to check the cap against the current
 // month's spend, so editing a March entry to Bonus paid it in full even when March's cap was already used (three travel bookings on
 // Lady's Travel came to 1,440 bonus UNI$ where UOB paid the 1,350 a S$750 cap allows). Now: the other bonus entries of that card in
@@ -1319,10 +1311,12 @@ export function getStatementCycleForMonth(card, targetYear, targetMonth) {
 
   const spent = cycleTxns.reduce((sum, tx) => sum + (Number(tx.amt) || 0), 0);
   const miles = cycleTxns.reduce((sum, tx) => sum + (Number(tx.miles) || 0), 0);
+  const bonusSpent = cycleTxns.reduce((sum, tx) => sum + capSpendOf(tx, card), 0);   // v1.63.73: what fills the cap
 
   return {
     label: `${windowStart.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })} – ${windowEnd.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })}`,
     spent,
+    bonusSpent,
     miles,
     txCount: cycleTxns.length
   };
@@ -1460,7 +1454,7 @@ export function renderArchiveData() {
     const wasOpen = !!document.getElementById('historyCoverage')?.open;
     const data = coverageData(targetYear);
     summaryEl.innerHTML = `<details class="st-cover" id="historyCoverage"><summary>${coverageSummaryText(data)}</summary>${coverageTableHtml(data, { clickable: true })}<div class="hm-note">✓ = statement imported. · = not yet. Tap a month to see that card's entries.</div></details>`
-      + (isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m) => getStatementCycleForMonth(c, y, m).spent));
+      + (isFullYear ? '' : monthlySummaryHtml(targetYear, targetMonth, (c, y, m, kind) => { const r = getStatementCycleForMonth(c, y, m); return kind === 'bonus' ? r.bonusSpent : r.spent; }));
     summaryEl.querySelectorAll('[data-ms-cat]').forEach(row => {
       if (!row.dataset.msCat) { row.removeAttribute('role'); row.style.cursor = 'default'; return; }
       const go = () => { state.txView.cats = [row.dataset.msCat]; renderTransactions(); document.getElementById('txList')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };

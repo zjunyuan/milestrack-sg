@@ -6,6 +6,7 @@ import { fmtNum } from "./format.js";
 import { categoryOf, mccOf } from "./summary.js";
 import { passesStmt } from "./stmt-filter.js";
 import { pointsSplit } from "./reconcile.js";
+import { capInfo } from "./cap-use.js";
 
 export const NO_CATEGORY = '__none';
 export const TX_COLUMNS = [
@@ -40,7 +41,16 @@ export function mccChip(tx) {
 export function txCategory(tx) { return categoryOf(tx.desc, tx.mcc); }
 // Bonus or base: the rate the entry was logged at (yuu partner spend counts as bonus). v1.63.18.
 export const rateOf = (tx) => (tx.bonusCategory === 'base' ? 'base' : 'bonus');
-export const rateTag = (tx) => tx.refunded ? `<span class="tx-rate refunded" title="${escapeHtml(tx.stmtNote || 'Refunded on a statement')}: no points">Refunded</span>` : `<span class="tx-rate ${rateOf(tx)}" title="Logged at the card's ${rateOf(tx)} rate">${rateOf(tx) === 'base' ? 'Base' : 'Bonus'}</span>`;
+export const rateTag = (tx) => tx.refunded ? `<span class="tx-rate refunded" title="${escapeHtml(tx.stmtNote || 'Refunded on a statement')}: no points">Refunded</span>` : `<span class="tx-rate ${rateOf(tx)}" title="Logged at the card's ${rateOf(tx)} rate">${rateOf(tx) === 'base' ? 'Base' : 'Bonus'}</span>` + capTag(tx);
+// v1.63.73: a Bonus entry that crossed its card's cap says how much of it earned the bonus ("after cap" when none did).
+export function capTag(tx) {
+  const c = tx.refunded ? null : capInfo(tx);
+  if (!c) return '';
+  const label = c.at < 5 ? 'after cap' : `cap: S$${fmtNum(c.at, 0)} of ${fmtNum(c.amt, 0)}`;
+  const why = c.at < 5 ? "The card's bonus cap for this month or cycle was already used: this charge earned the base rate."
+    : `The card's bonus cap ran out on this charge: about S$${fmtNum(c.at, 2)} of S$${fmtNum(c.amt, 2)} earned the bonus, the rest the base rate.`;
+  return ` <span class="tx-rate capped" title="${escapeHtml(why)}">${label}</span>`;
+}
 export function txMpd(tx) { const a = Number(tx.amt) || 0; return a > 0 ? (Number(tx.miles) || 0) / a : 0; }
 
 /** Rows that pass the advanced filters (card, merchant text and period are handled by the caller). */
