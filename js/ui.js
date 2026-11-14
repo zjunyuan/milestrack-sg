@@ -20,7 +20,7 @@ import {
 import { getBuiltinMccEntry, shortCategory } from "./mcc.js";
 import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
-import { countsTs, postingRule } from "./posting.js";
+import { countsTs, postingRule, cycleBounds } from "./posting.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
@@ -1136,6 +1136,35 @@ export async function removeTransaction(tx) {
   await deleteTxFromFirestore(tx.firestoreId || tx.id);
 }
 
+// Bonus spend an entry used up toward its card's cap: the whole amount on Bonus, except an entry that crossed the cap (its miles show
+// only part earned the bonus, e.g. one imported at the end of a full month), where it is worked out from the miles.
+function capSpendOf(t, card) {
+  if (t.bonusCategory === 'base' || t.refunded || t.noPoints || t.feeBonus || t.yuuBonus) return 0;
+  const amt = Number(t.amt) || 0, miles = Number(t.miles) || 0;
+  const full = calcEarnedMiles(card, amt, card.bonusMpd), base = calcEarnedMiles(card, amt, card.baseMpd);
+  if (miles >= full - 1 || !(card.bonusMpd > card.baseMpd)) return amt;
+  return Math.max(0, Math.min(amt, (miles - base) / (card.bonusMpd - card.baseMpd)));
+}
+// Miles for an entry on Bonus, within the cap of the entry's OWN cycle (v1.63.71). The form used to check the cap against the current
+// month's spend, so editing a March entry to Bonus paid it in full even when March's cap was already used (three travel bookings on
+// Lady's Travel came to 1,440 bonus UNI$ where UOB paid the 1,350 a S$750 cap allows). Now: the other bonus entries of that card in
+// the same cycle (by the date the spend counts to) fill the cap first, the part that fits earns the bonus and the rest base, the same
+// rule as statement import. Saving every entry of a month leaves that month at the cap, whatever order they are edited in.
+function milesWithinCap(card, amt, ts, postTs, skipId) {
+  const cap = card.monthlyCap >= 999999 ? Infinity : Number(card.monthlyCap) || Infinity;
+  if (cap === Infinity) return calcEarnedMiles(card, amt, card.bonusMpd);
+  const { start, next } = cycleBounds(card, new Date(countsTs({ timestamp: ts, postTs }, card)));
+  let used = 0;
+  for (const t of state.transactions || []) {
+    if (t.cardId !== card.id || t.id === skipId) continue;
+    const c = countsTs(t, card);
+    if (c >= start.getTime() && c < next.getTime()) used += capSpendOf(t, card);
+  }
+  const part = Math.max(0, Math.min(amt, cap - used));
+  if (part >= amt - 0.005) return calcEarnedMiles(card, amt, card.bonusMpd);
+  return (part > 0 ? calcEarnedMiles(card, part, card.bonusMpd) : 0) + calcEarnedMiles(card, amt - part, card.baseMpd);
+}
+
 export async function saveTransaction() {
   const editId = document.getElementById('editTxId').value;
   const cardId = document.getElementById('cardSelect').value;
@@ -1189,8 +1218,7 @@ export async function saveTransaction() {
       }
     }
 
-    const isEligible = isBonus && ((Number(card.currentSpend) || 0) < card.monthlyCap);
-    let earnedMiles = calcEarnedMiles(card, amt, isEligible ? card.bonusMpd : card.baseMpd);
+    let earnedMiles = isBonus ? milesWithinCap(card, amt, txTimestamp, postTs || (oldTx && oldTx.postTs) || null, editId || null) : calcEarnedMiles(card, amt, card.baseMpd);
     let yuuPartner = null;
     if (card.id === 'dbs-yuu') {
       // yuu: fixed rate from the entry alone (partner 2.78 mpd, other 0.14). The 10 mpd bonus is a separate month-level entry.
