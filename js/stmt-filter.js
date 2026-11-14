@@ -10,6 +10,19 @@ import { fmtNum } from "./format.js";
 import { candidatesFor, findFixes, noPointsEntries } from "./bonus-finder.js";
 import { monthlyRule, rowForStatement, monthSpend, monthLabel, monthlyCardFor } from "./monthly-bonus.js";
 import { feeRule, isFeeBonusEntry } from "./fee-bonus.js";
+import { prviFcyRate, fxCurrency, isPrviForeign } from "./cardrules.js";
+import { calcEarnedMiles } from "./recommender.js";
+
+// v1.63.78: UOB PRVI charges whose statement line shows a foreign currency but which are logged at the 1.4 mpd local rate.
+function prviBlock(rows, unit, n) {
+  const card = ALL_MASTER_CARDS.find(c => c.id === "uob-prvi"); if (!card) return "";
+  const low = rows.filter(t => t.cardId === "uob-prvi" && (t.fx || t.fxGuess) && !t.overseas && !t.refunded && (Number(t.amt) || 0) > 0
+    && (Number(t.miles) || 0) < calcEarnedMiles(card, Number(t.amt) || 0, prviFcyRate(fxCurrency(t))) - 1);
+  if (!low.length) return "";
+  const ratio = (DEFAULT_VAULT[card.vaultKey] || {}).ratio || 2;
+  const add = low.reduce((a, t) => a + Math.round(calcEarnedMiles(card, Number(t.amt) || 0, prviFcyRate(fxCurrency(t))) / ratio) - (Number(t.earnedRawPoints) || 0), 0);
+  return `<div class="stmt-fix"><b>🌏 ${low.length} UOB PRVI charge${low.length === 1 ? " was" : "s were"} paid in a foreign currency but ${low.length === 1 ? "is" : "are"} logged at the 1.4 mpd local rate.</b> PRVI earns 2.4 mpd overseas (3 mpd in IDR, MYR, THB, VND), credited when the charge posts: about ${n(add)} ${escapeHtml(unit)} more. <button type="button" class="btn-backup" data-prvi-fcy="${low.map(t => escapeHtml(String(t.id))).join(",")}">Set ${low.length === 1 ? "it" : "them"} to the overseas rate</button></div>`;
+}
 
 // The sets found for the banner on screen, so its "Switch these" buttons can apply one (ui.js reads them).
 let shownFixes = [];
@@ -237,7 +250,7 @@ export function stmtBannerHtml(s, rows) {
     <div><b>📄 ${escapeHtml(s.label)}</b> <button type="button" class="stmt-x" data-stmt-clear title="Show all entries again">✕</button></div>
     <div class="hm-note"><button type="button" class="pc-link" data-stmt-del="${escapeHtml(s.recId || "")}">Delete this statement's points record</button> <span class="dim">(only the points figures; entries and balances stay)</span></div>
     <div class="stmt-scroll"><table class="stmt-tbl"><thead><tr><th></th><th class="num">App expects</th><th class="num">Bank</th><th class="num">Difference</th></tr></thead><tbody>${body}</tbody></table></div>
-    ${verdict}${gapNote}${fixBlock}
+    ${verdict}${gapNote}${fixBlock}${prviBlock(rows, unit, n)}
     <div class="hm-note">🎁 Did the bank pay a one-off bonus here (a promotion, a goodwill credit)? <button type="button" class="pc-link" data-promo-add data-promo-vk="${escapeHtml(s.vk || "")}" data-promo-card="${escapeHtml(s.cardId || "")}" data-promo-to="${s.to}" data-promo-gap="${Math.max(0, Math.round(bank - sure - maybe))}">Add it as an entry</button></div>
     <div class="hm-note">All figures in ${escapeHtml(unit)} (1 ${escapeHtml(unit)} ≈ ${ratio} mi). The ${rows.length} entr${rows.length === 1 ? "y" : "ies"} below: S$${fmtNum(spent, 2)} · ${fmtNum(Math.round(miles))} mi in the app, base and bonus together.</div>
   </div>`;

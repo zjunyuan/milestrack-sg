@@ -22,6 +22,7 @@ import { escapeHtml } from "./retailers.js";
 import { state } from "./state.js";
 import { countsTs, postingRule, cycleBounds } from "./posting.js";
 import { capSpendOf } from "./cap-use.js";
+import { prviFcyRate, fxCurrency, isPrviForeign } from "./cardrules.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
@@ -513,6 +514,7 @@ function selectBarHtml(rows) {
     <button type="button" class="btn-backup" data-sel="none" ${n ? '' : 'disabled'}>Clear</button>
     <button type="button" class="btn-backup" data-sel="bonus" ${n ? '' : 'disabled'} title="Set the selected entries to the card's bonus rate (within each month's cap)">Set to Bonus</button>
     <button type="button" class="btn-backup" data-sel="base" ${n ? '' : 'disabled'} title="Set the selected entries to the card's base rate">Set to Base</button>
+    ${rows.some(t => state.txSelect.ids.has(String(t.id)) && t.cardId === 'uob-prvi') ? `<button type="button" class="btn-backup" data-sel="prvi-fcy" title="UOB PRVI charges made in a foreign currency: 2.4 mpd, or 3 mpd in IDR / MYR / THB / VND">PRVI: overseas rate</button>` : ''}
     <button type="button" class="btn-backup tx-del-btn" data-sel="delete" ${n ? '' : 'disabled'}>Delete ${n || ''}</button></div>`;
 }
 
@@ -555,7 +557,7 @@ async function setRateBulk(rate) {
   try {
     for (const old of txs) {
       const card = cardOf(old), amt = Number(old.amt) || 0;
-      const miles = rate === 'bonus' ? milesWithinCap(card, amt, old.timestamp, old.postTs || null, old.id) : calcEarnedMiles(card, amt, card.baseMpd);
+      const miles = rate === 'bonus' ? milesWithinCap(card, amt, old.timestamp, old.postTs || null, old.id, old) : calcEarnedMiles(card, amt, card.baseMpd);
       const pts = Math.round(miles / (state.myVault[card.vaultKey]?.ratio || 1));
       if (old.bonusCategory === rate && Math.round(Number(old.miles) || 0) === Math.round(miles)) continue;
       const rec = { ...old, bonusCategory: rate, miles, earnedRawPoints: pts, rateSetBy: 'user' }; delete rec.firestoreId;
@@ -679,6 +681,46 @@ async function addPromoBonus(ds) {
   renderTransactions();
 }
 
+// UOB PRVI foreign-currency charges at the overseas rate (v1.63.78): 2.4 mpd, 3 mpd in IDR / MYR / THB / VND, credited when the charge
+// posts. Entries whose statement line showed the currency (fx) use it; for the rest it asks once whether they were in one of the four
+// regional currencies. From Select mode ("PRVI: overseas rate") and the statement banner. The Vault moves by the difference; one Undo.
+export async function setPrviOverseas(list, { ask = true } = {}) {
+  const card = ALL_MASTER_CARDS.find(c => c.id === 'uob-prvi');
+  const txs = (list || []).filter(t => t.cardId === 'uob-prvi' && !t.refunded && !t.noPoints && !t.promoBonus && (Number(t.amt) || 0) > 0);
+  if (!card || !txs.length) return 0;
+  let regional = null;
+  if (ask && txs.some(t => !fxCurrency(t))) {
+    regional = confirm(`Set ${txs.length} UOB PRVI charge${txs.length === 1 ? '' : 's'} to the overseas rate?\n\nWere ${txs.length === 1 ? 'it' : 'they'} in Indonesia, Malaysia, Thailand or Vietnam (paid in their currency)?\nOK = yes, 3 mpd. Cancel = no, another currency, 2.4 mpd.`);
+  }
+  const before = txs.map(t => JSON.parse(JSON.stringify(t)));
+  const ratio = state.myVault[card.vaultKey]?.ratio || 1;
+  let delta = 0, changed = 0;
+  try {
+    for (const t of txs) {
+      const cur = fxCurrency(t) || (regional ? 'REGIONAL' : '');
+      const rate = prviFcyRate(cur);
+      const miles = calcEarnedMiles(card, Number(t.amt) || 0, rate), pts = Math.round(miles / ratio);
+      if (Math.round(miles) === Math.round(Number(t.miles) || 0) && t.overseas) continue;
+      const rec = { ...t, miles, earnedRawPoints: pts, bonusCategory: 'bonus', overseas: true, ...(fxCurrency(t) ? {} : { overseasCur: regional ? 'REGIONAL' : 'OTHER' }), rateSetBy: 'user' };
+      delete rec.firestoreId;
+      await saveTxToFirestore(rec.id, rec);
+      if (!(t.source === 'statement' && !t.vaultCounted)) delta += pts - (Number(t.earnedRawPoints) || 0);
+      changed++;
+    }
+    if (delta && state.myVault[card.vaultKey]) { state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) + delta); await updateVaultDoc(state.myVaultKey, state.myVault); }
+  } catch (err) { console.error(err); showToast('Could not change them all: ' + (err.message || err), { kind: 'error' }); return changed; }
+  showToast(`${changed} PRVI charge${changed === 1 ? '' : 's'} set to the overseas rate`, changed ? {
+    actionLabel: 'Undo', ms: 12000,
+    onAction: async () => {
+      try {
+        for (const t of before) { const rec = { ...t }; delete rec.firestoreId; await saveTxToFirestore(rec.id, rec); }
+        if (delta && state.myVault[card.vaultKey]) { state.myVault[card.vaultKey].points = Math.max(0, (Number(state.myVault[card.vaultKey].points) || 0) - delta); await updateVaultDoc(state.myVaultKey, state.myVault); }
+        showToast('Put back');
+      } catch (err) { console.error(err); showToast('Could not undo: ' + (err.message || err), { kind: 'error' }); }
+    } } : {});
+  return changed;
+}
+
 async function handleSelectAction(action) {
   const sel = state.txSelect;
   if (action === 'none') { sel.ids = new Set(); renderTransactions(); return; }
@@ -688,6 +730,7 @@ async function handleSelectAction(action) {
     renderTransactions(); return;
   }
   if (action === 'bonus' || action === 'base') { await setRateBulk(action); return; }
+  if (action === 'prvi-fcy') { await setPrviOverseas(state.transactions.filter(t => sel.ids.has(String(t.id)) && t.cardId === 'uob-prvi')); sel.ids = new Set(); renderTransactions(); return; }
   if (action !== 'delete') return;
   const txs = state.transactions.filter(t => sel.ids.has(String(t.id)));
   if (!txs.length) return;
@@ -799,6 +842,13 @@ export function renderTransactions() {
           catch (err) { showToast(`Couldn't change them: ${err.message || err}`, { kind: 'error' }); zeroBtn.disabled = false; }
           renderTransactions();
         });
+        return;
+      }
+      const prviBtn = e.target.closest('[data-prvi-fcy]');
+      if (prviBtn) {
+        const ids = new Set(String(prviBtn.dataset.prviFcy || '').split(',').filter(Boolean));
+        prviBtn.disabled = true;
+        setPrviOverseas(state.transactions.filter(t => ids.has(String(t.id))), { ask: false }).then(() => renderTransactions());
         return;
       }
       const promoBtn = e.target.closest('[data-promo-add]');
@@ -1289,7 +1339,8 @@ export async function removeTransaction(tx) {
 // Lady's Travel came to 1,440 bonus UNI$ where UOB paid the 1,350 a S$750 cap allows). Now: the other bonus entries of that card in
 // the same cycle (by the date the spend counts to) fill the cap first, the part that fits earns the bonus and the rest base, the same
 // rule as statement import. Saving every entry of a month leaves that month at the cap, whatever order they are edited in.
-function milesWithinCap(card, amt, ts, postTs, skipId) {
+function milesWithinCap(card, amt, ts, postTs, skipId, tx = null) {
+  if (tx && isPrviForeign(card.id, tx)) return calcEarnedMiles(card, amt, prviFcyRate(fxCurrency(tx)));   // PRVI overseas keeps its own rate (v1.63.78)
   const cap = card.monthlyCap >= 999999 ? Infinity : Number(card.monthlyCap) || Infinity;
   if (cap === Infinity) return calcEarnedMiles(card, amt, card.bonusMpd);
   const { start, next } = cycleBounds(card, new Date(countsTs({ timestamp: ts, postTs }, card)));
@@ -1357,7 +1408,7 @@ export async function saveTransaction() {
       }
     }
 
-    let earnedMiles = isBonus ? milesWithinCap(card, amt, txTimestamp, postTs || (oldTx && oldTx.postTs) || null, editId || null) : calcEarnedMiles(card, amt, card.baseMpd);
+    let earnedMiles = isBonus ? milesWithinCap(card, amt, txTimestamp, postTs || (oldTx && oldTx.postTs) || null, editId || null, oldTx && oldTx.cardId === cardId ? oldTx : null) : calcEarnedMiles(card, amt, card.baseMpd);
     let yuuPartner = null;
     if (card.id === 'dbs-yuu') {
       // yuu: fixed rate from the entry alone (partner 2.78 mpd, other 0.14). The 10 mpd bonus is a separate month-level entry.

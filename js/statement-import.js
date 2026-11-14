@@ -14,7 +14,7 @@ import { deleteTransactionsBulk, restoreTransactions } from "./bulk-delete.js";
 import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
-import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason, CARD_RULES } from "./cardrules.js";
+import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason, CARD_RULES, prviFcyRate, fxCurrency } from "./cardrules.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
@@ -183,6 +183,7 @@ function bonusRate(card, line) {
     if (r > rate) rate = r;
   }
   if (card.id === "dbs-wwmc") rate = wwmcOnlineRate(`${line.merchant || ""} ${line.desc || ""}`, mcc) || card.baseMpd;   // online only (v1.63.47)
+  if (card.id === "uob-prvi" && (line.fx || line.fxGuess)) rate = Math.max(rate, prviFcyRate(fxCurrency(line)));   // PRVI overseas 2.4 / 3 mpd (v1.63.78)
   // Merchant memory (v1.63.70): your last choice for this merchant on this slot beats the MCC guess (caps and minimums still apply).
   if (line.memo && line.memo.cardId === card.id) rate = line.memo.rate === "base" ? card.baseMpd : Math.max(rate, card.bonusMpd);
   return rate;

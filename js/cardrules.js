@@ -171,6 +171,21 @@ export function applyCardRules(entry) {
 const MB_WORLD_NO_PTS_MCC = set("4900", "7349", "6012", "6050", "6051", "6529", "6530", "6540", "4829", "6534", "6010", "6011", "7511",
   "6300", "6381", "6399", "6211", "7995", "7800", "7801", "7802", "8398", "8651", "8661", "9211", "9222", "9223", "9311", "9399", "9402", "9405");
 const MB_WORLD_NO_PTS_NAME = /\b(axs|sam payments|e?nets)\b|insurance|assurance|ntuc income|\bincome ins|prudential|great eastern|\baia\b|manulife|tokio marine|singlife|etiqa|aviva|\bfwd\b|sp digital|sp services|sp group|senoko|geneco|tuas power|keppel electric|pacific light|sembcorp power|city energy|union power|bagus|razer ?pay|\bgov\b|iras|inland revenue/i;
+// UOB PRVI Miles in foreign currency (v1.63.78): UNI$6 per S$5 (2.4 mpd) overseas, UNI$7.5 per S$5 (3 mpd) in Indonesian rupiah, Malaysian
+// ringgit, Thai baht and Vietnamese dong (card T&C (ix); regional rate per UOB's 2026 promo pages and MileLion), credited when the charge
+// posts. The app used to log PRVI foreign charges at the 1.4 mpd local rate.
+export const PRVI_REGIONAL = new Set(["IDR", "MYR", "THB", "VND"]);
+export const prviFcyRate = (cur) => { const c = String(cur || "").toUpperCase(); return PRVI_REGIONAL.has(c) || c === "REGIONAL" ? 3.0 : 2.4; };   // "REGIONAL": set by hand when the line showed no currency
+// The currency of a statement line ({fx: {cur}}) or a saved entry (fx: "KRW 123456", or overseasCur set by hand).
+export function fxCurrency(x) {
+  if (!x) return "";
+  if (x.overseasCur) return x.overseasCur;
+  if (x.fx && typeof x.fx === "object") return x.fx.cur || "";
+  if (typeof x.fx === "string") return x.fx.trim().split(/\s+/)[0] || "";
+  return "";
+}
+export const isPrviForeign = (cardId, x) => cardId === "uob-prvi" && !!(x && (x.fx || x.fxGuess || x.overseas));
+
 export function noPointsReason(cardId, text, mcc = "") {
   if (cardId !== "mb-world-mc") return "";
   if (mcc && MB_WORLD_NO_PTS_MCC.has(String(mcc))) return `Maybank gives no points for MCC ${mcc}`;
