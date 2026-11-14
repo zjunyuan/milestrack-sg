@@ -12,7 +12,7 @@
 // HSBC Revolution's bonus shows as "Points Adjusted" a month later; DBS Vantage earns in the same statement, WWMC's bonus later;
 // UOB prints one UNI$ total for every UOB card and lists fee reversals as adjustments.
 import { state } from "./state.js";
-import { ALL_MASTER_CARDS, BONUS_SPLIT, DEFAULT_VAULT, cardShort } from "./config.js";
+import { ALL_MASTER_CARDS, BONUS_SPLIT, DEFAULT_VAULT, cardShort, detectYuuMerchant } from "./config.js";
 import { countsTs, cycleBounds } from "./posting.js";
 import { findRetailerForInput } from "./retailers.js";
 import { fmtNum } from "./format.js";
@@ -46,7 +46,7 @@ function basePoints(card, t, vk) {
 export function pointsSplit(t) {
   const card = cardById(t.cardId); if (!card) return { base: 0, bonus: 0, total: 0, unit: "" };
   const vk = card.vaultKey, total = pointsOf(t, vk) || 0;
-  let base = basePoints(card, t, vk);
+  let base = card.id === "dbs-yuu" ? yuuSplitBase(t, total) : basePoints(card, t, vk);
   if (base === null) base = Math.round(Math.floor(Number(t.amt) || 0) * (Number(card.baseMpd) || 0) / ratioOf(vk));
   if (t.bonusCategory === "base" || base > total) base = total;
   return { base, bonus: Math.max(0, total - base), total, unit: (DEFAULT_VAULT[vk] || {}).unit || "pts" };
@@ -58,6 +58,31 @@ function bonusWindow(card, t) {
   return { lo: next.getTime(), hi: new Date(next.getFullYear(), next.getMonth() + 1, 7, 23, 59).getTime() };
 }
 
+// DBS yuu (v1.63.79): only 1 yuu Point per S$1 at a partner (not SimplyGo) lands the day you scan the yuu ID; the other 9 per S$1, the
+// month's 26 per S$1 bonus (the "yuu bonus" entry) and all SimplyGo and non-partner points come within 60 days after the end of the
+// calendar month (DBS yuu card page and MileLion, 2026; seen: 3-15 Nov 2026 the balance rose 259 on ~S$300 of partner spend). The app
+// had expected all 10 per S$1 when the charge posted, so every typed yuu balance mid-month showed "Short".
+const isYuuBonus = (t) => !!t && (t.yuuBonus === true || t.desc === "yuu bonus");
+function yuuBase(t, pts) {
+  if (isYuuBonus(t)) return 0;
+  const p = detectYuuMerchant(t.desc || "");
+  return p && p !== "SimplyGo" ? Math.min(pts, Math.floor(Number(t.amt) || 0)) : 0;
+}
+// History's Base / Bonus columns: 1 per S$1 of a partner charge is base, the rest bonus; a non-partner charge is all base.
+function yuuSplitBase(t, total) {
+  if (isYuuBonus(t)) return 0;
+  return detectYuuMerchant(t.desc || "") ? Math.min(total, Math.floor(Number(t.amt) || 0)) : total;
+}
+function yuuCredits(t, card, pts) {
+  const ts = t.timestamp || 0, d = new Date(ts);
+  const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+  const late = { lo: monthEnd, hi: monthEnd + 60 * DAY };
+  const base = yuuBase(t, pts), out = [];
+  if (base > 0) out.push({ lo: ts, hi: ts + 3 * DAY, pts: base, kind: "base", tx: t, card });
+  if (pts > base) out.push({ ...late, pts: pts - base, kind: base > 0 || isYuuBonus(t) ? "bonus" : "all", tx: t, card });
+  return out;
+}
+
 // Every expected credit for one currency (optionally one card family): [{ lo, hi, pts, kind: "all"|"base"|"bonus", tx, card }].
 export function expectedCredits(vk, cardIds = null) {
   const ids = new Set((cardIds || ALL_MASTER_CARDS.filter(c => c.vaultKey === vk).map(c => c.id)));
@@ -66,6 +91,7 @@ export function expectedCredits(vk, cardIds = null) {
     if (!ids.has(t.cardId)) continue;
     const card = cardById(t.cardId); if (!card) continue;
     const pts = pointsOf(t, vk); if (!pts) continue;
+    if (card.id === "dbs-yuu") { out.push(...yuuCredits(t, card, pts)); continue; }
     const post = postedTs(t), slack = t.postTs ? 0 : 3 * DAY;
     const lag = card.bank === "Maybank" ? 3 * DAY : 0;               // Maybank: spend in the last 2 business days shows next month
     const base = basePoints(card, t, vk);
