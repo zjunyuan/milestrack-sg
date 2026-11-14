@@ -47,6 +47,15 @@ export async function copyForClaude(btn) {
       document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); ta.remove();
     } catch (_) { ok = false; }
   }
-  if (btn) { const old = btn.textContent; btn.textContent = ok ? "Copied ✓ paste into Claude" : "Couldn't copy"; setTimeout(() => { btn.textContent = old; }, 2500); }
+  // v1.63.74: the label always goes back to "Copy for Claude". It used to restore whatever it showed when clicked, so a second click
+  // within 2.5 s saved "Copied ✓" as the label for good and you could not tell whether a later copy (after edits) had happened.
+  // Each copy now also says how many rows and when, so a fresh copy is visibly fresh.
+  if (btn) {
+    if (!btn.dataset.label) btn.dataset.label = /copied|couldn/i.test(btn.textContent) ? "Copy for Claude" : btn.textContent;
+    clearTimeout(btn._copyTimer);
+    const at = new Date().toLocaleTimeString("en-SG", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    btn.textContent = ok ? `Copied ${lastRows.length} rows ✓ ${at}` : "Couldn't copy";
+    btn._copyTimer = setTimeout(() => { btn.textContent = btn.dataset.label; }, 3000);
+  }
   return ok;
 }
