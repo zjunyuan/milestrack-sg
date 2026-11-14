@@ -4,7 +4,7 @@
 // counts them (posting date, else the transaction date). state.txView.stmt = { vk, cardId, from, to, label, bank, sure, maybe, status }.
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
-import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, expectedCredits } from "./reconcile.js";
+import { reconcile, reconcileLedgers, familyIds, fmtDate, BANK_LABEL, cardName, expectedCredits, recVault } from "./reconcile.js";
 import { escapeHtml } from "./retailers.js";
 import { fmtNum } from "./format.js";
 import { candidatesFor, findFixes, noPointsEntries } from "./bonus-finder.js";
@@ -60,9 +60,14 @@ export function periodsForFilter(cards) {
 }
 
 // The vault the History card filter points at, if all the chosen cards share one (else null: no Statement list).
+// v1.63.72: when the cards span several balances but only ONE of them has imported statements, that one is meant. Ticking the whole
+// UOB group in the Card filter also ticks KrisFlyer UOB (miles go straight to KrisFlyer, its own balance with no bank statement
+// summary), which used to switch the Statement list off ("Filter to one card first") even though every UNI$ card was chosen.
 export function vaultOfCardFilter(cards) {
   const vks = [...new Set((cards || []).map(id => (ALL_MASTER_CARDS.find(c => c.id === id) || {}).vaultKey).filter(Boolean))];
-  return vks.length === 1 ? vks[0] : null;
+  if (vks.length <= 1) return vks[0] || null;
+  const withStmts = vks.filter(vk => (state.pointsLog || []).some(r => r.kind === "statement" && recVault(r) === vk));
+  return withStmts.length === 1 ? withStmts[0] : null;
 }
 
 const cardsOf = (s) => s.cardId ? familyIds(s.cardId) : ALL_MASTER_CARDS.filter(c => c.vaultKey === s.vk).map(c => c.id);
