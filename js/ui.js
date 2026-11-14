@@ -511,6 +511,8 @@ function selectBarHtml(rows) {
   return `<div class="tx-selectbar"><span><b>${n}</b> selected${n ? ` · S$${fmtNum(spent, 2)}` : ''}</span>
     <button type="button" class="btn-backup" data-sel="all">Select all ${rows.length} shown</button>
     <button type="button" class="btn-backup" data-sel="none" ${n ? '' : 'disabled'}>Clear</button>
+    <button type="button" class="btn-backup" data-sel="bonus" ${n ? '' : 'disabled'} title="Set the selected entries to the card's bonus rate (within each month's cap)">Set to Bonus</button>
+    <button type="button" class="btn-backup" data-sel="base" ${n ? '' : 'disabled'} title="Set the selected entries to the card's base rate">Set to Base</button>
     <button type="button" class="btn-backup tx-del-btn" data-sel="delete" ${n ? '' : 'disabled'}>Delete ${n || ''}</button></div>`;
 }
 
@@ -535,6 +537,56 @@ async function offerUntick(deleted) {
   showToast('Cleared the statement ticks');
 }
 
+// Select mode "Set to Bonus / Base" (v1.63.75): the edit form's rules for many entries at once. Bonus is worked out within the cap of
+// each entry's own cycle (`milesWithinCap`), oldest first, so the earliest charges fill a cap the way the bank fills it; every entry is
+// marked `rateSetBy: "user"` (statement import repeats the choice for that merchant); the Vault moves by the difference for entries it
+// counts; one Undo puts every entry and the Vault back.
+async function setRateBulk(rate) {
+  const sel = state.txSelect;
+  const skip = (t) => t.refunded || t.noPoints || t.feeBonus || t.yuuBonus || t.cardId === 'dbs-yuu';
+  const chosen = state.transactions.filter(t => sel.ids.has(String(t.id)));
+  const txs = chosen.filter(t => !skip(t) && ALL_MASTER_CARDS.some(c => c.id === t.cardId));
+  if (!txs.length) { showToast('Nothing to change: refunded, no-points, bonus and yuu entries keep their own rate.', { kind: 'error' }); return; }
+  const cardOf = (t) => ALL_MASTER_CARDS.find(c => c.id === t.cardId);
+  txs.sort((a, b) => countsTs(a, cardOf(a)) - countsTs(b, cardOf(b)) || (a.timestamp || 0) - (b.timestamp || 0));
+  const before = JSON.parse(JSON.stringify(txs)), vaultBefore = JSON.stringify(state.myVault);
+  const deltas = {};
+  let changed = 0;
+  try {
+    for (const old of txs) {
+      const card = cardOf(old), amt = Number(old.amt) || 0;
+      const miles = rate === 'bonus' ? milesWithinCap(card, amt, old.timestamp, old.postTs || null, old.id) : calcEarnedMiles(card, amt, card.baseMpd);
+      const pts = Math.round(miles / (state.myVault[card.vaultKey]?.ratio || 1));
+      if (old.bonusCategory === rate && Math.round(Number(old.miles) || 0) === Math.round(miles)) continue;
+      const rec = { ...old, bonusCategory: rate, miles, earnedRawPoints: pts, rateSetBy: 'user' }; delete rec.firestoreId;
+      await saveTxToFirestore(rec.id, rec);
+      const i = state.transactions.findIndex(t => t.id === old.id); if (i >= 0) state.transactions[i] = { ...state.transactions[i], ...rec };   // later entries see this one's cap use
+      if (!(old.source === 'statement' && !old.vaultCounted)) deltas[card.vaultKey] = (deltas[card.vaultKey] || 0) + pts - (Number(old.earnedRawPoints) || 0);
+      changed++;
+    }
+    let moved = false;
+    for (const [vk, d] of Object.entries(deltas)) if (d && state.myVault[vk]) { state.myVault[vk].points = Math.max(0, (Number(state.myVault[vk].points) || 0) + d); moved = true; }
+    if (moved) await updateVaultDoc(state.myVaultKey, state.myVault);
+  } catch (err) {
+    console.error(err); state.myVault = JSON.parse(vaultBefore);
+    showToast('Could not change them all: ' + (err.message || err), { kind: 'error' }); return;
+  }
+  const skipped = chosen.length - txs.length;
+  sel.ids = new Set(); renderTransactions();
+  showToast(`${changed} set to ${rate === 'bonus' ? 'Bonus' : 'Base'}${changed < txs.length ? ` (${txs.length - changed} already were)` : ''}${skipped ? `, ${skipped} skipped` : ''}`, {
+    actionLabel: changed ? 'Undo' : '', ms: 12000,
+    onAction: changed ? async () => {
+      try {
+        for (const t of before) { const rec = { ...t }; delete rec.firestoreId; await saveTxToFirestore(rec.id, rec); }
+        const now = state.myVault, prev = JSON.parse(vaultBefore);
+        for (const vk of Object.keys(deltas)) if (now[vk] && prev[vk]) now[vk].points = Math.max(0, (Number(now[vk].points) || 0) - (deltas[vk] || 0));
+        if (Object.values(deltas).some(Boolean)) await updateVaultDoc(state.myVaultKey, state.myVault);
+        showToast('Rates put back');
+      } catch (err) { console.error(err); showToast('Could not undo: ' + (err.message || err), { kind: 'error' }); }
+    } : undefined
+  });
+}
+
 async function handleSelectAction(action) {
   const sel = state.txSelect;
   if (action === 'none') { sel.ids = new Set(); renderTransactions(); return; }
@@ -543,6 +595,7 @@ async function handleSelectAction(action) {
     document.querySelectorAll('#txList [data-id]').forEach(el => sel.ids.add(String(el.dataset.id)));
     renderTransactions(); return;
   }
+  if (action === 'bonus' || action === 'base') { await setRateBulk(action); return; }
   if (action !== 'delete') return;
   const txs = state.transactions.filter(t => sel.ids.has(String(t.id)));
   if (!txs.length) return;
