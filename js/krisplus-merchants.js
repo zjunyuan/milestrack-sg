@@ -1,18 +1,20 @@
 // Kris+ earning merchants (Singapore) and their Kris+ earn rate in miles per S$1, used by the recommender to point out the extra
 // Kris+ miles you earn on top of your card when you pay through the Kris+ app.
 //
-// SOURCE: Mainly Miles, "Complete list of all Kris+ earning merchants", Sep 2026 edition, published 24 Sep 2026 (last modified 30 Sep 2026):
-//   https://mainlymiles.com/2026/09/24/latest-kris-plus-earn-merchants-sep-2026/
+// SOURCE: Mainly Miles, "Complete list of all Kris+ earning merchants", Nov 2026 edition, published 9 Nov 2026:
+//   https://mainlymiles.com/2026/11/09/latest-kris-plus-earn-merchants-nov-2026/
 // That is a third-party compilation (not an official Kris+ list); Mainly Miles says it updates the list at least once a month. The page lists
-// 631 merchants (Dining 344, Retail 182, Activities 22, Services 50, Wellness 33); this file has the same counts. Rates change often, so treat
-// them as a snapshot: check the Kris+ app before relying on a rate. Pelago was 7 mpd until 30 Sep 2026 and is listed here at its normal 3.
+// 644 merchants (Dining 351, Retail 183, Activities 21, Services 53, Wellness 36); this file has the same counts and the same count per rate.
+// Nov 2026 refresh = the Sep 2026 edition plus the article's changes: 21 added, 8 removed, 2 rates up, 9 rates cut. Rates change often, so
+// treat them as a snapshot: check the Kris+ app before relying on a rate. Pelago is 8 mpd until 30 Nov 2026 and is listed here at its normal 3.
+// BW Automobiles and Venture Cars earn on up to S$20,000 per transaction, Car Choice Singapore up to S$10,000 (Mainly Miles).
 // To refresh: copy the newest monthly edition's tables into KRISPLUS_RAW (rate -> names) and update KRISPLUS_META.
 import { normalizeText } from "./retailers.js";
 
 export const KRISPLUS_META = {
-  asOf: "24 Sep 2026",
+  asOf: "9 Nov 2026",
   source: "Mainly Miles",
-  url: "https://mainlymiles.com/2026/09/24/latest-kris-plus-earn-merchants-sep-2026/"
+  url: "https://mainlymiles.com/2026/11/09/latest-kris-plus-earn-merchants-nov-2026/"
 };
 
 const KRISPLUS_RAW = {
@@ -28,7 +30,6 @@ const KRISPLUS_RAW = {
   ],
   "6": [
    "10|SCOTTS",
-   "Atelier Lounge",
    "Atrium Bar 317",
    "Atrium Restaurant (Holiday Inn Atrium)",
    "Cavern Restaurant",
@@ -36,7 +37,6 @@ const KRISPLUS_RAW = {
    "Club 5 (PARKROYAL Beach Road)",
    "Dancing Crab",
    "Douraku Sushi",
-   "Eden Restaurant",
    "Ginger (PARKROYAL Beach Road)",
    "Jiang-Nan Chun (Four Seasons)",
    "Lao Beijing",
@@ -51,7 +51,6 @@ const KRISPLUS_RAW = {
    "One-Ninety Bar (Four Seasons)",
    "One-Ninety Restaurant (Four Seasons)",
    "Origin Grill (Shangri-La Singapore)",
-   "P.S.O. Beach Club",
    "PARKROYAL Pickering Weddings",
    "Pete's Place",
    "QIN Restaurant & Bar",
@@ -61,12 +60,12 @@ const KRISPLUS_RAW = {
    "The Blue Tiffin",
    "The Line (Shangri-La Singapore)",
    "Tian Fu Tea Room",
-   "Tóng Lè Private Dining",
    "TungLok Heen",
    "TungLok Peking Duck",
    "TungLok Seafood",
    "TungLok Signatures",
    "TungLok Teahouse",
+   "Tóng Lè Private Dining",
    "USHIO Sumiyaki & Sake Bar",
    "Xin Cuisine Chinese (Holiday Inn)"
   ],
@@ -79,6 +78,7 @@ const KRISPLUS_RAW = {
    "Bar Square (Andaz Singapore)",
    "BBQ Express",
    "Cedele",
+   "Chen's Kitchen",
    "CLOVE",
    "Enjoy Eating House and Bar",
    "Flipper's",
@@ -88,6 +88,7 @@ const KRISPLUS_RAW = {
    "Huggs Coffee",
    "JAAN by Kirk Westaway",
    "Li Bai Cantonese (Sheraton Towers)",
+   "MONTI",
    "Mr Stork (Andaz Singapore)",
    "Mrs Pho",
    "NOVA",
@@ -108,22 +109,25 @@ const KRISPLUS_RAW = {
    "WAKANUI Grill Dining Singapore",
    "Wooloomooloo Steakhouse",
    "Workspace Grains and Café",
-   "Wu Ye Ting (Andaz Singapore)",
-   "Xing Yue Xuan"
+   "Wu Ye Ting (Andaz Singapore)"
   ],
   "4": [
    "Anglo Indian Café & Bar",
+   "Atelier Lounge",
    "Bar Somma",
    "Belimbing",
    "Bella Pasta",
    "Claudine",
+   "Collective",
    "Duomo Ristorante",
+   "Eden Restaurant",
    "Fico Masseria",
    "Fortuna",
    "Gilmore & Damian D'Silva",
    "Hari's Lobby Lounve & Bar (Holiday Inn)",
    "Ikkoten Omakase",
    "Jade (The Fullerton)",
+   "Kind Kones",
    "Kwee Zeen",
    "Kyojo Dining",
    "L'Angelus",
@@ -132,6 +136,7 @@ const KRISPLUS_RAW = {
    "Les Bouchons",
    "OSO Ristorante",
    "OverEasy",
+   "P.S.O. Beach Club",
    "Po Restaurant",
    "Rappu",
    "Sabor",
@@ -140,6 +145,7 @@ const KRISPLUS_RAW = {
    "Tandoor (Holiday Inn Orchard)",
    "Tanjong Beach Club",
    "Tapas,24",
+   "The Bar",
    "The Cliff",
    "The Coconut Club",
    "The Courtyard (The Fullerton)",
@@ -162,7 +168,6 @@ const KRISPLUS_RAW = {
    "Bee Cheng Hiang Grillery",
    "Botanico at The Summerhouse",
    "Cafe Manna",
-   "Camille Restaurant",
    "COCA",
    "COTE Korean Steakhouse",
    "CouCou Hotpot",
@@ -200,12 +205,10 @@ const KRISPLUS_RAW = {
    "Menya Kokoro",
    "Mimi Restaurant",
    "MO BAR",
-   "MONTI",
    "Mosella",
    "Mutiara Seafood by JUMBO",
    "NG AH SIO Bak Kut Teh",
    "Nong Geng Ji",
-   "Ola Beach Club",
    "Opus Bar and Grill",
    "Oumi Modern Japanese Kappo",
    "Pacific Emporium (Pan Pacific Singapore)",
@@ -234,6 +237,7 @@ const KRISPLUS_RAW = {
    "UNA at Alkaff Mansion",
    "Wa-EN Wagyu Yakiniku",
    "Wildseed Cafe",
+   "Xing Yue Xuan",
    "YANG Club",
    "Zorba The Greek Taverna",
    "Zui Teochew Cuisine"
@@ -246,9 +250,9 @@ const KRISPLUS_RAW = {
    "Arteastiq (Mandarin Gallery)",
    "ASAP & Co.",
    "Avocadoria Singapore",
-   "BBRC Store",
    "Beauty in The Pot",
    "Bengawan Solo",
+   "Bird Gastrobar",
    "Boaters Bar",
    "Cafe Quenino",
    "Canadian Pizza",
@@ -263,6 +267,7 @@ const KRISPLUS_RAW = {
    "Cygnet Bar",
    "D'Cuisines Restaurant",
    "Daylight Coffee",
+   "DRIM Korean Steak House",
    "Drinks&Co. Grill & Cocktails",
    "Ela",
    "Emir Brasserie",
@@ -290,6 +295,7 @@ const KRISPLUS_RAW = {
    "Mansion 7 Cantonese Cuisine",
    "Martina's Kitchen",
    "ME Cafe & Games",
+   "Miznon",
    "Morsels",
    "Mr. Sun Tea",
    "Ms Durian",
@@ -308,6 +314,7 @@ const KRISPLUS_RAW = {
    "Rang Mahal",
    "Revolver",
    "RollGaadi",
+   "Rooftop at QT",
    "Royal Host",
    "Sake+",
    "Sakunthala's Food Palace",
@@ -324,6 +331,7 @@ const KRISPLUS_RAW = {
    "Soi Thai Kitchen",
    "Straits Chinese Restaurant",
    "Sushi Airways",
+   "Sushi Ayumu",
    "SWaF (Sake Wine and Food)",
    "Swatow Restaurant",
    "Synthesis Restaurant & Bar",
@@ -346,6 +354,7 @@ const KRISPLUS_RAW = {
    "Tipo Strada",
    "Tongue Tip Lanzhou Beef Noodles",
    "Tonkichi",
+   "Truth or Dare Rooftop Bar",
    "Wanglu Hot Pot",
    "Weddings by Grain",
    "Whole Earth",
@@ -358,6 +367,7 @@ const KRISPLUS_RAW = {
    "Beppu Menkan",
    "Five Guys",
    "Korio",
+   "Nan Yang Dao",
    "Peach Garden",
    "Rally Clubhouse",
    "SARAI",
@@ -371,7 +381,6 @@ const KRISPLUS_RAW = {
   "0.5": [
    "Chilli Padi Nonya",
    "Earle Swensen's",
-   "Nan Yang Dao",
    "Restaurant Fiz",
    "Swensen's",
    "Swensen's Unlimited",
@@ -412,7 +421,6 @@ const KRISPLUS_RAW = {
    "Mayer",
    "Penhaligon's",
    "Perk By Kate",
-   "RISIS",
    "SIMONE PÉRÈLE",
    "State Property",
    "Supresso"
@@ -504,7 +512,6 @@ const KRISPLUS_RAW = {
    "I-PRIMO Tokyo",
    "Ishtara Jewellery",
    "Jglasses & Hearing",
-   "Kinohimitsu",
    "KKPL",
    "Klarra",
    "Laminate Door",
@@ -513,6 +520,7 @@ const KRISPLUS_RAW = {
    "Masterpiece Collectibles",
    "Mdm Ling Bakery",
    "Miniso Gift Cards",
+   "Mobel Story",
    "Morning",
    "Neal's Yard Remedies",
    "Nike Gift Cards",
@@ -520,7 +528,6 @@ const KRISPLUS_RAW = {
    "Outdoor Life",
    "PEDRO",
    "Pianoland",
-   "Prestige Affairs",
    "Quiksilver & Roxy",
    "RaaB Family",
    "RetroCrates",
@@ -536,6 +543,7 @@ const KRISPLUS_RAW = {
    "Song-Cho",
    "Star Watches",
    "Sun & Sand Sports (SSS)",
+   "Sunday Bedding",
    "Sunday Staples",
    "Sunnystep",
    "Superpets",
@@ -571,6 +579,7 @@ const KRISPLUS_RAW = {
    "Koble",
    "Lucky Khoon Bathroom Studio",
    "Rigel",
+   "RISIS",
    "Sri Murugan",
    "Swarovski",
    "The Chinese Wedding Shop",
@@ -583,7 +592,8 @@ const KRISPLUS_RAW = {
   ],
   "0.33": [
    "Bottles & Bottles",
-   "Cut Butchery"
+   "Cut Butchery",
+   "Vincent Watch"
   ]
  },
  "Activities": {
@@ -600,7 +610,6 @@ const KRISPLUS_RAW = {
    "Kids Space",
    "Pelago",
    "Rave Karaoke",
-   "The Royal Albatross",
    "Tree Art"
   ],
   "2": [
@@ -630,7 +639,6 @@ const KRISPLUS_RAW = {
    "The Little Gym Singapore"
   ],
   "3": [
-   "Dr.Bags",
    "GD Auto Detailing",
    "JDMIS",
    "N20 Nail Spa",
@@ -641,18 +649,17 @@ const KRISPLUS_RAW = {
    "Amici Events and Catering",
    "Autopoint Motoring",
    "AWE Rentals",
+   "Bada Hair",
    "Bonbon Blowout Bar+",
-   "BW Automobiles",
-   "Car Choice Singapore",
    "CARs",
    "Chez Vous",
-   "De Arte Hair Studio",
    "Esso",
    "For the Love of Laundry",
    "Goldbell Car Rental",
    "Laundryheap",
    "Lim Tan Motor",
    "Little Pawcious Cat Hotel",
+   "Motovation Accessory",
    "Nailz Treats",
    "Pampered Pets",
    "PHS HAIRSCIENCE",
@@ -661,26 +668,31 @@ const KRISPLUS_RAW = {
    "Splice Barbershop",
    "STA Inspection Centres",
    "The Arena Detailing",
-   "Venture Cars",
+   "Weddings at The Fullerton Bay",
+   "Weddings at The Fullerton Hotel",
    "Your Wedding Matters"
   ],
   "1": [
    "ASA Holidays",
+   "BW Automobiles",
+   "Car Choice Singapore",
    "Chan Brothers Travel",
    "CTC Travel",
    "EU Holidays",
    "HIS Travel",
    "Hong Thai Travel",
    "L.G.E Travel Singapore",
-   "Nam Ho Travel",
+   "Leading Holiday",
    "New Shan Travel",
    "SA TOURS",
    "Super Travels",
    "UOB Travel",
+   "Venture Cars",
    "WTS Travel"
   ],
   "0.5": [
-   "CDG Zig"
+   "CDG Zig",
+   "De Arte Hair Studio"
   ],
   "0.33": [
    "Erabelle"
@@ -713,8 +725,10 @@ const KRISPLUS_RAW = {
   ],
   "2": [
    "AsterSpring",
+   "DrGL GLow Bar",
    "DrHair",
    "DrSpa",
+   "Estetica",
    "Ikeda Spa",
    "Ikigai Wellness Clinic",
    "J's Medi Spa",
@@ -724,6 +738,7 @@ const KRISPLUS_RAW = {
    "Multiflora TCM Spa",
    "Sine Beauty",
    "SkinLab The Medical Spa",
+   "Sky Yoga International",
    "Spa Rael (Goodwood Park)",
    "SYOUJIN",
    "Yagyo Haven",
@@ -769,7 +784,7 @@ const MCC_OVERRIDES = {
   "Esso": "5541", "Ryde": "4121", "Krispy Kreme": "5814", "Golden Village": "7832", "Challenger": "5732", "Harvey Norman": "5732",
   "Goldbell Car Rental": "7512", "AWE Rentals": "7512", "Car Choice Singapore": "7512",
   "ASA Holidays": "4722", "Chan Brothers Travel": "4722", "CTC Travel": "4722", "EU Holidays": "4722", "HIS Travel": "4722", "Hong Thai Travel": "4722",
-  "L.G.E Travel Singapore": "4722", "Nam Ho Travel": "4722", "New Shan Travel": "4722", "SA TOURS": "4722", "Super Travels": "4722", "UOB Travel": "4722", "WTS Travel": "4722",
+  "L.G.E Travel Singapore": "4722", "New Shan Travel": "4722", "SA TOURS": "4722", "Super Travels": "4722", "UOB Travel": "4722", "WTS Travel": "4722",
   "ACE Fresh": "5411", "ACE Marketplace": "5411", "ACE Signature": "5411", "All India Supermart": "5411"
 };
 export const krisPlusMcc = (m) => MCC_OVERRIDES[m.name] || CATEGORY_MCC[m.category] || "5999";
