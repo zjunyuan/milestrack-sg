@@ -17,6 +17,7 @@ MilesTrack SG is a responsive, installable Progressive Web App (PWA) built with 
   - **In-Person vs. Online:** Filters out physical cards that require online gateways (e.g. DBS WWMC) or in-store contactless mobile tap (UOB PPV).
   - **Kris+ Mode:** Identifies Apple/Google Pay in-app routing (DBS WWMC 4.0 mpd, KF UOB 3.0 mpd) and enforces strict exclusions (Citi Rewards, UOB contactless).
   - **Overseas FCY Mode:** Prioritizes foreign currency multipliers (UOB VS 4.0 mpd, Maybank World MC 3.2 mpd, Maybank Horizon 2.8 mpd).
+  - **Card promotions:** time-limited offers are planned like a capped bonus card while they run (UOB PRVI Miles 5 mpd on in-person overseas dining and shopping, 18 Nov to 31 Dec 2026: S$1,500 minimum, 8,000 bonus miles cap, bonus by 28 Feb 2027), with progress on the card's bar.
 - **Specialty Stacking Calculations:**
   - **Shell Fuel 14% Instant Discount:** Computes gross-to-nett 14% pump savings (10% Shell GO+ + 4% UOB) + 4.0 mpd.
   - **OCBC Rewards 6.0 mpd Promo:** Dynamic cap tracking across Shopee, Lazada, Taobao, TikTok Shop, and Watsons.

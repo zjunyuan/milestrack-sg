@@ -149,6 +149,7 @@ export function demoSettings(key, partial) {
   if ("lastRemoved" in partial) state.lastRemoved = partial.lastRemoved || null;
   if (partial.feeCards && typeof partial.feeCards === "object") state.feeCards = { ...partial.feeCards };
   if (partial.feeAlerts && typeof partial.feeAlerts === "object") state.feeAlerts = { ...state.feeAlerts, ...partial.feeAlerts };
+  if (partial.promos && typeof partial.promos === "object") state.promos = { ...state.promos, ...partial.promos };
   if (Array.isArray(partial.enabledCards)) {
     state.enabledCardIds = partial.enabledCards;
     state.cards = ALL_MASTER_CARDS.filter(c => state.enabledCardIds.includes(c.id));

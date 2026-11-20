@@ -35,6 +35,7 @@ export const state = {
   lastRemoved: null,     // entries the last statement import removed, for its Undo: { importId, at, txs } (settings doc `lastRemoved`)
   feeCards: {},          // fee alert dates for non-UOB cards: { [cardKey]: { renewal: "YYYY-MM", day: 1-31 } }
   pointsLog: [],         // what the banks say about points: statement summaries, balances you typed, transfers/redemptions (Firestore milestrack_points)
+  promos: {},            // what the user said about time-limited promotions (js/promos.js): { [promoId]: { registered, region, skip } }
   bigCheck: 250,         // S$: entries this big on cards whose bank app lists points per transaction are put on the "check in the bank app" list
   feeAlerts: {}          // per UOB card: { cycle: "2026-08", status: "requested" | "snoozed", until: ms }
 };

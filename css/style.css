@@ -1307,3 +1307,10 @@ body:has(#demoBar) { padding-top: 28px; }
 .tr-cap td { width: 34px; min-width: 32px; height: 24px; text-align: center; border-radius: 4px; background: rgba(148,163,184,0.06); color: #e2e2e6; }
 .tr-cap td.tr-cap-hi { color: #0d1117; font-weight: 600; }
 .tr-tip { position: absolute; z-index: 5; max-width: 230px; pointer-events: none; background: #0d1117; border: 1px solid var(--outline); color: var(--on-surface); font-size: 0.75rem; padding: 5px 8px; border-radius: 6px; }
+
+/* v1.63.80: card promotion callout under an Overseas result (UOB PRVI 5 mpd) */
+.promo-callout { margin-top: 10px; background: var(--surface); border: 1px solid var(--surface-variant); border-left: 3px solid var(--gold); border-radius: 12px; padding: 8px 10px; font-size: 0.8rem; line-height: 1.45; }
+.promo-callout .promo-status { color: #94a3b8; font-size: 0.76rem; margin-top: 4px; }
+.promo-callout .promo-check { display: flex; gap: 6px; align-items: flex-start; font-size: 0.74rem; margin-top: 6px; cursor: pointer; }
+.promo-callout .promo-check input { margin-top: 2px; }
+.promo-callout small { display: block; color: #94a3b8; font-size: 0.7rem; margin-top: 6px; }

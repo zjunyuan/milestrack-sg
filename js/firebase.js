@@ -204,6 +204,7 @@ export function subscribeToCloudData() {
       state.lastRemoved = (data.lastRemoved && typeof data.lastRemoved === 'object' && Array.isArray(data.lastRemoved.txs)) ? data.lastRemoved : null;
       state.feeCards = (data.feeCards && typeof data.feeCards === 'object') ? data.feeCards : {};
       state.feeAlerts = (data.feeAlerts && typeof data.feeAlerts === 'object') ? data.feeAlerts : {};
+      state.promos = (data.promos && typeof data.promos === 'object') ? data.promos : {};
       if (data.enabledCards && Array.isArray(data.enabledCards)) {
         state.enabledCardIds = data.enabledCards;
         state.setup.saved = true;

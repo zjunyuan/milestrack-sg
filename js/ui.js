@@ -23,6 +23,8 @@ import { state } from "./state.js";
 import { countsTs, postingRule, cycleBounds } from "./posting.js";
 import { capSpendOf } from "./cap-use.js";
 import { prviFcyRate, fxCurrency, isPrviForeign } from "./cardrules.js";
+import { PROMOS, activePromo, livePromo, fmtDay, regionOfCur, promoProgress, dayStr } from "./promos.js";
+import { promoBarInfo, promoMccOfEntry } from "./promo-ui.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
 import { coverageData, coverageTableHtml, coverageSummaryText, isStatementEntry } from "./coverage.js";
@@ -265,6 +267,7 @@ export function renderCards() {
     let markerHtml = '';
     let tierInfo = null;
     let capNote = '';                                                  // room left before the bonus cap, beside the spend (v1.63.67)
+    let promoBar = null;                                               // a running promotion on an uncapped card (UOB PRVI, v1.63.80)
 
     if (card.id.startsWith('uob-vs')) {
       const minDeficit = Math.max(0, 1000 - currentSpend);
@@ -286,6 +289,8 @@ export function renderCards() {
       const yuuProgress = getYuuMerchantProgress(card);
       barColor = (currentSpend >= 800 && yuuProgress.isEligible) ? 'var(--accent)' : 'var(--warning)';
       statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 2)} min left`;      // cents: S$0.26 short must not read as $0
+    } else if ((promoBar = promoBarInfo(card))) {
+      pct = promoBar.pct; barColor = promoBar.color; statusNotice = promoBar.notice;
     }
 
     // Plain uncapped cards have no bar worth showing; tiers and min-spend cards stay.
@@ -309,7 +314,7 @@ export function renderCards() {
             ${postingChipHtml(card)}
           </div>
         </div>
-        <span class="card-badge ${card.badgeClass || ''}">${tierInfo ? (tierInfo.met ? tierInfo.current + ' mpd' : tierInfo.current + ' → ' + tierInfo.steps[tierInfo.steps.length - 1].mpd + ' mpd') : card.bonusMpd + ' mpd'}</span>
+        <span class="card-badge ${card.badgeClass || ''}">${promoBar ? promoBar.badge : tierInfo ? (tierInfo.met ? tierInfo.current + ' mpd' : tierInfo.current + ' → ' + tierInfo.steps[tierInfo.steps.length - 1].mpd + ' mpd') : card.bonusMpd + ' mpd'}</span>
       </div>
       <div class="progress-bar-container">
         ${markerHtml}
@@ -317,7 +322,7 @@ export function renderCards() {
       </div>
       ${card.id === 'dbs-yuu' ? yuuChipsHtml(card) : ''}
       <div class="card-stats">
-        <span>${tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent' + capNote}</span>
+        <span>${promoBar ? promoBar.left : tierInfo && tierInfo.kind === 'annual-sia' ? '$' + fmtNum(tierInfo.spent, 2) + ' SIA Group spend' : '$' + fmtNum(currentSpend, 2) + ' spent' + capNote}</span>
         <span>${statusNotice || (isUncapped ? 'Uncapped' : `Cap: $${fmtAuto(card.monthlyCap)} (${pct}%)`)}</span>
       </div>
     `;
@@ -655,13 +660,18 @@ async function addPromoBonus(ds) {
   const cards = ALL_MASTER_CARDS.filter(c => c.vaultKey === vk && state.enabledCardIds.includes(c.id));
   if (!cards.length) { showToast('Pick a statement for one bank first', { kind: 'error' }); return; }
   const gap = Number(ds.promoGap) || 0;
-  const ptsTxt = prompt(`How many points did the bank credit as the bonus?${gap ? `\n\nThis statement has ${fmtNum(gap)} more than the app can explain.` : ''}`, gap ? String(gap) : '');
+  // A statement dated after a promotion ended and before its bonus is due: say what the app expects and name it (v1.63.80).
+  const stDay = Number(ds.promoTo) ? dayStr(Number(ds.promoTo)) : '';
+  const promo = stDay && PROMOS.find(p => cards.some(c => c.id === p.cardId) && p.to < stDay && stDay <= dayStr(new Date(p.bonusBy).getTime() + 45 * 86400000));
+  const prog = promo ? promoProgress(promo, state.transactions, promoMccOfEntry) : null;
+  const promoLine = prog ? `\n\n${promo.title} (${fmtDay(promo.from)} - ${fmtDay(promo.to)}): the app expects ${prog.met ? `about ${fmtNum(prog.pts)}` : `nothing (S$${fmtNum(prog.spend, 2)} of the S$${fmtNum(promo.minSpend)} minimum was logged)`}.` : '';
+  const ptsTxt = prompt(`How many points did the bank credit as the bonus?${gap ? `\n\nThis statement has ${fmtNum(gap)} more than the app can explain.` : ''}${promoLine}`, gap ? String(gap) : (prog && prog.met ? String(prog.pts) : ''));
   if (ptsTxt === null) return;
   const pts = Math.round(Number(String(ptsTxt).replace(/[,\s]/g, '')));
   if (!(pts > 0)) { showToast('Enter the points as a number, e.g. 2281', { kind: 'error' }); return; }
-  const label = (prompt('What was it? (shown in History)', 'Promotion bonus') || '').trim() || 'Promotion bonus';
-  let card = cards.find(c => c.id === ds.promoCard) || cards[0];
-  if (cards.length > 1 && !cards.some(c => c.id === ds.promoCard)) {
+  const label = (prompt('What was it? (shown in History)', promo ? `${promo.title} bonus` : 'Promotion bonus') || '').trim() || 'Promotion bonus';
+  let card = cards.find(c => c.id === (promo ? promo.cardId : ds.promoCard)) || cards.find(c => c.id === ds.promoCard) || cards[0];
+  if (cards.length > 1 && !promo && !cards.some(c => c.id === ds.promoCard)) {
     const names = cards.map((c, i) => `${i + 1}. ${cardShort(c)}`).join('\n');
     const pick = prompt(`Which card was it for?\n\n${names}`, '1');
     if (pick === null) return;
@@ -671,7 +681,7 @@ async function addPromoBonus(ds) {
   const ts = Number(ds.promoTo) - 12 * 3600000;                   // inside the statement it landed on
   const ratio = state.myVault?.[card.vaultKey]?.ratio || 1;
   const rec = { id: `promo_${card.id}_${Date.now()}`, owner: state.myVaultKey, timestamp: ts, postTs: ts, desc: label, amt: 0, cardId: card.id,
-    bonusCategory: 'bonus', miles: Math.round(pts * ratio), earnedRawPoints: pts, promoBonus: true, source: 'statement', vaultCounted: addToVault,
+    bonusCategory: 'bonus', miles: Math.round(pts * ratio), earnedRawPoints: pts, promoBonus: true, source: 'statement', vaultCounted: addToVault, ...(promo ? { promoId: promo.id } : {}),
     date: new Date(ts).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }), stmtNote: `${fmtNum(pts)} points credited by the bank as a one-off bonus` };
   try {
     await saveTxToFirestore(rec.id, rec);
@@ -1248,6 +1258,15 @@ export function onCardSelectChange() {
     if (normalGroup) normalGroup.style.display = 'flex';
     if (yuuGroup) yuuGroup.style.display = 'none';
   }
+  // UOB PRVI earns its overseas rate only when the entry says it was charged abroad (v1.63.80; before, a PRVI charge logged from
+  // Overseas mode was saved at the 1.4 mpd local rate).
+  const abroadGroup = document.getElementById('txAbroadGroup');
+  if (abroadGroup) abroadGroup.style.display = cardId === 'uob-prvi' ? 'flex' : 'none';
+  const abroadHint = document.getElementById('txAbroadHint');
+  if (abroadHint) {
+    const p = cardId === 'uob-prvi' ? activePromo('uob-prvi') : null;
+    abroadHint.textContent = p ? `🎁 Till ${fmtDay(p.to)}: in-person dining and shopping abroad earns 5 mpd once S$${fmtNum(p.minSpend)} is spent. The entry keeps the rate UOB posts now; the bonus (by ${fmtDay(p.bonusBy)}) is tracked on the PRVI bar.` : '';
+  }
   window.dispatchEvent(new Event('tx-form-changed'));
 }
 
@@ -1264,6 +1283,7 @@ export function openModal() {
   document.getElementById('editTxId').value = '';
   document.getElementById('descInput').value = '';
   const mccIn = document.getElementById('txMccInput'); if (mccIn) { mccIn.value = ''; mccIn.placeholder = '4 digits, e.g. 7011'; }
+  const abroadIn = document.getElementById('txAbroadSelect'); if (abroadIn) abroadIn.value = state.isOverseasMode && !state.isKrisPlusMode ? 'OTHER' : '';
   document.getElementById('bonusCategory').value = 'bonus'; document.getElementById('bonusCategory').dataset.touched = '';
   const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
   document.getElementById('amtInput').value = '';
@@ -1304,6 +1324,8 @@ export function openEditModal(txId) {
   document.getElementById('amtInput').value = tx.amt;
   const mccIn = document.getElementById('txMccInput');
   if (mccIn) { mccIn.value = tx.mcc || ''; const auto = mccOf(tx.desc); mccIn.placeholder = auto ? `${auto} from the merchant name` : '4 digits, e.g. 7011'; }
+  const abroadIn = document.getElementById('txAbroadSelect');
+  if (abroadIn) abroadIn.value = isPrviForeign('uob-prvi', tx) ? (regionOfCur(fxCurrency(tx)) === 'regional' ? 'REGIONAL' : 'OTHER') : '';
   document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
   document.getElementById('bonusCategory').dataset.touched = '1';
   const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
@@ -1408,7 +1430,16 @@ export async function saveTransaction() {
       }
     }
 
-    let earnedMiles = isBonus ? milesWithinCap(card, amt, txTimestamp, postTs || (oldTx && oldTx.postTs) || null, editId || null, oldTx && oldTx.cardId === cardId ? oldTx : null) : calcEarnedMiles(card, amt, card.baseMpd);
+    // UOB PRVI: "Where was it charged?" decides the overseas rate. A currency read from the statement (fx) stays; the choice fills in the rest.
+    const abroad = cardId === 'uob-prvi' ? (document.getElementById('txAbroadSelect')?.value || '') : null;
+    const sameCardOld = oldTx && oldTx.cardId === cardId ? oldTx : null;
+    let rateTx = sameCardOld;
+    if (abroad !== null) {
+      const stmtFx = !!(sameCardOld && (sameCardOld.fx || sameCardOld.fxGuess));
+      rateTx = abroad ? { ...(sameCardOld || {}), overseas: true, ...(stmtFx && fxCurrency(sameCardOld) && !sameCardOld.overseasCur ? {} : { overseasCur: abroad }) }
+        : (stmtFx ? sameCardOld : { ...(sameCardOld || {}), overseas: false, overseasCur: '' });
+    }
+    let earnedMiles = isBonus ? milesWithinCap(card, amt, txTimestamp, postTs || (oldTx && oldTx.postTs) || null, editId || null, rateTx) : calcEarnedMiles(card, amt, card.baseMpd);
     let yuuPartner = null;
     if (card.id === 'dbs-yuu') {
       // yuu: fixed rate from the entry alone (partner 2.78 mpd, other 0.14). The 10 mpd bonus is a separate month-level entry.
@@ -1442,6 +1473,10 @@ export async function saveTransaction() {
       ...(postTs ? { postTs } : {}),
       ...(mccTyped ? { mcc: mccTyped } : {})
     };
+    if (abroad !== null) {
+      delete payload.overseas; delete payload.overseasCur;
+      if (rateTx && rateTx.overseas) { payload.overseas = true; if (rateTx.overseasCur) payload.overseasCur = rateTx.overseasCur; }
+    }
     // Merchant memory (v1.63.70): changing an entry's card or rate is a choice the next statement import repeats for this merchant.
     if (oldTx && (oldTx.cardId !== payload.cardId || (oldTx.bonusCategory || 'bonus') !== payload.bonusCategory)) payload.rateSetBy = 'user';
     await saveTxToFirestore(txRecordId, payload);
@@ -1878,6 +1913,7 @@ export async function saveSettings() {
     citiApprovalDate: val('citiApprovalInput') || state.citiApprovalDate,
     uobStatementDay: clampDay(val('uobStatementDayInput'), state.uobStatementDay || 23),
     feeAlerts: state.feeAlerts || {},   // keep dismissals: this write replaces the whole settings document
+    promos: state.promos || {},         // promotion choices (registered, region), v1.63.80
     feeCards: collectFeeCards(),
     stmtCoverage: state.stmtCoverage || {},
     bigCheck: state.bigCheck || 250,
@@ -1933,6 +1969,7 @@ export function exportJSONBackup() {
       feeCards: state.feeCards || {},
       uobStatementDay: state.uobStatementDay || 23,
       feeAlerts: state.feeAlerts || {},
+      promos: state.promos || {},
       stmtCoverage: state.stmtCoverage || {},      // card-months imported from statements (v1.59.5)
       bigCheck: Number(state.bigCheck) || 250,
       cutoffDays: {
@@ -2020,6 +2057,7 @@ function parseBackup(data) {
   const settings = {
     uobStatementDay: Number(s.uobStatementDay) >= 1 && Number(s.uobStatementDay) <= 31 ? Number(s.uobStatementDay) : null,
     feeAlerts: s.feeAlerts && typeof s.feeAlerts === 'object' ? s.feeAlerts : null,
+    promos: s.promos && typeof s.promos === 'object' && !Array.isArray(s.promos) ? s.promos : null,
     stmtCoverage: s.stmtCoverage && typeof s.stmtCoverage === 'object' ? s.stmtCoverage : null,
     bigCheck: Number(s.bigCheck) > 0 ? Number(s.bigCheck) : null,
     enabledCards: Array.isArray(s.enabledCards) ? s.enabledCards.filter(id => knownCards.has(id)) : null,
@@ -2076,6 +2114,7 @@ export async function importJSONBackup(file) {
       uobRenewals: { ...state.uobRenewals, ...(settings.uobRenewals || {}) },
       uobStatementDay: settings.uobStatementDay || state.uobStatementDay || 23,
       feeAlerts: settings.feeAlerts || state.feeAlerts || {},
+      promos: settings.promos || state.promos || {},
       feeCards: settings.feeCards || state.feeCards || {},
       stmtCoverage: mergeCoverage(state.stmtCoverage, settings.stmtCoverage),
       bigCheck: settings.bigCheck || Number(state.bigCheck) || 250,

@@ -18,6 +18,8 @@ import { tierStatus, lockedWarning, minSpendGate, cycleEndLabel } from "./tiers.
 import { slipLine, slipRisk, SLIP_ALERT_MIN } from "./posting.js";
 import { setSearchMode } from "./search-mode.js";
 import { planOverseas, billedAmount, fcyEconomics } from "./fcy.js";
+import { activePromo, promoPrefs, promoProgress, promoMccOk, roomSpend, mpdOf, ratioOf, fmtDay } from "./promos.js";
+import { promoMccOfEntry, promoCalloutHtml, wirePromoCallout } from "./promo-ui.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -234,6 +236,36 @@ function renderRecommendation() {
 let fcyAtMax = false;   // table view: false = as things stand now, true = every card at its top earn rate
 let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
 let fcyPick = null;   // card id chosen in the 'pick one' tile (the no-fee card or the fee card for the last slice of a split)
+let lastPromo = null;   // Overseas mode: what the result did with a running card promotion (UOB PRVI 5 mpd), read by decoratePromo()
+let lastRecMcc = '';    // the MCC the last result was worked out on, so a PRVI entry logged from it can be counted for the promotion
+
+// UOB PRVI's overseas dining & shopping promotion (js/promos.js) as one capped Overseas plan row: base + bonus mpd for the region the user
+// picked, on the S$ of spend the bonus cap still has room for, falling back to the card's own overseas rate past it. It then goes through
+// the same after-fees test as every bonus card (beat the best uncapped card, Trust, on its own portion). The S$1,500 minimum is counted on
+// the promotion, not the cycle, so a charge before it is reached is planned at the promo rate with a note (unless "won't reach it" is on).
+function prviPromoUse(mccData, channel, amt) {
+  const p = activePromo('uob-prvi');
+  const card = state.cards.find(c => c.id === 'uob-prvi');
+  if (!p || !card || !state.enabledCardIds.includes(card.id)) return null;
+  const prefs = promoPrefs(p), region = prefs.region;
+  const prog = promoProgress(p, state.transactions, promoMccOfEntry);
+  const code = mccData && /^\d{4}$/.test(String(mccData.code || '')) ? String(mccData.code) : '';
+  const why = channel !== 'inperson' ? 'online and in-app payments don\'t count'
+    : !code ? 'pick a merchant or a 4-digit MCC (dining and shopping codes only)'
+    : !promoMccOk(p, code) ? `MCC ${code} is not one of its dining or shopping codes` : '';
+  const use = { p, region, prog, eligible: !why, why, room: 0, planned: 0, row: null };
+  use.room = roomSpend(p, fcyAtMax ? p.capPts : prog.capLeftPts, region, billedAmount(card, 1));
+  if (why || prefs.skip || !(use.room > 0)) return use;
+  const r = p.per5[region], ratio = ratioOf(p);
+  const rate = mpdOf(r.base + r.bonus, ratio), base = mpdOf(r.base, ratio);
+  const after = prog.spend + Math.min(amt, use.room);
+  const note = fcyAtMax || prog.met ? `promo bonus on about S$${fmtNum(use.room, 0)} more`
+    : after >= p.minSpend ? `this charge reaches the S$${fmtNum(p.minSpend)} promo minimum`
+    : `promo needs S$${fmtNum(p.minSpend - after, 0)} more PRVI dining / shopping abroad by ${fmtDay(p.to)}`;
+  const promoCard = { ...card, baseMpd: base, bonusMpd: rate, monthlyCap: use.room, currentSpend: 0, promoId: p.id };
+  use.row = { card: promoCard, rate, capped: true, room: use.room, note };
+  return use;
+}
 
 // Enabled cards with no monthly cap (the everyday-spend fallbacks).
 const enabledUncapped = () => state.cards.filter(c => state.enabledCardIds.includes(c.id) && isUncappedCard(c));
@@ -249,6 +281,7 @@ const tierRate = (card, total) => card.tierRule.steps.findLast(s => total >= s.a
 
 function renderRecommendationCore() {
   lastFcy = null;
+  lastPromo = null;
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -276,6 +309,7 @@ function renderRecommendationCore() {
     return;
   }
 
+  lastRecMcc = /^\d{4}$/.test(String(mccData.code || '')) ? String(mccData.code) : '';
   let candidateList = state.isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
 
   // DBS yuu's 10 mpd is for yuu partner brands only, but the category rules list it for the whole MCC (supermarkets, pharmacies, transit, taxis).
@@ -495,8 +529,15 @@ function renderRecommendationCore() {
     const addRow = (card, listed) => { if (card && !rows.has(card.id) && chanOk(card)) rows.set(card.id, fcyRow(card, listed, amt)); };
     scoredCandidates.forEach(sc => addRow(sc.card, sc.rate));
     enabledUncapped().forEach(c => addRow(c, generalRate(c)));
+    let rowList = [...rows.values()];
+    const promoUse = prviPromoUse(mccData, effectiveChannel, amt);
+    if (promoUse) {
+      lastPromo = promoUse;
+      // The promo row replaces PRVI's plain 2.4 / 3 mpd row and goes first: at 5 mpd it is the highest rate in the plan.
+      if (promoUse.row) rowList = [promoUse.row, ...rowList.filter(r => r.card.id !== 'uob-prvi')];
+    }
     const rowMiles = (r, a = amt) => r.room >= a ? milesFor(r.card, a, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, a - r.room, r.card.baseMpd);
-    fcyPlan = planOverseas([...rows.values()], amt, { milesOf: rowMiles });
+    fcyPlan = planOverseas(rowList, amt, { milesOf: rowMiles });
     const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : UNCAPPED_CAP, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
     const next = fcyPlan.bonus.map(toCand);
     if (fcyPlan.best) next.push(toCand(fcyPlan.best));
@@ -585,6 +626,7 @@ function renderRecommendationCore() {
       }
     }
 
+    if (lastPromo) lastPromo.planned = allocationSteps.filter(s => s.card.promoId).reduce((a, s) => a + s.amount, 0);
     if (allocationSteps.length > 1) {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
       const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
@@ -639,6 +681,7 @@ function renderRecommendationCore() {
   }
 
   const singleCard = primary;
+  if (lastPromo) lastPromo.planned = singleCard.card.promoId ? amt : 0;
   let effectiveMpd = singleCard.rate;
   if (!singleCard.isUncapped && singleCard.remainingCap <= 0) {
     effectiveMpd = singleCard.card.baseMpd;
@@ -659,7 +702,7 @@ function renderRecommendationCore() {
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
   const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
-  const spaceLine = `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
+  const spaceLine = singleCard.card.promoId && lastPromo ? `🎁 ${escapeHtml(lastPromo.p.short)}: bonus room about S$${fmtNum(singleCard.remainingCap, 0)} · ends ${fmtDay(lastPromo.p.to)}` : `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
     ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
@@ -916,6 +959,20 @@ function decorateFcyFees() {
   box.appendChild(div);
 }
 
+// Overseas mode with a running card promotion: what it did for this spend, its progress and the user's choices (js/promo-ui.js).
+function decoratePromo() {
+  const box = document.getElementById('recResultArea');
+  if (!box) return;
+  box.querySelectorAll('.promo-callout').forEach(n => n.remove());
+  if (!lastPromo || !state.isOverseasMode || state.isKrisPlusMode) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = promoCalloutHtml(lastPromo);
+  const el = wrap.firstElementChild;
+  const fees = box.querySelector('.fcy-fees');
+  if (fees) box.insertBefore(el, fees); else box.appendChild(el);
+  wirePromoCallout(el, lastPromo.p, () => runRecommendation());
+}
+
 // Shell pumps (MCC 5541): UOB PPV (mobile tap) and UOB VS add a 4% instant discount on top of Shell GO+ (see the 5541 note in MCC_DATABASE).
 // The ranking counts it: as a tie-break between cards at the same rate, and as a mile-equivalent at FCY_MILE_VALUE_CENTS when comparing real miles.
 // `pref` orders the two UOB cards: VS ahead of PPV (the owner's preference). Local spend only; the discount does not apply overseas.
@@ -931,6 +988,7 @@ export function runRecommendation() {
   renderRecommendation();
   decorateTierCallouts();
   decorateFcyFees();
+  decoratePromo();
   decorateRetailerTools();
   decorateRuleTools();
 }
@@ -1280,6 +1338,15 @@ export function applyRecommendation(cardId, amt, desc, ctx = { kind: 'single' })
   if (bonusCategory) { bonusCategory.value = 'bonus'; bonusCategory.dataset.touched = ''; }
   const rateHint = document.getElementById('rateHint'); if (rateHint) rateHint.textContent = '';
   if (txDateInput) txDateInput.value = new Date().toLocaleDateString('en-CA');
+  // UOB PRVI from Overseas mode: charged abroad (in the promotion's region), with the MCC the result used, so the entry gets the overseas
+  // rate and counts toward a running promotion (v1.63.80).
+  if (cardId === 'uob-prvi' && state.isOverseasMode && !state.isKrisPlusMode) {
+    const p = activePromo('uob-prvi');
+    const abroad = document.getElementById('txAbroadSelect');
+    if (abroad) abroad.value = p && promoPrefs(p).region === 'regional' ? 'REGIONAL' : 'OTHER';
+    const mccIn = document.getElementById('txMccInput');
+    if (mccIn && lastRecMcc && !mccIn.value) mccIn.value = lastRecMcc;
+  }
 
   onCardSelectChange();
 }
