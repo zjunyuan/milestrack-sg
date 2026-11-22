@@ -23,7 +23,7 @@ import { state } from "./state.js";
 import { countsTs, postingRule, cycleBounds } from "./posting.js";
 import { capSpendOf } from "./cap-use.js";
 import { prviFcyRate, fxCurrency, isPrviForeign } from "./cardrules.js";
-import { PROMOS, activePromo, livePromo, fmtDay, regionOfCur, promoProgress, dayStr } from "./promos.js";
+import { PROMOS, activePromo, livePromo, fmtDay, regionOfCur, promoProgress, dayStr, isBonusPromo, promoRateFor, ASIA8 } from "./promos.js";
 import { promoBarInfo, promoMccOfEntry } from "./promo-ui.js";
 import { renderCardWallet, prepareSettingsSheet, feeCardFamilies, feeRenewalId, feeDayId } from "./settings-ui.js";
 import { monthlySummaryHtml, monthDeltas, deltaText, mccOf } from "./summary.js";
@@ -689,7 +689,7 @@ async function addPromoBonus(ds) {
   const gap = Number(ds.promoGap) || 0;
   // A statement dated after a promotion ended and before its bonus is due: say what the app expects and name it (v1.63.80).
   const stDay = Number(ds.promoTo) ? dayStr(Number(ds.promoTo)) : '';
-  const promo = stDay && PROMOS.find(p => cards.some(c => c.id === p.cardId) && p.to < stDay && stDay <= dayStr(new Date(p.bonusBy).getTime() + 45 * 86400000));
+  const promo = stDay && PROMOS.find(p => isBonusPromo(p) && cards.some(c => c.id === p.cardId) && p.to < stDay && stDay <= dayStr(new Date(p.bonusBy).getTime() + 45 * 86400000));
   const prog = promo ? promoProgress(promo, state.transactions, promoMccOfEntry) : null;
   const promoLine = prog ? `\n\n${promo.title} (${fmtDay(promo.from)} - ${fmtDay(promo.to)}): the app expects ${prog.met ? `about ${fmtNum(prog.pts)}` : `nothing (S$${fmtNum(prog.spend, 2)} of the S$${fmtNum(promo.minSpend)} minimum was logged)`}.` : '';
   const ptsTxt = prompt(`How many points did the bank credit as the bonus?${gap ? `\n\nThis statement has ${fmtNum(gap)} more than the app can explain.` : ''}${promoLine}`, gap ? String(gap) : (prog && prog.met ? String(prog.pts) : ''));
@@ -1291,14 +1291,32 @@ export function onCardSelectChange() {
   }
   // UOB PRVI earns its overseas rate only when the entry says it was charged abroad (v1.63.80; before, a PRVI charge logged from
   // Overseas mode was saved at the 1.4 mpd local rate).
+  // Maybank Horizon gets the same question while its 8X Asian-currency promotion runs (v1.63.83).
+  const horizonPromo = cardId === 'mb-horizon-vs' ? activePromo('mb-horizon-vs') : null;
   const abroadGroup = document.getElementById('txAbroadGroup');
-  if (abroadGroup) abroadGroup.style.display = cardId === 'uob-prvi' ? 'flex' : 'none';
+  if (abroadGroup) abroadGroup.style.display = cardId === 'uob-prvi' || horizonPromo ? 'flex' : 'none';
+  setAbroadOptions(cardId);
   const abroadHint = document.getElementById('txAbroadHint');
   if (abroadHint) {
     const p = cardId === 'uob-prvi' ? activePromo('uob-prvi') : null;
-    abroadHint.textContent = p ? `🎁 Till ${fmtDay(p.to)}: in-person dining and shopping abroad earns 5 mpd once S$${fmtNum(p.minSpend)} is spent. The entry keeps the rate UOB posts now; the bonus (by ${fmtDay(p.bonusBy)}) is tracked on the PRVI bar.` : '';
+    abroadHint.textContent = p ? `🎁 Till ${fmtDay(p.to)}: in-person dining and shopping abroad earns 5 mpd once S$${fmtNum(p.minSpend)} is spent. The entry keeps the rate UOB posts now; the bonus (by ${fmtDay(p.bonusBy)}) is tracked on the PRVI bar.`
+      : horizonPromo ? `🎁 Till ${fmtDay(horizonPromo.to)}: charges posted in ${horizonPromo.label} earn ${horizonPromo.mpd} mpd on any category once S$${fmtNum(horizonPromo.minSpend)} is spent on Horizon in the month.` : '';
   }
   window.dispatchEvent(new Event('tx-form-changed'));
+}
+
+// The "Where was it charged?" choices for the card: PRVI has a regional option, Horizon an Asian-currency one during its promotion.
+// A choice the card does not offer moves to plain foreign currency; a value set before the options were drawn (dataset.preset) wins.
+function setAbroadOptions(cardId) {
+  const sel = document.getElementById('txAbroadSelect');
+  if (!sel) return;
+  const horizon = cardId === 'mb-horizon-vs';
+  const opt = (v) => sel.querySelector(`option[value="${v}"]`);
+  if (opt('OTHER')) opt('OTHER').textContent = horizon ? 'Abroad, another foreign currency (2.8 mpd once S$800)' : 'Abroad, foreign currency (2.4 mpd)';
+  if (opt('REGIONAL')) opt('REGIONAL').hidden = horizon;
+  if (opt('ASIA8')) opt('ASIA8').hidden = !horizon;
+  if (sel.dataset.preset) { sel.value = sel.dataset.preset; delete sel.dataset.preset; }
+  if (sel.selectedOptions[0] && sel.selectedOptions[0].hidden) sel.value = 'OTHER';
 }
 
 export function onYuuMerchantChange() {
@@ -1356,7 +1374,12 @@ export function openEditModal(txId) {
   const mccIn = document.getElementById('txMccInput');
   if (mccIn) { mccIn.value = tx.mcc || ''; const auto = mccOf(tx.desc); mccIn.placeholder = auto ? `${auto} from the merchant name` : '4 digits, e.g. 7011'; }
   const abroadIn = document.getElementById('txAbroadSelect');
-  if (abroadIn) abroadIn.value = isPrviForeign('uob-prvi', tx) ? (regionOfCur(fxCurrency(tx)) === 'regional' ? 'REGIONAL' : 'OTHER') : '';
+  if (abroadIn) {
+    const foreign = !!(tx.fx || tx.fxGuess || tx.overseas);
+    abroadIn.value = !foreign ? ''
+      : tx.cardId === 'mb-horizon-vs' ? (promoRateFor(tx.cardId, fxCurrency(tx), tx.timestamp) ? ASIA8 : 'OTHER')
+      : regionOfCur(fxCurrency(tx)) === 'regional' ? 'REGIONAL' : 'OTHER';
+  }
   document.getElementById('bonusCategory').value = tx.bonusCategory || 'bonus';
   document.getElementById('bonusCategory').dataset.touched = '1';
   const rh = document.getElementById('rateHint'); if (rh) rh.textContent = '';
@@ -1394,6 +1417,8 @@ export async function removeTransaction(tx) {
 // rule as statement import. Saving every entry of a month leaves that month at the cap, whatever order they are edited in.
 function milesWithinCap(card, amt, ts, postTs, skipId, tx = null) {
   if (tx && isPrviForeign(card.id, tx)) return calcEarnedMiles(card, amt, prviFcyRate(fxCurrency(tx)));   // PRVI overseas keeps its own rate (v1.63.78)
+  // Maybank Horizon 8X (v1.63.83): a charge in one of the promo currencies earns the promo rate, uncapped (the cap is for air tickets).
+  if (tx && (tx.fx || tx.fxGuess || tx.overseas)) { const r = promoRateFor(card.id, fxCurrency(tx), ts); if (r) return calcEarnedMiles(card, amt, r); }
   const cap = card.monthlyCap >= 999999 ? Infinity : Number(card.monthlyCap) || Infinity;
   if (cap === Infinity) return calcEarnedMiles(card, amt, card.bonusMpd);
   const { start, next } = cycleBounds(card, new Date(countsTs({ timestamp: ts, postTs }, card)));
@@ -1462,7 +1487,8 @@ export async function saveTransaction() {
     }
 
     // UOB PRVI: "Where was it charged?" decides the overseas rate. A currency read from the statement (fx) stays; the choice fills in the rest.
-    const abroad = cardId === 'uob-prvi' ? (document.getElementById('txAbroadSelect')?.value || '') : null;
+    const abroadShown = cardId === 'uob-prvi' || (cardId === 'mb-horizon-vs' && document.getElementById('txAbroadGroup')?.style.display !== 'none');
+    const abroad = abroadShown ? (document.getElementById('txAbroadSelect')?.value || '') : null;
     const sameCardOld = oldTx && oldTx.cardId === cardId ? oldTx : null;
     let rateTx = sameCardOld;
     if (abroad !== null) {
