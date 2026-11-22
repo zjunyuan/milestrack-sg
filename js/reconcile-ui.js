@@ -26,16 +26,17 @@ const parseDay = (s) => { const d = new Date(`${s}T12:00:00`); return isNaN(d) ?
 export function tileStatus(vk) {
   if (!checkpointsFor(vk).length) return null;
   const r = worstRow(vk);
-  if (!r || r.status === "baseline") return { cls: "pc-wait", text: "Bank balance noted" };
+  // `kind`, `gap` and `ts` let the Vault tile write its own short status line (v1.63.82); `text` is the chip wording used elsewhere.
+  if (!r || r.status === "baseline") return { cls: "pc-wait", text: "Bank balance noted", kind: "noted" };
   // A small surplus is not worth flagging on the tile (v1.63.39): under 500 miles, or under 2% of the bank's balance, shows as
   // "About right". The Check with banks sheet still shows the exact figure.
   if (r.status === "over") {
     const ratio = Number((state.myVault && state.myVault[vk] && state.myVault[vk].ratio) || (DEFAULT_VAULT[vk] || {}).ratio || 1);
     const bal = Number(r.rec.closing) || 0;
-    if (r.gap * ratio < 500 || (bal > 0 && r.gap < bal * 0.02)) return { cls: "pc-ok", text: `✓ About right · ${fmtDate(r.rec.ts)}` };
+    if (r.gap * ratio < 500 || (bal > 0 && r.gap < bal * 0.02)) return { cls: "pc-ok", text: `✓ About right · ${fmtDate(r.rec.ts)}`, kind: "about", ts: r.rec.ts };
   }
   const [label, cls] = STATUS[r.status];
-  return { cls, text: `${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""} · ${fmtDate(r.rec.ts)}` };
+  return { cls, text: `${label}${r.status === "short" || r.status === "over" ? ` ${n(r.gap)}` : ""} · ${fmtDate(r.rec.ts)}`, kind: r.status, gap: r.gap, ts: r.rec.ts };
 }
 
 const currencies = () => {

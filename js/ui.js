@@ -42,7 +42,7 @@ import { setFilterRows, cardFilterLabel, catFilterLabel } from "./col-filter.js"
 import { statementPeriods, periodsForFilter, vaultOfCardFilter, stmtBannerHtml } from "./stmt-filter.js";
 import { setCopyRows } from "./copy-for-claude.js";
 import { passesView, sortTxns, toggleSort, categoryOptions, totalsHtml, tableHtml, viewIsFiltered, NO_CATEGORY, mccChip, rateTag } from "./history-table.js";
-import { postingChipHtml, postingDetailHtml } from "./posting-ui.js";
+import { postingChipIfUnusual, postingDetailHtml } from "./posting-ui.js";
 import { 
   saveTxToFirestore, 
   deleteTxFromFirestore, 
@@ -84,6 +84,15 @@ export function getCycleLabel(card) {
   return `Statement Month (Resets on ${card.cutoffDay}th)`;
 }
 
+// v1.63.82: one quiet line under a card's name, only for what differs from the usual (a calendar month, counted by posting date):
+// a statement cycle's reset day and a card that counts by transaction date. Nothing at all for the usual case.
+const ordinal = (n) => { const v = n % 100; return n + (v >= 11 && v <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')); };
+function cardMetaHtml(card) {
+  const reset = card.cycleType === 'statement' && card.cutoffDay ? `<span class="card-meta-text">Resets on the ${ordinal(Number(card.cutoffDay))}</span>` : '';
+  const chip = postingChipIfUnusual(card);
+  return reset || chip ? `<div class="card-meta">${reset}${chip}</div>` : '';
+}
+
 export function getYuuMerchantProgress(card) {
   const activeTxns = state.transactions.filter(tx => tx.cardId === card.id && isTxInActiveCycle(countsTs(tx, card), card));
   const uniqueMerchants = new Set();
@@ -108,7 +117,7 @@ export function yuuChipsHtml(card, { spend = false } = {}) {
     if (b) per.set(b, (per.get(b) || 0) + (Number(tx.amt) || 0));
   });
   const done = [...per.keys()], todo = YUU_MERCHANT_NAMES.filter(n => !per.has(n));
-  const chip = (n, on) => `<span class="yuu-chip ${on ? 'on' : 'off'}">${on ? '✅ ' : ''}${escapeHtml(n)}${on && spend ? ` · $${fmtNum(per.get(n), 2)}` : ''}</span>`;
+  const chip = (n, on) => `<span class="yuu-chip ${on ? 'on' : 'off'}">${on ? '<span class="material-symbols-outlined yuu-tick">check</span>' : ''}${escapeHtml(n)}${on && spend ? ` · $${fmtNum(per.get(n), 2)}` : ''}</span>`;
   return `<div class="yuu-chips"><div class="yuu-chips-row">${done.length ? done.map(n => chip(n, true)).join('') : '<span class="yuu-none">No partner merchants yet this cycle</span>'}</div>`
     + (done.length >= 4 ? '' : `<div class="yuu-chips-lbl">Still to use (${4 - done.length} more needed)</div><div class="yuu-chips-row">${todo.map(n => chip(n, false)).join('')}</div>`) + `</div>`;
 }
@@ -274,7 +283,7 @@ export function renderCards() {
       const minSpendPct = (1000 / card.monthlyCap) * 100;
       markerHtml = `<div class="min-spend-marker" style="left: ${minSpendPct}%;"></div>`;
       barColor = currentSpend < 1000 ? 'var(--warning)' : 'var(--accent)';
-      statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${fmtNum(minDeficit, 0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✅ S$1k Met!</span>`;
+      statusNotice = currentSpend < 1000 ? `<span style="color:var(--warning); font-weight:700;">⚠️ $${fmtNum(minDeficit, 0)} to unlock 4 mpd (${daysLeft}d left)</span>` : `<span style="color:var(--accent); font-weight:700;">✓ S$1k met</span>`;
       // The unlock notice takes the place of "Cap: $1,200", so the room to the cap goes beside the spend instead.
       const room = card.monthlyCap - currentSpend;
       capNote = room > 0.005 ? ` · $${fmtNum(room, 2)} to $${fmtAuto(card.monthlyCap)} cap` : ` · <span style="color:var(--danger);">cap reached</span>`;
@@ -288,7 +297,7 @@ export function renderCards() {
     } else if (card.id === 'dbs-yuu') {
       const yuuProgress = getYuuMerchantProgress(card);
       barColor = (currentSpend >= 800 && yuuProgress.isEligible) ? 'var(--accent)' : 'var(--warning)';
-      statusNotice = `${yuuProgress.isEligible ? '✅ 4/4 Merchants' : `⚠️ ${yuuProgress.count}/4 Merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 2)} min left`;      // cents: S$0.26 short must not read as $0
+      statusNotice = `${yuuProgress.isEligible ? '✓ 4/4 merchants' : `⚠️ ${yuuProgress.count}/4 merchants`} • $${fmtNum(Math.max(0, 800 - currentSpend), 2)} min left`;      // cents: S$0.26 short must not read as $0
     } else if ((promoBar = promoBarInfo(card))) {
       pct = promoBar.pct; barColor = promoBar.color; statusNotice = promoBar.notice;
     }
@@ -310,8 +319,7 @@ export function renderCards() {
           ${thumbHtml}
           <div>
             <div class="card-name">${escapeHtml(cardShort(card))}</div>
-            <div class="cycle-pill ${isStatement ? 'statement-pill' : ''}">${getCycleLabel(card)}</div>
-            ${postingChipHtml(card)}
+            ${cardMetaHtml(card)}
           </div>
         </div>
         <span class="card-badge ${card.badgeClass || ''}">${promoBar ? promoBar.badge : tierInfo ? (tierInfo.met ? tierInfo.current + ' mpd' : tierInfo.current + ' → ' + tierInfo.steps[tierInfo.steps.length - 1].mpd + ' mpd') : card.bonusMpd + ' mpd'}</span>
@@ -456,12 +464,14 @@ export function renderVault() {
     const pend = pendingByVault[key] ? `<span class="vault-raw-pts">incl. ~${fmtNum(pendingByVault[key], 0)} mi bonus due next month</span>` : '';
 
     const pc = key !== 'kf_direct' ? tileStatus(key) : null;
-    const chip = pc ? `<span class="pc-chip ${pc.cls}">${escapeHtml(pc.text)}</span>` : '';
+    const chip = pc ? vaultStatusHtml(pc) : '';
+    // v1.63.82: the bank's own points sit beside the miles (one line less per tile); left out when they are miles already
+    const rawSame = /mile/i.test(String(item.unit || '')) && Number(item.ratio || 1) === 1;
+    const raw = rawSame ? '' : `<span class="vault-raw-inline">${fmtNum(Number(item.points || 0))} ${item.unit}</span>`;
     container.innerHTML += `
-      <div class="vault-item" data-vk="${key}">
+      <div class="vault-item tappable" data-vk="${key}">
         <span class="vault-label">${item.name}</span>
-        <div class="vault-miles-big">${fmtNum(equivMiles)} <span class="vault-miles-unit">miles</span></div>
-        <span class="vault-raw-pts">${fmtNum(Number(item.points || 0))} ${item.unit}</span>${xfer}${xnote}${pend}${chip}
+        <div class="vault-miles-big">${fmtNum(equivMiles)}<span class="vault-miles-unit">mi</span>${raw}</div>${xfer}${xnote}${pend}${chip}
       </div>
     `;
   }
@@ -476,6 +486,23 @@ export function renderVault() {
     container.insertAdjacentHTML('afterbegin', `<div class="empty-guide eg-wide"><div class="eg-title">Your vault is empty</div><div class="eg-text">This is where your bank points add up, in each bank's own currency, with the miles you can transfer now. Tap <b>Update Balances</b> to type in what your bank apps show, or log spend and the tiles fill as you go.</div></div>`);
   }
   updateTravelGoal(myGrandTotalMiles);
+}
+
+// v1.63.82: a Vault tile's points check as one borderless line at the foot of the tile ("▲ +1,791 vs expected · 23 Oct").
+function vaultStatusHtml(pc) {
+  const thisYear = new Date().getFullYear();
+  const day = (ts) => ts ? new Date(ts).toLocaleDateString('en-GB', new Date(ts).getFullYear() === thisYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const when = pc.ts ? ` · \u2060${day(pc.ts).replace(/ /g, '\u00a0')}` : '';      // the date never breaks across lines
+  const g = fmtNum(Math.round(Number(pc.gap) || 0));
+  const text = {
+    noted: 'Bank balance noted',
+    about: `✓ About right${when}`,
+    ok: `✓ Matches${when}`,
+    pending: `Bonus still due${when}`,
+    over: `▲ +${g} vs expected${when}`,
+    short: `▼ −${g} vs expected${when}`
+  }[pc.kind] || pc.text;
+  return `<div class="vault-status ${pc.cls}">${escapeHtml(text)}</div>`;
 }
 
 export function updateTravelGoal(personalTotalMiles) {
@@ -1062,7 +1089,11 @@ export function renderCategoryTracker() {
       const spent = Number(c.currentSpend) || 0;
       if (!isUncapped) catTotalCap += cap;
       catTotalSpent += spent;
-      chips.push(`<span class="category-chip">${escapeHtml(cardShort(c))}: <b>$${fmtNum(spent, 0)}</b>/${isUncapped ? '∞' : '$' + fmtAuto(cap)}</span>`);
+      // v1.63.82: room left per card (what this screen is for), amber from 80% used, quiet once full
+      const used = isUncapped ? 0 : spent / cap;
+      const cls = isUncapped ? '' : used >= 1 ? ' full' : used >= 0.8 ? ' near' : '';
+      const val = isUncapped ? `$${fmtNum(spent, 0)} spent` : used >= 1 ? 'full' : `$${fmtNum(cap - spent, 0)} left`;
+      chips.push(`<span class="category-chip${cls}" title="$${fmtNum(spent, 0)} of ${isUncapped ? 'no cap' : '$' + fmtAuto(cap)}">${escapeHtml(cardShort(c))} <b>${val}</b></span>`);
     });
 
     const catRemaining = Math.max(0, catTotalCap - catTotalSpent);
