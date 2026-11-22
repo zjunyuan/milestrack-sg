@@ -1389,3 +1389,4 @@ img.card-thumb { object-fit: cover; }
 .yuu-chip { display: inline-flex; align-items: center; gap: 3px; }
 .yuu-chip.on { border-color: transparent; }
 .yuu-chip .yuu-tick { font-size: 14px; }
+.ask-ai { color: #c4b5fd; }

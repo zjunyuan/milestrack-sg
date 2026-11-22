@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.83";
+export const APP_VERSION = "v1.63.84";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -31,6 +31,12 @@ export const firebaseConfig = {
   messagingSenderId: "323564797306",
   appId: "1:323564797306:web:f0e41ab676ae207d62aac3"
 };
+
+// Ask box AI fallback (v1.63.84, js/ai-mcc.js): Gemini through Firebase AI Logic (Gemini Developer API), for merchants the retailer
+// list does not know. Off while siteKey is empty. siteKey = the PUBLIC reCAPTCHA site key registered for this site in Firebase
+// App Check (never the secret key). provider "v3" (reCAPTCHA v3) or "enterprise". Model from Firebase's AI Logic model list
+// (Nov 2026: stable, no billing required); change it here when Google retires it.
+export const AI_FALLBACK = { model: "gemini-3.5-flash-lite", provider: "v3", siteKey: "" };
 
 export const DEFAULT_PRESETS = [
   { id: 'p_fp', label: 'foodpanda', icon: '🐼', cardId: 'dbs-yuu', desc: 'foodpanda' },

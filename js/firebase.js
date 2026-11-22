@@ -20,9 +20,11 @@ import {
   where, 
   limit 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaV3Provider, ReCaptchaEnterpriseProvider, getToken as getAppCheckToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 import { 
   firebaseConfig, 
+  AI_FALLBACK, 
   ALL_VAULT_KEYS,
   VAULT_LABELS,
   DEFAULT_VAULT, 
@@ -81,9 +83,23 @@ export async function resolveVaultKey(email = "") {
   }
 }
 
+// App Check (v1.63.84): only for the Ask box's AI lookup (js/ai-mcc.js), and only once a reCAPTCHA site key is set in config.js.
+// Firestore and Auth do not enforce it, so nothing else changes for devices that cannot get a token.
+let appCheck = null;
+export async function appCheckToken() {
+  if (!appCheck) return "";
+  try { return (await getAppCheckToken(appCheck, false)).token || ""; } catch (e) { console.warn("App Check token:", e); return ""; }
+}
+
 export function initFirebase(onAuthSuccess, onAuthLoggedOut) {
   if (isDemo()) return startDemo(onAuthSuccess);   // sample data, no Firebase (js/demo.js)
   const app = initializeApp(firebaseConfig);
+  if (AI_FALLBACK && AI_FALLBACK.siteKey) {
+    try {
+      const provider = AI_FALLBACK.provider === "enterprise" ? new ReCaptchaEnterpriseProvider(AI_FALLBACK.siteKey) : new ReCaptchaV3Provider(AI_FALLBACK.siteKey);
+      appCheck = initializeAppCheck(app, { provider, isTokenAutoRefreshEnabled: true });
+    } catch (e) { console.warn("App Check not started:", e); }
+  }
   auth = getAuth(app);
   db = getFirestore(app);
   googleProvider = new GoogleAuthProvider();

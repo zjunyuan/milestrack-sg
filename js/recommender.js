@@ -78,6 +78,7 @@ export function checkOcbc6MpdPromo(input) {
 // Returns the retailer for typed text, honouring a typeahead pick / alt-category chip.
 function resolveRetailer(input) {
   const sel = state.selectedRetailer;
+  if (sel && sel.ai && sel.label && normalizeText(input) === normalizeText(sel.label)) return null;   // an AI-placed merchant is not a listed brand
   if (sel && (normalizeText(input) === normalizeText(sel.name) || (sel.label && normalizeText(input) === normalizeText(sel.label)))) {
     const entry = buildRetailerList(state.merchantOverrides).find(r => normalizeText(r.name) === normalizeText(sel.name));
     if (entry) return { ...entry, defaultMcc: entry.mcc, mcc: sel.mcc };
@@ -121,10 +122,16 @@ export function resolveMccEntry(input) {
 
   // A brand picked from the list: its box text contains the MCC, so resolve it as the brand, not as a bare code.
   const picked = state.selectedRetailer;
-  if (picked && picked.label && normalizeText(clean) === normalizeText(picked.label)) {
+  if (picked && !picked.ai && picked.label && normalizeText(clean) === normalizeText(picked.label)) {
     const retailer = resolveRetailer(clean);
     const entry = retailer && getMccEntry(retailer.mcc);
     if (entry) return { ...entry, retailer };
+  }
+
+  // A merchant placed by the Ask box's AI lookup (v1.63.84): its guessed MCC, keeping the merchant's name for the result and the log.
+  if (picked && picked.ai && picked.label && normalizeText(clean) === normalizeText(picked.label)) {
+    const e = getMccEntry(picked.mcc);
+    if (e) return { ...e, aiMerchant: picked.name, notes: `${e.notes || ''}<br>🤖 <b>MCC guessed by AI</b> (${escapeHtml(picked.confidence || 'low')} confidence): ${escapeHtml(picked.name)} is not in the retailer list. Check it with "Wrong category?" or add the retailer.` };
   }
 
   const codeMatch = clean.match(/\b\d{4}\b/);
@@ -309,7 +316,7 @@ function renderRecommendationCore() {
   const effectiveChannel = state.isKrisPlusMode ? 'online' : state.currentChannel;
   const resolvedMcc = resolveMccEntry(inputVal);
   // For a known brand, label the result "Brand · Category" but log just the brand name.
-  const namedMerchant = resolvedMcc?.retailer?.name || resolvedMcc?.krisMerchant || '';
+  const namedMerchant = resolvedMcc?.retailer?.name || resolvedMcc?.krisMerchant || resolvedMcc?.aiMerchant || '';
   const mccData = namedMerchant
     ? { ...resolvedMcc, name: `${escapeHtml(namedMerchant)} · ${shortCategory(resolvedMcc.name)}` }
     : resolvedMcc;

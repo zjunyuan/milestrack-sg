@@ -6,6 +6,7 @@ import { state } from "./state.js";
 import { buildRetailerList, searchRetailers, normalizeText, escapeHtml } from "./retailers.js";
 import { applyRetailerSelection, runRecommendation } from "./recommender.js";
 import { setSearchMode } from "./search-mode.js";
+import { aiFallbackOn, guessMcc } from "./ai-mcc.js";
 
 const NUM = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?`;
 // Tried in order: "$50" / "S$50" / "SGD 50", then "50 dollars" / "50sgd", then "spend 50", then any number standing alone
@@ -102,7 +103,8 @@ function setChannel(ch) {
   $(ch === "online" ? "btnChannelOnline" : "btnChannelInPerson")?.click();   // the buttons' own handlers keep the rest of the screen in step
 }
 
-function ask() {
+let asking = 0;
+async function ask() {
   const input = $("askInput"), echo = $("askEcho");
   const text = (input?.value || "").trim();
   if (!text) { input?.focus(); return; }
@@ -111,9 +113,22 @@ function ask() {
     echo.innerHTML = `Add where you're paying, e.g. <b>$50 at Din Tai Fung</b>.`;
     return;
   }
+  // Not in the retailer list: ask the AI for the merchant's MCC (v1.63.84, js/ai-mcc.js). Only the merchant words are sent.
+  const run = ++asking;
+  let ai = null, aiErr = "";
+  if (!r.retailer && aiFallbackOn()) {
+    echo.innerHTML = `Looking up “${escapeHtml(r.merchantText)}”…`;
+    input.blur();
+    try { ai = await guessMcc(r.merchantText, { channel: r.channel || (state.currentChannel === "online" ? "online" : "inperson") }); }
+    catch (e) { aiErr = e.message || "the AI lookup failed"; }
+    if (run !== asking) return;                                          // a newer question was asked meanwhile
+  }
   const box = $("mccInput");
   if (r.retailer) {
     applyRetailerSelection(r.retailer.name, r.retailer.mcc);
+  } else if (ai) {
+    applyRetailerSelection(ai.name, ai.mcc);
+    Object.assign(state.selectedRetailer, { ai: true, confidence: ai.confidence });
   } else if (box) {
     // Not in the retailer list: the text goes into the search box as typed, where Kris+ merchants and categories are still tried.
     setSearchMode("retailer");
@@ -128,7 +143,9 @@ function ask() {
   runRecommendation();
   try { if (box?.value && $("recAmount")?.value) localStorage.setItem("milestrack_onb_rec", "1"); } catch (e) { /* private mode */ }
 
-  const where = r.retailer ? `<b>${escapeHtml(r.retailer.name)}</b>` : `“${escapeHtml(r.merchantText)}” <span class="ask-warn">(not a known retailer)</span>`;
+  const where = r.retailer ? `<b>${escapeHtml(r.retailer.name)}</b>`
+    : ai ? `<b>${escapeHtml(ai.name)}</b> <span class="ask-ai">AI guess: MCC ${ai.mcc} · ${escapeHtml(ai.category)}${ai.confidence === "high" ? "" : ` (${ai.confidence} confidence)`}</span>`
+    : `“${escapeHtml(r.merchantText)}” <span class="ask-warn">(not a known retailer${aiErr ? `; ${escapeHtml(aiErr)}` : ""})</span>`;
   const amt = r.amount ? ` · ${money(r.amount)}` : ` · <span class="ask-warn">add an amount</span>`;
   const ch = (state.isKrisPlusMode || state.currentChannel === "online") ? "online / in-app" : "in person";
   echo.innerHTML = `${where}${amt} · ${ch}`;
@@ -138,6 +155,6 @@ function ask() {
 }
 
 export function initAsk() {
-  $("askForm")?.addEventListener("submit", (e) => { e.preventDefault(); ask(); });
+  $("askForm")?.addEventListener("submit", (e) => { e.preventDefault(); ask().catch(err => { console.error(err); $("askEcho").textContent = "Something went wrong reading that. Try the boxes below."; }); });
   $("askInput")?.addEventListener("input", () => { if (!$("askInput").value.trim()) $("askEcho").innerHTML = ""; });
 }
