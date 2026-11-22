@@ -17,6 +17,13 @@ export function postingChipHtml(card) {
   return `<button type="button" class="post-chip post-${rule.basis}" title="${escapeHtml(b.long)}. Tap for details.">${b.icon} ${escapeHtml(b.short)}</button>`;
 }
 
+// v1.63.82: the card tile only labels a card that counts by something other than the posting date (most cards do), so the usual case
+// adds nothing to the tile. The detail sheet and the "how each card counts" sheet still show every card.
+export function postingChipIfUnusual(card) {
+  const rule = postingRule(card);
+  return rule && rule.basis !== "posting" ? postingChipHtml(card) : "";
+}
+
 // One line for the card detail sheet.
 export function postingDetailHtml(card) {
   const rule = postingRule(card);

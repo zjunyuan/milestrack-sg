@@ -5,7 +5,7 @@
 //      online slot only compares online-capable cards) and foreign lines use the overseas rates, FX fees left out. Entries with no known
 //      MCC are not judged. An estimate, labelled as one.
 //   3. Cap use per bonus card per month: the card's bonus spend against its monthly cap; spend logged as Base on that card beyond it.
-// Charts are plain SVG; colours are the validated dark categorical slots (dataviz skill reference palette, checked on --surface #1e1f24).
+// Charts are plain SVG; colours are the validated dark categorical slots (dataviz skill reference palette, checked on --surface #1e1f24; the surface is #141923 since v1.63.82, darker, so contrast only went up).
 import { state } from "./state.js";
 import { ALL_MASTER_CARDS, cardShort } from "./config.js";
 import { familyOf, looksOnline } from "./statements.js";

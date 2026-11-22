@@ -8,13 +8,13 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="theme-color" content="#121316">
+  <meta name="theme-color" content="#0b0e14">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css?v=1.63.80">
+  <link rel="stylesheet" href="css/style.css?v=1.63.82">
 </head>
 <body>
 
@@ -88,10 +88,17 @@
             <span style="font-size:0.75rem; color:#94a3b8;" id="recModeBadge">Local SGD</span>
           </div>
 
+          <!-- v1.63.82: ask in a sentence ("$50 at Din Tai Fung"); js/ask.js fills the boxes below and runs the recommender -->
+          <form class="ask-box" id="askForm" autocomplete="off">
+            <input type="text" id="askInput" class="form-control" placeholder="Ask: $50 at Din Tai Fung" enterkeyhint="go" aria-label="Ask which card to use">
+            <button type="submit" class="ask-go" aria-label="Ask"><span class="material-symbols-outlined">chevron_right</span></button>
+          </form>
+          <div class="ask-echo" id="askEcho" aria-live="polite"></div>
+
           <div class="channel-selector" id="channelSelectorBar">
             <button type="button" class="channel-btn active" id="btnChannelInPerson">
               <span class="material-symbols-outlined" style="font-size:16px;">storefront</span>
-              In-Person / Terminal Tap
+              In person / Tap
             </button>
             <button type="button" class="channel-btn" id="btnChannelOnline">
               <span class="material-symbols-outlined" style="font-size:16px;">shopping_bag</span>
@@ -99,13 +106,9 @@
             </button>
           </div>
 
-          <div class="search-mode" id="searchModeToggle" role="tablist" aria-label="Search by">
-            <button type="button" class="active" data-mode="retailer" role="tab" aria-selected="true"><span class="material-symbols-outlined">storefront</span> Retailer</button>
-            <button type="button" data-mode="mcc" role="tab" aria-selected="false"><span class="material-symbols-outlined">tag</span> MCC</button>
-          </div>
-
           <div class="rec-inputs">
             <div class="mcc-input-wrapper">
+              <button type="button" class="mcc-mode-btn" id="searchModeToggle" aria-pressed="false" aria-label="Search by MCC code" title="Search by MCC code instead of retailer"><span class="material-symbols-outlined">tag</span></button>
               <input 
                 type="text" 
                 id="mccInput" 
@@ -169,7 +172,9 @@
         <div>
           <div class="section-title">
             <span id="cardBonusTitle">Monthly Bonus Caps</span>
-            <span style="font-size:0.75rem; color:#94a3b8;"><span id="btnOpenHeymax" style="color:var(--primary); cursor:pointer; margin-right:10px;">💡 Use unspent 4 mpd</span>Tap card for details</span>
+          </div>
+          <div class="section-actions">
+            <button type="button" class="sa-chip" id="btnOpenHeymax"><span class="material-symbols-outlined">calculate</span>Use unspent 4 mpd</button>
           </div>
           <div class="card-list" id="cardsContainer"></div>
         </div>
@@ -208,7 +213,11 @@
         <div>
           <div class="section-title">
             <span id="vaultSectionTitle">Bank Points Vault</span>
-            <span style="display:flex; gap:12px;"><span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenPointsCheck">Check with banks 🔍</span><span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenPartners">Asia Miles ✈</span><span style="font-size:0.75rem; color:var(--primary); cursor:pointer;" id="btnOpenVaultBalances">Update Balances ✏️</span></span>
+          </div>
+          <div class="section-actions">
+            <button type="button" class="sa-chip" id="btnOpenPointsCheck"><span class="material-symbols-outlined">fact_check</span>Check with banks</button>
+            <button type="button" class="sa-chip" id="btnOpenPartners"><span class="material-symbols-outlined">flight_takeoff</span>Asia Miles</button>
+            <button type="button" class="sa-chip" id="btnOpenVaultBalances"><span class="material-symbols-outlined">edit</span>Update balances</button>
           </div>
           <div class="vault-grid" id="vaultContainer"></div>
         </div>
@@ -216,7 +225,7 @@
         <div>
           <div class="section-title">
             <span>Points Expiry Radar</span>
-            <span style="font-size:0.75rem; color:#94a3b8; cursor:pointer;" id="btnOpenExpirySettings">Configure Expiry ⚙️</span>
+            <button type="button" class="sa-link" id="btnOpenExpirySettings"><span class="material-symbols-outlined">settings</span>Configure</button>
           </div>
           <div class="radar-card" id="radarContainer"></div>
         </div>
@@ -771,6 +780,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.63.80"></script>
+  <script type="module" src="js/app.js?v=1.63.82"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ import { initPostingUi } from "./posting-ui.js";
 import { initRateHint } from "./rate-hint.js";
 import { initSettingsUi } from "./settings-ui.js";
 import { initSearchMode } from "./search-mode.js";
+import { initAsk } from "./ask.js";
 import { initLayoutReport } from "./layout-report.js";
 import { initHistoryChips } from "./history-chips.js";
 import { openPartners, closePartners } from "./partners.js";
@@ -77,8 +78,9 @@ function onAuthSuccess(user) {
   // Household admin sees household titles; everyone else sees "My ..."
   const isHousehold = state.myVaultKey === "primary";
   document.getElementById('warChestTitle').innerText = isHousehold ? `${VAULT_LABELS.primary} Total Miles` : "My Personal Mileage War Chest";
-  document.getElementById('cardBonusTitle').innerText = isHousehold ? "Household Monthly Bonus Caps" : "My Monthly Bonus Caps";
-  document.getElementById('vaultSectionTitle').innerText = isHousehold ? "Household Bank Points Vault" : "My Bank Points Vault";
+  // v1.63.82: short titles that stay on one line on a phone (the header already says whose data this is)
+  document.getElementById('cardBonusTitle').innerText = isHousehold ? "Monthly Bonus Caps" : "My Bonus Caps";
+  document.getElementById('vaultSectionTitle').innerText = isHousehold ? "Bank Points Vault" : "My Points Vault";
 
   renderPresets();
   renderCards();
@@ -288,6 +290,7 @@ document.getElementById('btnClearMcc')?.addEventListener('click', () => {
 
 initRetailerSuggest();
 initSearchMode();
+initAsk();
 initLayoutReport();
 initHeymax();
 initStatementImport();

@@ -699,6 +699,8 @@ function renderRecommendationCore() {
 
   if (smallAmountNote) roundingWarning = smallAmountNote;
   const runnerUp = scoredCandidates[1];
+  // v1.63.82: the next-best card is shown under the answer (it used to sit folded away in Details & alternatives)
+  const backup = runnerUp && runnerUp.card.id !== singleCard.card.id ? runnerUp : null;
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
   const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
@@ -707,11 +709,12 @@ function renderRecommendationCore() {
     ${contextLineHtml(mccData, effectiveChannel)}
     ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
     <div class="rec-winner-meta">${spaceLine}</div>
+    ${backup ? `<div class="rec-backup">Backup: <b>${escapeHtml(cardShort(backup.card))}</b> · ${backup.rate} mpd</div>` : ''}
     ${singleCard.card.id === 'dbs-yuu' ? yuuUnlockNote(singleCard.card, descName) : ''}
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
     ${roundingWarning ? `<div class="uob-rounding-notice">⚠️ <b>Warning:</b> ${roundingWarning}</div>` : ''}
     ${shellHtml}
-    ${moreHtml(mccData, effectiveChannel, runnerUp ? `<div class="rec-alt">🥈 Alternative: ${escapeHtml(cardShort(runnerUp.card))} (${runnerUp.rate} mpd)</div>` : '')}
+    ${moreHtml(mccData, effectiveChannel, '')}
   `;
 
   document.getElementById('btnApplySingleRec')?.addEventListener('click', () => {

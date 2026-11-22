@@ -113,7 +113,7 @@ export function renderHeymaxBanner() {
   if (!sum.rows.length) { box.innerHTML = ""; return; }
   box.innerHTML = `
     <button type="button" class="hm-banner" id="btnHeymaxBanner">
-      <span class="hm-banner-icon">⏳</span>
+      <span class="hm-banner-icon"><span class="material-symbols-outlined">calendar_clock</span></span>
       <span class="hm-banner-text">
         <b>S$${fmtNum(sum.amount)} of 4 mpd room expires in ${sum.days} day${sum.days === 1 ? "" : "s"}</b>
         <small>Worth up to ${fmtNum(Math.round(sum.miles))} miles across ${sum.rows.length} card${sum.rows.length === 1 ? "" : "s"}. Tap to fill it with a HeyMax voucher.</small>

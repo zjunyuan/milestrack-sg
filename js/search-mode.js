@@ -1,4 +1,4 @@
-// Retailer / MCC search switch for the recommender box.
+// Retailer / MCC search switch for the recommender box (the "#" button inside the search box since v1.63.82).
 // "Retailer" searches brand names (curated retailers and Kris+ merchants); "MCC" searches category codes and names.
 // It filters what the dropdown suggests and sets the placeholder. The recommender itself still understands both kinds of text, so
 // anything pasted or set by other screens keeps working, and those screens switch the mode to match.
@@ -18,11 +18,9 @@ export function setSearchMode(mode, { clear = false } = {}) {
   const changed = state.searchMode !== mode;
   state.searchMode = mode;
   try { localStorage.setItem(KEY, mode); } catch (e) { /* private mode: fine */ }
-  document.querySelectorAll("#searchModeToggle [data-mode]").forEach(b => {
-    const on = b.dataset.mode === mode;
-    b.classList.toggle("active", on);
-    b.setAttribute("aria-selected", on ? "true" : "false");
-  });
+  // v1.63.82: one "#" button inside the search box (on = MCC search) instead of a Retailer / MCC row
+  const t = document.getElementById("searchModeToggle");
+  if (t) { t.classList.toggle("on", mode === "mcc"); t.setAttribute("aria-pressed", mode === "mcc" ? "true" : "false"); }
   const input = document.getElementById("mccInput");
   if (input) input.placeholder = PLACEHOLDER[mode];
   if (clear && changed && input) {
@@ -41,8 +39,7 @@ export function initSearchMode() {
   let saved = "retailer";
   try { saved = localStorage.getItem(KEY) || "retailer"; } catch (e) { /* ignore */ }
   setSearchMode(saved);
-  document.getElementById("searchModeToggle")?.addEventListener("click", e => {
-    const b = e.target.closest("[data-mode]");
-    if (b) setSearchMode(b.dataset.mode, { clear: true });
+  document.getElementById("searchModeToggle")?.addEventListener("click", () => {
+    setSearchMode(getSearchMode() === "mcc" ? "retailer" : "mcc", { clear: true });
   });
 }
