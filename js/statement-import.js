@@ -15,6 +15,7 @@ import { statementTiming, postingRule, countsTs } from "./posting.js";
 import { coverageData, coverageTableHtml, coverageSummaryText } from "./coverage.js";
 import { readPointsSummary, rowsToLines } from "./points-summary.js";
 import { ocbcMerchantRate, wwmcOnlineRate, noPointsReason, CARD_RULES, prviFcyRate, fxCurrency } from "./cardrules.js";
+import { promoRateFor } from "./promos.js";
 import { saveStatementPoints, pointsLine } from "./reconcile.js";
 import { isFeeBonusLine, feeBonusNear, feeBonusRecord, feeRule } from "./fee-bonus.js";
 
@@ -178,6 +179,8 @@ function bonusRate(card, line) {
   if (card.id === "uob-vs-fcy" && (line.fx || line.fxGuess)) rate = Math.max(rate, CARD_RULES["uob-vs-fcy"].overseas(mcc) || 0);
   const tier = fcyTierRate(card, line);
   if (tier) rate = Math.max(rate, tier);
+  // Maybank Horizon 8X (v1.63.83): once the month's S$800 tier is met, a line posted in one of the promo currencies earns the promo rate.
+  if (tier) rate = Math.max(rate, promoRateFor(card.id, fxCurrency(line), line.ts));
   if (card.id === "ocbc-rewards") {                                  // whitelisted merchants earn the bonus whatever the MCC (v1.63.42)
     const r = ocbcMerchantRate(`${line.merchant || ""} ${line.desc || ""}`, line.ts, mcc);
     if (r > rate) rate = r;

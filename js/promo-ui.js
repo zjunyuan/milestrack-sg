@@ -4,7 +4,7 @@ import { state } from "./state.js";
 import { fmtNum } from "./format.js";
 import { mccOf } from "./summary.js";
 import { mergeSettingsDoc } from "./firebase.js";
-import { livePromo, activePromo, promoPrefs, promoProgress, daysLeft, fmtDay, mpdOf, ratioOf, dayStr } from "./promos.js";
+import { livePromo, activePromo, promoPrefs, promoProgress, daysLeft, fmtDay, mpdOf, ratioOf, dayStr, isBonusPromo, isRatePromo } from "./promos.js";
 
 // An entry's MCC for promotion checks: its own, else from the merchant name without the recommender's "[FCY] " / "(Part 2)" wording.
 export const promoMccOfEntry = (tx) => mccOf(String(tx.desc || "").replace(/^\s*(\[FCY\]|Kris\+)\s*/i, "").replace(/\s*\(Part \d+\)\s*$/i, ""), tx.mcc);
@@ -22,7 +22,7 @@ const recorded = (p) => (state.transactions || []).some(t => t.promoBonus && (t.
 // The PRVI cap bar while a promotion runs, and until its bonus is due. null = no bar (show the card as a plain uncapped card).
 export function promoBarInfo(card) {
   const p = livePromo(card.id);
-  if (!p || !state.enabledCardIds.includes(card.id)) return null;
+  if (!p || !isBonusPromo(p) || !state.enabledCardIds.includes(card.id)) return null;     // a rate promotion has no bar of its own
   const prog = promoProgress(p, state.transactions, promoMccOfEntry);
   const prefs = promoPrefs(p);
   const running = dayStr(Date.now()) <= p.to;
@@ -47,6 +47,7 @@ export function promoBarInfo(card) {
 // The callout under an Overseas result. `use` is what the recommender did with the promotion for this spend:
 // { p, eligible, why, region, prog, room, planned } (planned = S$ put on PRVI in the result).
 export function promoCalloutHtml(use) {
+  if (isRatePromo(use.p)) return rateCalloutHtml(use);
   const { p, eligible, why, region, prog, room, planned } = use;
   const prefs = promoPrefs(p);
   const r = p.per5[region], ratio = ratioOf(p);
@@ -72,7 +73,33 @@ export function promoCalloutHtml(use) {
   </div>`;
 }
 
+// A rate promotion (Maybank Horizon 8X, v1.63.83): one question, is the charge in one of its currencies? `use`:
+// { p, region ("asia" | "other"), spend (on the card this month), planned (S$ put on the card in the result), locked (S$800 not met) }.
+function rateCalloutHtml(use) {
+  const { p, region, spend, planned } = use;
+  const money = x => `S$${fmtNum(x, x % 1 ? 2 : 0)}`;
+  const need = Math.max(0, p.minSpend - (Number(spend) || 0));
+  const head = region === "asia"
+    ? (planned > 0 ? `🎁 <b>${p.short}:</b> ${money(planned)} on Horizon at ${p.mpd} mpd (any category, ${p.label}).`
+      : `🎁 <b>${p.short}:</b> Horizon earns ${p.mpd} mpd here, but another card does better after the 3.25% FX fee.`)
+    : `🎁 <b>${p.short}:</b> paying in ${p.label}? Horizon earns ${p.mpd} mpd on any category till ${fmtDay(p.to)}.`;
+  const status = need > 0
+    ? `Needs S$${fmtNum(p.minSpend)} on Horizon this month: ${money(spend || 0)} so far, <b>${money(need)} more</b>. Below it Horizon earns its base rate.`
+    : `S$${fmtNum(p.minSpend)} this month met (${money(spend)} on Horizon).`;
+  const btn = (v, label) => `<button type="button" class="${region === v ? "on" : ""}" data-rate-region="${v}">${label}</button>`;
+  return `<div class="promo-callout">
+    <div>${head}</div>
+    <div class="promo-status">${status}</div>
+    <div class="fcy-view promo-region">${btn("asia", "JPY · KRW · CNY · HKD · TWD · THB · MYR · IDR")}${btn("other", "Other currency")}</div>
+    <small>Counted by the currency the charge posts in (online too); pay in the local currency, not SGD. No cap or registration. Ends ${fmtDay(p.to)}.</small>
+  </div>`;
+}
+
 export function wirePromoCallout(box, p, rerun) {
+  if (isRatePromo(p)) {
+    box.querySelectorAll("[data-rate-region]").forEach(b => b.addEventListener("click", () => savePromoPrefs(p.id, { region: b.dataset.rateRegion }).then(rerun)));
+    return;
+  }
   box.querySelectorAll("[data-promo-region]").forEach(b => b.addEventListener("click", () => savePromoPrefs(p.id, { region: b.dataset.promoRegion }).then(rerun)));
   box.querySelector("[data-promo-reg]")?.addEventListener("change", e => savePromoPrefs(p.id, { registered: e.target.checked }));
   box.querySelector("[data-promo-skip]")?.addEventListener("change", e => savePromoPrefs(p.id, { skip: e.target.checked }).then(rerun));

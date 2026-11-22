@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.63.82";
+export const APP_VERSION = "v1.63.83";
 
 // Who may sign in as which role is NOT in this file (the repo is public): it lives in the Firestore document milestrack_config/roles,
 // {primary: [...], sister: [...], member1: [...], member2: [...], test: [...], labels: {primary: "...", ...}}: lowercase email arrays plus the display names.
@@ -525,7 +525,7 @@ export const ALL_MASTER_CARDS = [
     cycleType: 'calendar', 
     strategyType: 'whitelist',
     badgeClass: '', 
-    hint: '2.8 mpd on FCY spend (any MCC) and on air tickets once S$800 is spent in the month. Air tickets capped at S$10k/month.', 
+    hint: '2.8 mpd on FCY spend (any MCC) and on air tickets once S$800 is spent in the month. Air tickets capped at S$10k/month. Promo till 31 Jan 2027: 3.2 mpd on spend in JPY, KRW, CNY, HKD, TWD, THB, MYR or IDR.', 
     isContactlessOnly: false,
     channelMode: 'both',
     themeClass: 'thumb-maybank'

@@ -156,7 +156,7 @@ export function resolveMccEntry(input) {
     return {
       code: "FCY-GEN",
       name: "General Overseas Spend (Any MCC)",
-      notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend), or 2.4 mpd on UOB PRVI.",
+      notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend; 3.2 mpd in JPY, KRW, CNY, HKD, TWD, THB, MYR and IDR till 31 Jan 2027), or 2.4 mpd on UOB PRVI.",
       candidatesOverseas: [{ id: "uob-vs-fcy", baseRate: 4.0 }]
     };
   }
@@ -237,6 +237,7 @@ let fcyAtMax = false;   // table view: false = as things stand now, true = every
 let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read by decorateFcyFees()
 let fcyPick = null;   // card id chosen in the 'pick one' tile (the no-fee card or the fee card for the last slice of a split)
 let lastPromo = null;   // Overseas mode: what the result did with a running card promotion (UOB PRVI 5 mpd), read by decoratePromo()
+let lastRate = null;    // the same for a rate promotion (Maybank Horizon 8X in Asian currencies, v1.63.83)
 let lastRecMcc = '';    // the MCC the last result was worked out on, so a PRVI entry logged from it can be counted for the promotion
 
 // UOB PRVI's overseas dining & shopping promotion (js/promos.js) as one capped Overseas plan row: base + bonus mpd for the region the user
@@ -267,6 +268,21 @@ function prviPromoUse(mccData, channel, amt) {
   return use;
 }
 
+// Maybank Horizon 8X (v1.63.83, js/promos.js): while it runs and the Overseas callout says the spend is in one of its eight currencies,
+// Horizon joins the plan as an UNCAPPED row at the promo rate for any MCC (its S$10k monthlyCap is the air-ticket cap, not a cap on
+// foreign spend). The S$800 monthly minimum is applied by fcyRow's tier gate, so below it Horizon is priced at base with a note.
+// It then competes as the fee option against Trust (no fee) and Maybank World, the same as any uncapped card.
+function horizonPromoUse(amt) {
+  const p = activePromo('mb-horizon-vs');
+  const card = state.cards.find(c => c.id === 'mb-horizon-vs');
+  if (!p || !card || !state.enabledCardIds.includes(card.id)) return null;
+  const use = { p, region: promoPrefs(p).region, spend: Number(card.currentSpend) || 0, planned: 0, row: null };
+  if (use.region !== 'asia') return use;
+  const promoCard = { ...card, monthlyCap: UNCAPPED_CAP, bonusMpd: p.mpd, fcyMpd: p.mpd, promoId: p.id };
+  use.row = fcyRow(promoCard, p.mpd, amt);
+  return use;
+}
+
 // Enabled cards with no monthly cap (the everyday-spend fallbacks).
 const enabledUncapped = () => state.cards.filter(c => state.enabledCardIds.includes(c.id) && isUncappedCard(c));
 
@@ -282,6 +298,7 @@ const tierRate = (card, total) => card.tierRule.steps.findLast(s => total >= s.a
 function renderRecommendationCore() {
   lastFcy = null;
   lastPromo = null;
+  lastRate = null;
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -536,6 +553,13 @@ function renderRecommendationCore() {
       // The promo row replaces PRVI's plain 2.4 / 3 mpd row and goes first: at 5 mpd it is the highest rate in the plan.
       if (promoUse.row) rowList = [promoUse.row, ...rowList.filter(r => r.card.id !== 'uob-prvi')];
     }
+    const rateUse = horizonPromoUse(amt);
+    if (rateUse) {
+      lastRate = rateUse;
+      // Replaces Horizon's own row unless that one already earns more (air tickets at 3.24 mpd within their cap).
+      const own = rowList.find(r => r.card.id === 'mb-horizon-vs');
+      if (rateUse.row && !(own && own.rate > rateUse.p.mpd)) rowList = [...rowList.filter(r => r.card.id !== 'mb-horizon-vs'), rateUse.row];
+    }
     const rowMiles = (r, a = amt) => r.room >= a ? milesFor(r.card, a, r.rate) : milesFor(r.card, r.room, r.rate) + milesFor(r.card, a - r.room, r.card.baseMpd);
     fcyPlan = planOverseas(rowList, amt, { milesOf: rowMiles });
     const toCand = r => ({ card: r.card, rate: r.rate, remainingCap: r.capped ? r.room : UNCAPPED_CAP, isUncapped: !r.capped, daysLeft: getDaysUntilCycleEnd(r.card) });
@@ -626,7 +650,7 @@ function renderRecommendationCore() {
       }
     }
 
-    if (lastPromo) lastPromo.planned = allocationSteps.filter(s => s.card.promoId).reduce((a, s) => a + s.amount, 0);
+    for (const u of [lastPromo, lastRate]) if (u) u.planned = allocationSteps.filter(s => s.card.promoId === u.p.id).reduce((a, s) => a + s.amount, 0);
     if (allocationSteps.length > 1) {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
       const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
@@ -681,7 +705,7 @@ function renderRecommendationCore() {
   }
 
   const singleCard = primary;
-  if (lastPromo) lastPromo.planned = singleCard.card.promoId ? amt : 0;
+  for (const u of [lastPromo, lastRate]) if (u) u.planned = singleCard.card.promoId === u.p.id ? amt : 0;
   let effectiveMpd = singleCard.rate;
   if (!singleCard.isUncapped && singleCard.remainingCap <= 0) {
     effectiveMpd = singleCard.card.baseMpd;
@@ -704,7 +728,7 @@ function renderRecommendationCore() {
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
   const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
-  const spaceLine = singleCard.card.promoId && lastPromo ? `🎁 ${escapeHtml(lastPromo.p.short)}: bonus room about S$${fmtNum(singleCard.remainingCap, 0)} · ends ${fmtDay(lastPromo.p.to)}` : `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
+  const spaceLine = lastPromo && singleCard.card.promoId === lastPromo.p.id ? `🎁 ${escapeHtml(lastPromo.p.short)}: bonus room about S$${fmtNum(singleCard.remainingCap, 0)} · ends ${fmtDay(lastPromo.p.to)}` : `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
     ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
@@ -967,13 +991,16 @@ function decoratePromo() {
   const box = document.getElementById('recResultArea');
   if (!box) return;
   box.querySelectorAll('.promo-callout').forEach(n => n.remove());
-  if (!lastPromo || !state.isOverseasMode || state.isKrisPlusMode) return;
-  const wrap = document.createElement('div');
-  wrap.innerHTML = promoCalloutHtml(lastPromo);
-  const el = wrap.firstElementChild;
-  const fees = box.querySelector('.fcy-fees');
-  if (fees) box.insertBefore(el, fees); else box.appendChild(el);
-  wirePromoCallout(el, lastPromo.p, () => runRecommendation());
+  if (!state.isOverseasMode || state.isKrisPlusMode) return;
+  for (const use of [lastPromo, lastRate]) {                                   // one callout per running promotion (v1.63.83)
+    if (!use) continue;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = promoCalloutHtml(use);
+    const el = wrap.firstElementChild;
+    const fees = box.querySelector('.fcy-fees');
+    if (fees) box.insertBefore(el, fees); else box.appendChild(el);
+    wirePromoCallout(el, use.p, () => runRecommendation());
+  }
 }
 
 // Shell pumps (MCC 5541): UOB PPV (mobile tap) and UOB VS add a 4% instant discount on top of Shell GO+ (see the 5541 note in MCC_DATABASE).
@@ -1349,6 +1376,11 @@ export function applyRecommendation(cardId, amt, desc, ctx = { kind: 'single' })
     if (abroad) abroad.value = p && promoPrefs(p).region === 'regional' ? 'REGIONAL' : 'OTHER';
     const mccIn = document.getElementById('txMccInput');
     if (mccIn && lastRecMcc && !mccIn.value) mccIn.value = lastRecMcc;
+  }
+  if (cardId === 'mb-horizon-vs' && state.isOverseasMode && !state.isKrisPlusMode) {
+    const p = activePromo('mb-horizon-vs');
+    const abroad = document.getElementById('txAbroadSelect');
+    if (abroad) abroad.dataset.preset = p && promoPrefs(p).region === 'asia' ? 'ASIA8' : 'OTHER';   // applied once the card's options are drawn
   }
 
   onCardSelectChange();
