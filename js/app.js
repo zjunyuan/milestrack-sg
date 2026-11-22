@@ -8,7 +8,8 @@ import {
   updateVaultDoc 
 } from "./firebase.js";
 import { 
-  runRecommendation
+  runRecommendation,
+  pickCategory
 } from "./recommender.js";
 import { initRetailerSuggest } from "./merchants.js";
 import { initHeymax } from "./heymax.js";
@@ -21,6 +22,7 @@ import { initRateHint } from "./rate-hint.js";
 import { initSettingsUi } from "./settings-ui.js";
 import { initSearchMode } from "./search-mode.js";
 import { initAsk } from "./ask.js";
+import { initTrip } from "./trip.js";
 import { initLayoutReport } from "./layout-report.js";
 import { initHistoryChips } from "./history-chips.js";
 import { openPartners, closePartners } from "./partners.js";
@@ -223,19 +225,8 @@ document.getElementById('settingsOverlay')?.addEventListener('click', (e) => {
 
 document.getElementById('btnSaveLedger')?.addEventListener('click', saveTransaction);
 
-document.getElementById('overseasSwitch')?.addEventListener('change', (e) => {
-  state.isOverseasMode = e.target.checked;
-  const bar = document.getElementById('overseasBar');
-  const text = document.getElementById('overseasText');
-  if (state.isOverseasMode) {
-    bar?.classList.add('active');
-    if (text) text.innerHTML = '<span style="color:var(--fcy-cyan);">✈️ Mode: Overseas Travel (FCY Spend)</span>';
-  } else {
-    bar?.classList.remove('active');
-    if (text) text.innerText = 'Mode: Singapore (Local SGD)';
-  }
-  runRecommendation();
-});
+// Overseas mode: the switch, the trip (country + back-on date) and the quick categories live in js/trip.js (v1.63.88).
+initTrip({ rerun: runRecommendation, pickCategory });
 
 document.getElementById('krisPlusSwitch')?.addEventListener('change', (e) => {
   state.isKrisPlusMode = e.target.checked;

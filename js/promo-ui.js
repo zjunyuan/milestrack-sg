@@ -2,8 +2,10 @@
 // choices behind them (registered, region, "won't reach the minimum"), saved in the settings doc as `promos`. Rules live in js/promos.js.
 import { state } from "./state.js";
 import { fmtNum } from "./format.js";
+import { escapeHtml } from "./retailers.js";
 import { mccOf } from "./summary.js";
 import { mergeSettingsDoc } from "./firebase.js";
+import { tripPlaceName } from "./trip.js";
 import { livePromo, activePromo, promoPrefs, promoProgress, daysLeft, fmtDay, mpdOf, ratioOf, dayStr, isBonusPromo, isRatePromo } from "./promos.js";
 
 // An entry's MCC for promotion checks: its own, else from the merchant name without the recommender's "[FCY] " / "(Part 2)" wording.
@@ -53,9 +55,13 @@ export function promoCalloutHtml(use) {
   const r = p.per5[region], ratio = ratioOf(p);
   const total = mpdOf(r.base + r.bonus, ratio), base = mpdOf(r.base, ratio);
   const money = x => `S$${fmtNum(x, x % 1 ? 2 : 0)}`;
+  // One figure for "how far from the minimum", counted AFTER this charge, the same as the result tile and the fee table (v1.63.88:
+  // the callout used to say what was missing before the charge and the table what was missing after it).
+  const after = prog.spend + (planned > 0 ? planned : 0), needAfter = Math.max(0, p.minSpend - after);
   const status = prog.met
     ? `S$${fmtNum(p.minSpend)} minimum met (${money(prog.spend)} logged). Bonus so far ${fmtNum(prog.miles)} of ${fmtNum(prog.capMiles)} mi${prog.capLeftPts > 0 ? `, about ${money(room)} more spend earns it` : ", cap reached"}.`
-    : `${money(prog.spend)} of the S$${fmtNum(p.minSpend)} minimum logged: <b>${money(prog.needMore)} more</b> of PRVI dining / shopping abroad by ${fmtDay(p.to)}, or there is no bonus at all and PRVI is just ${base} mpd for a 3.25% fee (worse than Trust).`;
+    : needAfter <= 0 ? `${money(prog.spend)} logged so far: <b>this charge reaches the S$${fmtNum(p.minSpend)} minimum</b>.`
+    : `${money(prog.spend)} logged so far${planned > 0 ? `, ${money(after)} with this charge` : ""}: <b>${money(needAfter)} more</b> of PRVI dining / shopping abroad by ${fmtDay(p.to)}, or there is no bonus at all and PRVI is just ${base} mpd for a 3.25% fee (worse than Trust).`;
   const head = eligible
     ? (planned > 0 ? `🎁 <b>${p.short}:</b> ${money(planned)} on PRVI at ${total} mpd (${base} now, ${mpdOf(r.bonus, ratio)} bonus by ${fmtDay(p.bonusBy)}).`
       : prefs.skip ? `🎁 <b>${p.short}</b> is left out: you said you won't reach S$${fmtNum(p.minSpend)}.`
@@ -66,7 +72,8 @@ export function promoCalloutHtml(use) {
   return `<div class="promo-callout">
     <div>${head}</div>
     <div class="promo-status">${status}</div>
-    <div class="fcy-view promo-region">${btn("region", "other", "Rest of world", region === "other")}${btn("region", "regional", "ID · MY · TH · VN", region === "regional")}</div>
+    ${prefs.fromTrip ? `<div class="promo-trip">📍 From your trip: ${escapeHtml(tripPlaceName())} (${prefs.fromTrip}) = ${region === "regional" ? "regional rate (ID · MY · TH · VN)" : "rest-of-world rate"}.</div>`
+      : `<div class="promo-q">Where is the charge?</div><div class="fcy-view promo-region">${btn("region", "other", "Rest of world", region === "other")}${btn("region", "regional", "ID · MY · TH · VN", region === "regional")}</div>`}
     <label class="promo-check"><input type="checkbox" data-promo-reg ${prefs.registered ? "checked" : ""}> I've registered (${p.register}, by ${fmtDay(p.registerBy)})</label>
     <label class="promo-check"><input type="checkbox" data-promo-skip ${prefs.skip ? "checked" : ""}> I won't reach S$${fmtNum(p.minSpend)}: leave PRVI out</label>
     <small>In person only, dining and shopping MCCs (not ${p.excluded}). Pay in the local currency. Ends ${fmtDay(p.to)} (charges must post by then).</small>
@@ -77,11 +84,13 @@ export function promoCalloutHtml(use) {
 // { p, region ("asia" | "other"), spend (on the card this month), planned (S$ put on the card in the result), locked (S$800 not met) }.
 function rateCalloutHtml(use) {
   const { p, region, spend, planned } = use;
+  const fromTrip = promoPrefs(p).fromTrip;
   const money = x => `S$${fmtNum(x, x % 1 ? 2 : 0)}`;
   const need = Math.max(0, p.minSpend - (Number(spend) || 0));
   const head = region === "asia"
     ? (planned > 0 ? `🎁 <b>${p.short}:</b> ${money(planned)} on Horizon at ${p.mpd} mpd (any category, ${p.label}).`
       : `🎁 <b>${p.short}:</b> Horizon earns ${p.mpd} mpd here, but another card does better after the 3.25% FX fee.`)
+    : fromTrip ? `🎁 <b>${p.short}</b> doesn't apply: ${fromTrip} is not one of its currencies (${p.label}).`
     : `🎁 <b>${p.short}:</b> paying in ${p.label}? Horizon earns ${p.mpd} mpd on any category till ${fmtDay(p.to)}.`;
   const status = need > 0
     ? `Needs S$${fmtNum(p.minSpend)} on Horizon this month: ${money(spend || 0)} so far, <b>${money(need)} more</b>. Below it Horizon earns its base rate.`
@@ -90,7 +99,8 @@ function rateCalloutHtml(use) {
   return `<div class="promo-callout">
     <div>${head}</div>
     <div class="promo-status">${status}</div>
-    <div class="fcy-view promo-region">${btn("asia", "JPY · KRW · CNY · HKD · TWD · THB · MYR · IDR")}${btn("other", "Other currency")}</div>
+    ${fromTrip ? `<div class="promo-trip">📍 From your trip: ${escapeHtml(tripPlaceName())} (${fromTrip}).</div>`
+      : `<div class="fcy-view promo-region">${btn("asia", "JPY · KRW · CNY · HKD · TWD · THB · MYR · IDR")}${btn("other", "Other currency")}</div>`}
     <small>Counted by the currency the charge posts in (online too); pay in the local currency, not SGD. No cap or registration. Ends ${fmtDay(p.to)}.</small>
   </div>`;
 }

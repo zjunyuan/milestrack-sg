@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link rel="stylesheet" href="css/style.css?v=1.63.87">
+  <link rel="stylesheet" href="css/style.css?v=1.63.88">
 </head>
 <body>
 
@@ -70,6 +70,14 @@
             <span class="slider"></span>
           </label>
         </div>
+        <!-- v1.63.88: the trip (js/trip.js). One "where are you?" answer for every overseas promotion, and the pay-in-local-currency reminder -->
+        <div class="trip-row" id="tripRow" hidden>
+          <div class="trip-fields">
+            <label>Where are you?<select id="tripPlace" class="form-control" aria-label="Country of the trip"></select></label>
+            <label>Back on<input type="date" id="tripUntil" class="form-control" aria-label="Last day of the trip"></label>
+          </div>
+          <div class="trip-tip" id="tripTip"></div>
+        </div>
 
         <div class="presets-section">
           <div class="presets-header">
@@ -120,6 +128,8 @@
             </div>
             <input type="text" inputmode="decimal" id="recAmount" class="form-control" placeholder="Amt (S$)">
           </div>
+          <!-- v1.63.88: Overseas mode quick categories, for shops the retailer list does not know (js/trip.js) -->
+          <div class="fcy-cats" id="fcyCats" hidden></div>
 
           <details class="rec-options" id="recOptions">
             <summary><span class="material-symbols-outlined">tune</span> Options <span class="rec-options-badge" id="recOptionsBadge">defaults</span></summary>
@@ -781,6 +791,6 @@
       }, 6000);
     })();
   </script>
-  <script type="module" src="js/app.js?v=1.63.87"></script>
+  <script type="module" src="js/app.js?v=1.63.88"></script>
 </body>
 </html>

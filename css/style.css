@@ -1390,3 +1390,28 @@ img.card-thumb { object-fit: cover; }
 .yuu-chip.on { border-color: transparent; }
 .yuu-chip .yuu-tick { font-size: 14px; }
 .ask-ai { color: #c4b5fd; }
+
+/* v1.63.88: Overseas trip (js/trip.js): where you are, when you are back, quick categories, and a shorter result */
+.trip-row { background: rgba(56, 189, 248, 0.07); border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.trip-row[hidden], .fcy-cats[hidden] { display: none; }
+.trip-fields { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.trip-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 0.7rem; font-weight: 600; color: var(--muted); min-width: 0; }
+.trip-fields .form-control { min-height: 40px; font-size: 0.85rem; padding: 6px 8px; width: 100%; min-width: 0; }
+.trip-tip { font-size: 0.78rem; line-height: 1.4; color: #cbd5e1; }
+.trip-tip b { color: var(--fcy-cyan); }
+.trip-tip-soft { color: var(--muted); }
+body.overseas-on .presets-section { display: none; }   /* Singapore shop presets are no use abroad */
+.fcy-cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 2px 0 4px; }
+.fcy-cat { min-height: 40px; padding: 6px 4px; border-radius: 12px; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--hairline); background: var(--surface-variant); color: #e2e8f0; font-size: 0.76rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.fcy-cat.on { background: var(--fcy-cyan); border-color: var(--fcy-cyan); color: #06222f; }
+.rec-why { font-size: 0.78rem; line-height: 1.4; color: var(--muted); }
+.rec-why b { color: #cbd5e1; font-weight: 600; }
+.promo-hold { margin-top: 6px; }
+.promo-bar { height: 6px; border-radius: 999px; background: rgba(251, 191, 36, 0.18); margin-top: 6px; overflow: hidden; }
+.promo-bar span { display: block; height: 100%; min-width: 4px; border-radius: 999px; background: var(--warning); }
+.promo-bar-label { font-size: 0.7rem; margin-top: 3px; opacity: 0.9; }
+.promo-callout .promo-trip { font-size: 0.74rem; color: #cbd5e1; margin-top: 6px; }
+.promo-callout .promo-q { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+.fcy-table td > div + div { margin-top: 4px; }
+.fcy-any { display: block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 2px; }
+.fcy-view button { min-height: 32px; }

@@ -20,6 +20,7 @@ import { setSearchMode } from "./search-mode.js";
 import { planOverseas, billedAmount, fcyEconomics } from "./fcy.js";
 import { activePromo, promoPrefs, promoProgress, promoMccOk, roomSpend, mpdOf, ratioOf, fmtDay } from "./promos.js";
 import { promoMccOfEntry, promoCalloutHtml, wirePromoCallout } from "./promo-ui.js";
+import { markTripCategory } from "./trip.js";
 import { getMccEntry, getBuiltinMccEntry, normalizeRule, ruleIsActive, isKnownMcc, mccName, findMccByName, mccOptionsHtml, shortCategory } from "./mcc.js";
 
 export function calcEarnedMiles(card, amount, rate) {
@@ -113,9 +114,40 @@ export function applyRetailerSelection(name, mcc) {
   return label;
 }
 
+// Overseas quick categories (js/trip.js, v1.63.88): a chip fills the box like a brand pick, but resolves straight to its MCC
+// (mcc "" = general spend abroad), so a category word is never mistaken for a retailer.
+export const FCY_GENERAL_LABEL = 'Other spend abroad';
+const FCY_GENERAL_NOTES = "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend; 3.2 mpd in JPY, KRW, CNY, HKD, TWD, THB, MYR and IDR till 31 Jan 2027), or 2.4 mpd on UOB PRVI.";
+const fcyGeneralEntry = () => ({
+  code: "FCY-GEN",
+  name: "General Overseas Spend (Any MCC)",
+  notes: FCY_GENERAL_NOTES,
+  candidatesOverseas: [{ id: "uob-vs-fcy", baseRate: 4.0 }]
+});
+export function pickCategory(labelText, mcc) {
+  const label = mcc ? `${labelText} · ${mcc} · ${mccName(mcc)}` : FCY_GENERAL_LABEL;
+  state.selectedRetailer = { name: labelText, mcc: mcc || '', label, cat: true };
+  setSearchMode('retailer');
+  const input = document.getElementById('mccInput');
+  if (input) {
+    input.value = label;
+    input.dataset.committed = label;
+    input.closest('.mcc-input-wrapper')?.classList.add('has-selection');
+  }
+  const clearBtn = document.getElementById('btnClearMcc');
+  if (clearBtn) clearBtn.style.display = 'flex';
+  runRecommendation();
+}
+
 export function resolveMccEntry(input) {
   const clean = (input || '').trim().toLowerCase();
   if (!clean) return null;
+
+  const cat = state.selectedRetailer;
+  if (cat && cat.cat && normalizeText(clean) === normalizeText(cat.label)) {
+    if (cat.mcc) { const e = getMccEntry(cat.mcc); if (e) return { ...e, catName: cat.name }; }
+    else if (state.isOverseasMode) return fcyGeneralEntry();
+  }
 
   const promo = checkOcbc6MpdPromo(clean);
   if (promo) return promo;
@@ -159,14 +191,7 @@ export function resolveMccEntry(input) {
   const kpEntry = kp && getMccEntry(krisPlusMcc(kp));
   if (kpEntry) return { ...kpEntry, krisMerchant: kp.name, notes: `${kpEntry.notes}<br>ℹ️ <b>MCC assumed:</b> ${kp.name} is on the Kris+ list but not in the retailer list, so cards are ranked on MCC ${krisPlusMcc(kp)} (${kp.category}). Its real MCC may differ; add the retailer to set it exactly.` };
 
-  if (state.isOverseasMode) {
-    return {
-      code: "FCY-GEN",
-      name: "General Overseas Spend (Any MCC)",
-      notes: "In Overseas Mode, ANY retail spend in foreign currency earns 4.0 mpd on UOB VS (S$1.2k cap), 3.2 mpd on Maybank World MC (min S$4,000 spend, uncapped), 2.8 mpd on Maybank Horizon (min S$800 spend; 3.2 mpd in JPY, KRW, CNY, HKD, TWD, THB, MYR and IDR till 31 Jan 2027), or 2.4 mpd on UOB PRVI.",
-      candidatesOverseas: [{ id: "uob-vs-fcy", baseRate: 4.0 }]
-    };
-  }
+  if (state.isOverseasMode) return fcyGeneralEntry();
 
   if (state.isKrisPlusMode) {
     return {
@@ -245,6 +270,8 @@ let lastFcy = null;   // set by renderRecommendationCore in Overseas mode, read 
 let fcyPick = null;   // card id chosen in the 'pick one' tile (the no-fee card or the fee card for the last slice of a split)
 let lastPromo = null;   // Overseas mode: what the result did with a running card promotion (UOB PRVI 5 mpd), read by decoratePromo()
 let lastRate = null;    // the same for a rate promotion (Maybank Horizon 8X in Asian currencies, v1.63.83)
+let lastGeneral = false; // the last result was general spend abroad (no MCC), for the Overseas category chips
+let moreOpenFor = '';    // the search text + mode whose "Details" the user opened, so a re-run (region, tabs, amount) keeps it open
 let lastRecMcc = '';    // the MCC the last result was worked out on, so a PRVI entry logged from it can be counted for the promotion
 
 // UOB PRVI's overseas dining & shopping promotion (js/promos.js) as one capped Overseas plan row: base + bonus mpd for the region the user
@@ -267,9 +294,10 @@ function prviPromoUse(mccData, channel, amt) {
   const r = p.per5[region], ratio = ratioOf(p);
   const rate = mpdOf(r.base + r.bonus, ratio), base = mpdOf(r.base, ratio);
   const after = prog.spend + Math.min(amt, use.room);
+  use.after = after;
   const note = fcyAtMax || prog.met ? `promo bonus on about S$${fmtNum(use.room, 0)} more`
     : after >= p.minSpend ? `this charge reaches the S$${fmtNum(p.minSpend)} promo minimum`
-    : `promo needs S$${fmtNum(p.minSpend - after, 0)} more PRVI dining / shopping abroad by ${fmtDay(p.to)}`;
+    : `after this charge the promo still needs S$${fmtNum(p.minSpend - after, 0)} more PRVI dining / shopping abroad by ${fmtDay(p.to)}`;
   const promoCard = { ...card, baseMpd: base, bonusMpd: rate, monthlyCap: use.room, currentSpend: 0, promoId: p.id };
   use.row = { card: promoCard, rate, capped: true, room: use.room, note };
   return use;
@@ -290,6 +318,40 @@ function horizonPromoUse(amt) {
   return use;
 }
 
+// v1.63.88: the PRVI promotion's bonus is paid only if the S$1,500 minimum is reached and the card is registered. Until both are true the
+// tile shows what UOB posts for certain (2.4 / 3 mpd) and the bonus as a condition with a progress bar, where it used to print 5 mpd flat.
+// The plan is unchanged (the minimum is noted, not gated). null = nothing to hold back.
+function promoHold(card, amount) {
+  const u = lastPromo;
+  if (!u || !u.row || !card || card.promoId !== u.p.id || fcyAtMax) return null;
+  const p = u.p, registered = promoPrefs(p).registered;
+  const short = !u.prog.met && u.after < p.minSpend;
+  if (registered && !short) return null;
+  const now = milesFor(card, amount, card.baseMpd), extra = Math.max(0, milesFor(card, amount, card.bonusMpd) - now);
+  const conds = [];
+  if (short) conds.push(`you spend <b>S$${fmtNum(p.minSpend - u.after, 0)} more</b> on PRVI dining / shopping abroad by ${fmtDay(p.to)}`);
+  if (!registered) conds.push(`you register the card by ${fmtDay(p.registerBy)} (tick it under Details)`);
+  const pct = Math.max(0, Math.min(100, u.after / p.minSpend * 100));
+  const html = `<div class="ct-chip ct-chip-lock promo-hold">🎁 <b>+${fmtNum(Math.round(extra))} mi more (${card.bonusMpd} mpd in all)</b> only if ${conds.join(' and ')}. Otherwise this is ${card.baseMpd} mpd with a 3.25% fee.
+    ${short ? `<div class="promo-bar"><span style="width:${pct.toFixed(0)}%"></span></div>
+    <div class="promo-bar-label">S$${fmtNum(u.after, 0)} of S$${fmtNum(p.minSpend)} with this charge</div>` : ''}</div>`;
+  return { now, extra, html };
+}
+
+// One line of "why this card" under an Overseas answer; the full fee table sits under Details.
+function fcyWhyHtml(card, hold) {
+  if (!lastFcy || !lastFcy.plan || !state.isOverseasMode || state.isKrisPlusMode || !card) return '';
+  const { plan } = lastFcy, v = plan.valueCents, best = plan.best;
+  const b = plan.bonus.find(r => r.card.id === card.id);
+  let t = '';
+  if (b && best && b.inc && b.inc.costPerExtraMileCents !== null) {
+    t = `${hold ? `At ${card.bonusMpd} mpd it` : 'It'} beats ${cardShort(best.card)} (${best.eco.feePct > 0 ? `${best.eco.feePct}% fee` : 'no FX fee'}) even after its ${b.eco.feePct}% FX fee: ${b.inc.costPerExtraMileCents.toFixed(2)}¢ per extra mile, under your ${v}¢.${hold ? ' Without the bonus it would not.' : ''}`;
+  } else if (best && best.card.id === card.id) {
+    t = best.eco.feePct > 0 ? `Best uncapped card here after its ${best.eco.feePct}% FX fee.` : `No FX fee, and no bonus card is worth its fee for this spend.`;
+  }
+  return t ? `<div class="rec-why"><b>Why:</b> ${escapeHtml(t)}</div>` : '';
+}
+
 // Enabled cards with no monthly cap (the everyday-spend fallbacks).
 const enabledUncapped = () => state.cards.filter(c => state.enabledCardIds.includes(c.id) && isUncappedCard(c));
 
@@ -306,6 +368,8 @@ function renderRecommendationCore() {
   lastFcy = null;
   lastPromo = null;
   lastRate = null;
+  lastRecMcc = '';
+  lastGeneral = false;
   const inputVal = document.getElementById('mccInput')?.value;
   const rawAmt = (document.getElementById('recAmount')?.value || '').replace(/,/g, '');
   const amt = parseFloat(rawAmt) || 100;
@@ -316,7 +380,7 @@ function renderRecommendationCore() {
   const effectiveChannel = state.isKrisPlusMode ? 'online' : state.currentChannel;
   const resolvedMcc = resolveMccEntry(inputVal);
   // For a known brand, label the result "Brand · Category" but log just the brand name.
-  const namedMerchant = resolvedMcc?.retailer?.name || resolvedMcc?.krisMerchant || resolvedMcc?.aiMerchant || '';
+  const namedMerchant = resolvedMcc?.retailer?.name || resolvedMcc?.krisMerchant || resolvedMcc?.aiMerchant || resolvedMcc?.catName || '';
   const mccData = namedMerchant
     ? { ...resolvedMcc, name: `${escapeHtml(namedMerchant)} · ${shortCategory(resolvedMcc.name)}` }
     : resolvedMcc;
@@ -326,7 +390,7 @@ function renderRecommendationCore() {
     const hint = `${state.isKrisPlusMode
           ? '🛍️ <b>Kris+ Mode Active:</b> Paying via in-app Apple/Google Pay. DBS WWMC earns 4.0 mpd on almost all merchants. KF UOB earns 3.0 mpd uncapped. Type merchant or MCC.'
           : (state.isOverseasMode 
-            ? '✈️ <b>Overseas Mode Active:</b> Type any store, merchant or MCC to get the best FCY card recommendation.' 
+            ? '✈️ <b>Overseas mode:</b> tap a category above, or type a shop or MCC.' 
             : (/^\d{4}$/.test(inputVal.trim()) ? `MCC <b>${escapeHtml(inputVal.trim())}</b> isn't in our list yet, so there are no card rules for it. Pick one of the closest codes above, or ask to have it added.` : ''))}`;
     // No hint when nothing is typed: the box stays empty (and hidden) until there is something to say.
     resultArea.innerHTML = hint.trim() ? `<div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${hint}</div>` : '';
@@ -334,6 +398,7 @@ function renderRecommendationCore() {
   }
 
   lastRecMcc = /^\d{4}$/.test(String(mccData.code || '')) ? String(mccData.code) : '';
+  lastGeneral = mccData.code === 'FCY-GEN';
   let candidateList = state.isOverseasMode ? (mccData.candidatesOverseas || []) : (mccData.candidatesLocal || []);
 
   // DBS yuu's 10 mpd is for yuu partner brands only, but the category rules list it for the whole MCC (supermarkets, pharmacies, transit, taxis).
@@ -658,6 +723,10 @@ function renderRecommendationCore() {
     }
 
     for (const u of [lastPromo, lastRate]) if (u) u.planned = allocationSteps.filter(s => s.card.promoId === u.p.id).reduce((a, s) => a + s.amount, 0);
+    for (const st of allocationSteps) {                                         // promo bonus not certain yet: count it as pending
+      const hold = promoHold(st.card, st.amount);
+      if (hold) Object.assign(st, { hold, miles: hold.now, pendingMiles: (st.pendingMiles || 0) + hold.extra });
+    }
     if (allocationSteps.length > 1) {
       const totalCombinedMiles = allocationSteps.reduce((sum, s) => sum + s.miles, 0);
       const totalPending = allocationSteps.reduce((sum, s) => sum + (s.pendingMiles || 0), 0);
@@ -670,16 +739,16 @@ function renderRecommendationCore() {
           stepsHtml += fcyPickTileHtml(step.pick, step.amount, idx, `${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})`, keyFor);
           return;
         }
-        const nowRate = step.gate && step.gate.locked ? step.gate.lockedMpd : step.rate;
+        const nowRate = step.hold ? step.card.baseMpd : (step.gate && step.gate.locked ? step.gate.lockedMpd : step.rate);
         stepsHtml += cardTileHtml({
           card: step.card,
           amount: step.amount,
           miles: step.miles,
           rate: nowRate,
-          rateNote: step.gate && step.gate.locked ? ' now' : (step.isBase ? ' general' : ''),
+          rateNote: step.hold || (step.gate && step.gate.locked) ? ' now' : (step.isBase ? ' general' : ''),
           rank: idx + 1,
           btn: `data-part="${idx}" data-cardid="${step.card.id}" data-amount="${step.amount}" data-desc="${state.isKrisPlusMode ? 'Kris+ ' : ''}${escapeHtml(descName)} (Part ${idx + 1})"`,
-          chips: stepChipsHtml(step, descName)
+          chips: stepChipsHtml(step, descName) + (step.hold ? step.hold.html : '')
         });
       });
 
@@ -690,7 +759,8 @@ function renderRecommendationCore() {
             <span class="material-symbols-outlined" style="font-size:16px;">call_split</span>
             Use ${allocationSteps.length} cards · S$${fmtNum(amt, 2)} · ${fmtNum(Math.round(totalCombinedMiles))} miles
           </div>
-          ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the minimum spend is reached</div>` : ''}
+          ${totalPending ? `<div class="cascade-sub">+${fmtNum(Math.round(totalPending))} more once the ${allocationSteps.some(s => s.hold) ? 'conditions marked below are met' : 'minimum spend is reached'}</div>` : ''}
+          ${lastFcy && lastFcy.plan && lastFcy.plan.best && state.isOverseasMode && !state.isKrisPlusMode ? `<div class="rec-why"><b>Why this order:</b> bonus cards that still beat ${escapeHtml(cardShort(lastFcy.plan.best.card))} after FX fees go first, up to their caps. The rest goes on an uncapped card.</div>` : ''}
           ${stepsHtml}
         </div>
         ${state.isKrisPlusMode ? `<div class="kris-stacked-badge">💡 <b>Kris+ Double-Dip:</b> Stacks with instant Kris+ partner miles. Transfer within 21 days!</div>` : ''}
@@ -729,17 +799,19 @@ function renderRecommendationCore() {
   }
 
   if (smallAmountNote) roundingWarning = smallAmountNote;
+  const hold = promoHold(singleCard.card, amt);
   const runnerUp = scoredCandidates[1];
   // v1.63.82: the next-best card is shown under the answer (it used to sit folded away in Details & alternatives)
   const backup = runnerUp && runnerUp.card.id !== singleCard.card.id ? runnerUp : null;
   const isShellFuel = mccData.code === "5541" && (singleCard.card.bank === 'UOB' || singleCard.card.bank === 'Maybank');
 
   const shellHtml = isShellFuel ? `<div class="kris-stacked-badge" style="background:rgba(251, 191, 36, 0.12); color:var(--gold); border-color:rgba(251, 191, 36, 0.3);">⛽ <b>Shell Fuel Stacking:</b> ${singleCard.card.bank === 'UOB' ? '14% instant discount + 4.0 mpd!' : '10% Shell Go+ + 4.0 mpd.'}</div>` : '';
-  const spaceLine = lastPromo && singleCard.card.promoId === lastPromo.p.id ? `🎁 ${escapeHtml(lastPromo.p.short)}: bonus room about S$${fmtNum(singleCard.remainingCap, 0)} · ends ${fmtDay(lastPromo.p.to)}` : `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
+  const spaceLine = hold ? '' : lastPromo && singleCard.card.promoId === lastPromo.p.id ? `🎁 ${escapeHtml(lastPromo.p.short)}: bonus room about S$${fmtNum(singleCard.remainingCap, 0)} · ends ${fmtDay(lastPromo.p.to)}` : `${singleCard.isUncapped ? 'Uncapped' : `Space left <b>$${fmtNum(singleCard.remainingCap, 2)}</b> / $${fmtAuto(singleCard.card.monthlyCap)}`}${singleCard.isUncapped ? '' : ` • resets in ${singleCard.daysLeft}d`}`;
   resultArea.innerHTML = `
     ${contextLineHtml(mccData, effectiveChannel)}
-    ${cardTileHtml({ card: singleCard.card, amount: amt, miles: calculatedMiles, rate: effectiveMpd, label: 'Use this card', btn: 'id="btnApplySingleRec"' })}
-    <div class="rec-winner-meta">${spaceLine}</div>
+    ${cardTileHtml({ card: singleCard.card, amount: amt, miles: hold ? hold.now : calculatedMiles, rate: hold ? singleCard.card.baseMpd : effectiveMpd, rateNote: hold ? ' for sure' : '', label: 'Use this card', btn: 'id="btnApplySingleRec"', chips: hold ? hold.html : '' })}
+    ${spaceLine ? `<div class="rec-winner-meta">${spaceLine}</div>` : ''}
+    ${fcyWhyHtml(singleCard.card, hold)}
     ${backup ? `<div class="rec-backup">Backup: <b>${escapeHtml(cardShort(backup.card))}</b> · ${backup.rate} mpd</div>` : ''}
     ${singleCard.card.id === 'dbs-yuu' ? yuuUnlockNote(singleCard.card, descName) : ''}
     ${singleGateHtml(singleCard.card, amt, effectiveMpd, singleCard.daysLeft)}
@@ -803,14 +875,19 @@ function contextLineHtml(mccData, effectiveChannel) {
 // Rules, promos and alternatives, folded away so the answer stays on screen. Stays open when the rules contain a warning or an exclusion.
 function moreHtml(mccData, effectiveChannel, extraHtml) {
   const notes = String(mccData.notes || '');
-  const important = /⚠️|❌/.test(notes) && !/No hand-written rules/i.test(notes);
+  const abroad = state.isOverseasMode && !state.isKrisPlusMode;
+  // Overseas (v1.63.88): the fee table, promo callouts and tier notes are moved in here, so it only opens by itself for an exclusion.
+  const important = (abroad ? /❌/ : /⚠️|❌/).test(notes) && !/No hand-written rules/i.test(notes);
   const pre = state.isKrisPlusMode ? '🛍️ Kris+ ' : (state.isOverseasMode ? '✈️ FCY: ' : '');
   const border = state.isKrisPlusMode ? 'border-left-color:var(--kris-cyan);' : (state.isOverseasMode ? 'border-left-color:var(--fcy-cyan);' : '');
-  return `<details class="rec-more"${important ? ' open' : ''}><summary>Details &amp; alternatives</summary>
+  return `<details class="rec-more"${important || moreOpenFor === moreKey() ? ' open' : ''}><summary>${abroad ? 'Details: fees, promos &amp; other cards' : 'Details &amp; alternatives'}</summary>
     ${extraHtml || ''}
     <div class="mcc-tag-box" style="${border}"><b>${pre}${mccData.name}</b> [${effectiveChannel === 'online' ? '🌐 Online / In-App' : '🏪 In-Person'}]<br>${notesHtml(mccData.notes)}</div>
   </details>`;
 }
+const moreKey = () => `${document.getElementById('mccInput')?.value || ''}|${state.isOverseasMode}|${state.isKrisPlusMode}`;
+// Where the Overseas extras (tier notes, promo callouts, fee table) go: inside Details when the result has one, else under the result.
+const decoTarget = (box) => (state.isOverseasMode && !state.isKrisPlusMode && box.querySelector('.rec-more')) || box;
 
 // Short text for the Options row: only what differs from the defaults, so a closed row still says if something is switched.
 function updateOptionsBadge() {
@@ -870,7 +947,7 @@ function decorateTierCallouts() {
     const div = document.createElement('div');
     div.className = 'tier-callout';
     div.innerHTML = lines.map(l => '⚠️ ' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>');
-    box.appendChild(div);
+    decoTarget(box).appendChild(div);
   }
 }
 
@@ -978,7 +1055,14 @@ function decorateFcyFees() {
   const opts = lastFcy.picked ? '' : plan.withFee && plan.noFee && !sameCard
     ? `<div class="fcy-opts">${optionHtml(plan.noFee, 'No FX fee')}${optionHtml(plan.withFee, 'More miles, pays a fee')}</div>`
     : `<div class="fcy-opts">${optionHtml(plan.best, 'Uncapped')}</div>`;
-  const bonusRows = plan.bonus.map(r => `<tr><td>${escapeHtml(cardShort(r.card))}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</td><td>${mi(r.eco.miles)}</td><td>${money(r.eco.fee)}</td><td>${cents(r.inc.costPerExtraMileCents)}</td><td>+${money(r.inc.gain)}</td></tr>`).join('');
+  // Cards with the same miles, fee, cost and gain share one row (four 4 mpd cards used to print four identical lines).
+  const groups = [];
+  for (const r of plan.bonus) {
+    const cells = [mi(r.eco.miles), money(r.eco.fee), cents(r.inc.costPerExtraMileCents), `+${money(r.inc.gain)}`];
+    const g = groups.find(x => x.key === cells.join('|'));
+    if (g) g.rows.push(r); else groups.push({ key: cells.join('|'), cells, rows: [r] });
+  }
+  const bonusRows = groups.map(g => `<tr><td>${g.rows.length > 1 ? '<span class="fcy-any">Any of these</span>' : ''}${g.rows.map(r => `<div>${escapeHtml(cardShort(r.card))}${r.note ? `<small>${escapeHtml(r.note)}</small>` : ''}</div>`).join('')}</td>${g.cells.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
   const bonusHtml = bonusRows ? `<div class="fcy-sec">Bonus cards that beat ${escapeHtml(cardShort(plan.best.card))} after fees (use these first, up to their caps)</div>
     <table class="fcy-table"><thead><tr><th>Card</th><th>Miles</th><th>FX fee</th><th>Cost / extra mile</th><th>Gain</th></tr></thead><tbody>${bonusRows}</tbody></table>` : '';
   const hiddenHtml = plan.hidden.length ? `<details class="fcy-hidden"><summary>Not worth using abroad at ${v}¢ (${plan.hidden.length})</summary>${plan.hidden.map(r =>
@@ -986,11 +1070,11 @@ function decorateFcyFees() {
   const div = document.createElement('div');
   div.className = 'fcy-fees';
   div.innerHTML = `<details open><summary>💱 Overseas, after FX fees · S$${fmtAuto(amt)}${fcyAtMax ? ' · at max rates' : ''}</summary>
-    <div class="fcy-view"><button type="button" class="${fcyAtMax ? '' : 'on'}" data-fcy-view="now">Now</button><button type="button" class="${fcyAtMax ? 'on' : ''}" data-fcy-view="max">At max rate</button></div>
+    <div class="fcy-view"><button type="button" class="${fcyAtMax ? '' : 'on'}" data-fcy-view="now">With my spend so far</button><button type="button" class="${fcyAtMax ? 'on' : ''}" data-fcy-view="max">If every minimum is met</button></div>
     ${opts}${bonusHtml}${hiddenHtml}
     <div class="fcy-foot">Miles are earned on the billed amount (spend + FX fee). Cost per extra mile = extra fee ÷ extra miles versus ${escapeHtml(cardShort(plan.best.card))}. Gain = extra miles × ${v}¢ − extra fee. Paying in SGD at the terminal adds a separate 1% and is not counted.</div></details>`;
   div.querySelectorAll('[data-fcy-view]').forEach(b => b.addEventListener('click', () => { fcyAtMax = b.dataset.fcyView === 'max'; runRecommendation(); }));
-  box.appendChild(div);
+  decoTarget(box).appendChild(div);
 }
 
 // Overseas mode with a running card promotion: what it did for this spend, its progress and the user's choices (js/promo-ui.js).
@@ -1005,7 +1089,7 @@ function decoratePromo() {
     wrap.innerHTML = promoCalloutHtml(use);
     const el = wrap.firstElementChild;
     const fees = box.querySelector('.fcy-fees');
-    if (fees) box.insertBefore(el, fees); else box.appendChild(el);
+    if (fees) fees.parentNode.insertBefore(el, fees); else decoTarget(box).appendChild(el);
     wirePromoCallout(el, use.p, () => runRecommendation());
   }
 }
@@ -1026,6 +1110,9 @@ export function runRecommendation() {
   decorateTierCallouts();
   decorateFcyFees();
   decoratePromo();
+  markTripCategory(lastRecMcc, lastGeneral);
+  const more = document.querySelector('#recResultArea .rec-more');
+  if (more) more.addEventListener('toggle', () => { moreOpenFor = more.open ? moreKey() : ''; });
   decorateRetailerTools();
   decorateRuleTools();
 }
@@ -1091,6 +1178,8 @@ function decorateRetailerTools() {
 
   const input = (document.getElementById('mccInput')?.value || '').trim();
   if (!input || /^\d{4}$/.test(input)) return;
+  const sel = state.selectedRetailer;
+  if (sel && sel.cat && normalizeText(input) === normalizeText(sel.label)) return;   // an Overseas category chip is not a retailer to add or correct
 
   const resolved = resolveMccEntry(input);
   const retailer = resolved && resolved.retailer;
@@ -1383,6 +1472,11 @@ export function applyRecommendation(cardId, amt, desc, ctx = { kind: 'single' })
     if (abroad) abroad.value = p && promoPrefs(p).region === 'regional' ? 'REGIONAL' : 'OTHER';
     const mccIn = document.getElementById('txMccInput');
     if (mccIn && lastRecMcc && !mccIn.value) mccIn.value = lastRecMcc;
+  }
+  // An Overseas category chip (v1.63.88): the name is only "Dining", so keep the MCC on the entry for History and the points check.
+  if (state.isOverseasMode && !state.isKrisPlusMode && state.selectedRetailer && state.selectedRetailer.cat && lastRecMcc) {
+    const mccIn = document.getElementById('txMccInput');
+    if (mccIn && !mccIn.value) mccIn.value = lastRecMcc;
   }
   if (cardId === 'mb-horizon-vs' && state.isOverseasMode && !state.isKrisPlusMode) {
     const p = activePromo('mb-horizon-vs');

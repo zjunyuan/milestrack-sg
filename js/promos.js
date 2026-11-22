@@ -18,6 +18,7 @@
 import { ALL_MASTER_CARDS, DEFAULT_VAULT } from "./config.js";
 import { state } from "./state.js";
 import { PRVI_REGIONAL, fxCurrency, isPrviForeign } from "./cardrules.js";
+import { tripCur } from "./trip.js";
 
 const set = (...a) => new Set(a.map(String));
 
@@ -81,8 +82,11 @@ export const daysLeft = (p, now = Date.now()) => Math.max(0, Math.ceil((dayEnd(p
 // skip (won't reach the minimum, so do not plan around it).
 export function promoPrefs(p) {
   const v = (state.promos && state.promos[p.id]) || {};
-  if (isRatePromo(p)) return { region: v.region === "asia" ? "asia" : "other" };   // "asia" = paying in one of the promo's currencies
-  return { registered: !!v.registered, region: v.region === "regional" ? "regional" : "other", skip: !!v.skip };
+  // Overseas mode's trip (js/trip.js, v1.63.88) answers "where are you?" once: its currency sets the region for every promotion, and
+  // `fromTrip` tells the callout to say so instead of asking again. No trip currency = the saved choice, as before.
+  const cur = tripCur();
+  if (isRatePromo(p)) return cur ? { region: p.currencies.has(cur) ? "asia" : "other", fromTrip: cur } : { region: v.region === "asia" ? "asia" : "other" };   // "asia" = paying in one of the promo's currencies
+  return { registered: !!v.registered, region: cur ? regionOfCur(cur) : (v.region === "regional" ? "regional" : "other"), skip: !!v.skip, fromTrip: cur || "" };
 }
 
 // A rate promotion's mpd for a charge on `cardId` in currency `cur` (ISO code, or ASIA8 chosen by hand) on day `ts`; 0 = not covered.

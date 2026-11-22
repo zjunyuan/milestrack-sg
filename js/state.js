@@ -9,6 +9,7 @@ export const state = {
   isKrisPlusMode: false,
   searchMode: "retailer",       // recommender search box: "retailer" | "mcc" (js/search-mode.js)
   isOverseasMode: false,
+  trip: { place: "", until: "" },   // Overseas mode's trip (js/trip.js, kept on the device): country id and the day the mode switches itself off
   isSingleSwipeMode: false,
   merchantOverrides: {},   // household brand->MCC corrections (Firestore milestrack_merchants)
   selectedRetailer: null,  // { name, mcc } picked from the typeahead or an alt-category chip
